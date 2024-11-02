@@ -7,7 +7,8 @@ import datetime
 
 # set up log file
 time = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-log_file = f"../../logs/{time}.log"
+current_path = os.path.dirname(__file__)
+log_file = f"{current_path}/../../logs/{time}.log"
 if not os.path.exists(log_file):
     open(log_file, 'w').close()
 
