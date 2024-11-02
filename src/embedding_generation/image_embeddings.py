@@ -39,6 +39,13 @@ class ImageEmbeddingGenerator(ABC):
             if not os.path.exists(image_path):
                 raise FileNotFoundError(f"Image {image_path} does not exist")
 
+    @staticmethod
+    def normalize_embeddings(embeddings: np.ndarray) -> np.ndarray:
+        """
+        Normalize the list of embeddings.
+        """
+        return embeddings / np.linalg.norm(embeddings, axis=1, keepdims=True)
+
 
 class HFImageEmbeddingGenerator(ImageEmbeddingGenerator):
     """
@@ -54,13 +61,12 @@ class HFImageEmbeddingGenerator(ImageEmbeddingGenerator):
         self.logger.info(f"Loaded {model_name}")
 
     def generate_image_embeddings(self, image_paths: list[str], normalize_embeddings: bool) -> np.ndarray:
-        ImageEmbeddingGenerator.verify_images_exist(image_paths)
-
+        self.verify_images_exist(image_paths)
         images = [Image.open(image_path) for image_path in image_paths]
         embeddings = self.__generate_image_embeddings(images)
 
         if normalize_embeddings:
-            embeddings = self.__normalize_embeddings(embeddings)
+            embeddings = self.normalize_embeddings(embeddings)
 
         return embeddings
 
@@ -71,15 +77,9 @@ class HFImageEmbeddingGenerator(ImageEmbeddingGenerator):
         self.logger.info(f"Generated {len(images)} embeddings!")
         return embeddings
 
-    @staticmethod
-    def __normalize_embeddings(embeddings: np.ndarray) -> np.ndarray:
-        return embeddings / np.linalg.norm(embeddings, axis=1, keepdims=True)
-
     def batch_generate_image_embeddings(self, image_paths: list[str], normalize_embeddings: bool) -> np.ndarray:
-        ImageEmbeddingGenerator.verify_images_exist(image_paths)
-
+        self.verify_images_exist(image_paths)
         self.logger.info(f"Generating {len(image_paths)} embeddings with batches...")
-
         embeddings: list[list[float]] = []
         batch_size = 1000
         for i in range(0, len(image_paths), batch_size):
@@ -88,9 +88,8 @@ class HFImageEmbeddingGenerator(ImageEmbeddingGenerator):
             embeddings.extend(batch_embeddings)
 
         np_embeddings = np.array(embeddings)
-
         if normalize_embeddings:
-            np_embeddings = self.__normalize_embeddings(np_embeddings)
+            np_embeddings = self.normalize_embeddings(np_embeddings)
 
         self.logger.info(f"Finished generation of {len(image_paths)} embeddings through batches!")
 
