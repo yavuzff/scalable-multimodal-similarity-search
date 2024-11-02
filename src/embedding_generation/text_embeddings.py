@@ -1,5 +1,5 @@
 """
-This handles the generation of embeddings for the input data.
+This handles the generation of embeddings for the texts.
 We provide an abstract class for the embedding generation, which extended by various
 embedding generation methods such as OpenAI and Sentence Transformers.
 """
@@ -10,7 +10,7 @@ import numpy as np
 import logging
 
 
-class EmbeddingGenerator(ABC):
+class TextEmbeddingGenerator(ABC):
     """
     Abstract class for generating embeddings.
     """
@@ -23,7 +23,7 @@ class EmbeddingGenerator(ABC):
         pass
 
 
-class SentenceTransformerEmbeddingGenerator(EmbeddingGenerator):
+class SentenceTransformerEmbeddingGenerator(TextEmbeddingGenerator):
     """
     Embedding generator using HuggingFace SentenceTransformer model
     """
@@ -41,7 +41,7 @@ class SentenceTransformerEmbeddingGenerator(EmbeddingGenerator):
         return embeddings
 
 
-class OpenAIEmbeddingGenerator(EmbeddingGenerator):
+class OpenAIEmbeddingGenerator(TextEmbeddingGenerator):
     """
     Embedding generator using OpenAI API
     """
