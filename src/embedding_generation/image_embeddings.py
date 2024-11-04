@@ -7,7 +7,7 @@ import numpy as np
 import logging
 import torch
 import os
-from transformers import pipeline  # type: ignore
+from transformers import pipeline
 from PIL import Image
 
 
