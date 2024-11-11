@@ -5,3 +5,4 @@ openai~=1.53.0
 torch~=2.2.2
 transformers~=4.46.1
 pillow~=11.0.0
+pyarrow==15.0.2
