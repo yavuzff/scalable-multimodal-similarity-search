@@ -21,7 +21,7 @@ RUN /venv/bin/pip install --upgrade pip && \
 COPY . .
 
 # Set the environment variables
-ENV PATH="/venv/bin:$PATH"
+ENV PATH="$PATH:/venv/bin"
 ENV PYTHONPATH="${PYTHONPATH}:/scalable-multimodal-similarity-search"
 
 CMD ["bash"]
