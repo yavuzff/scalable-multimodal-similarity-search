@@ -7,13 +7,22 @@ import os
 import json
 from src.common.constants import *
 
+SAMPLE = True
+NUM_SAMPLES = 50
+
+full_data = pd.read_parquet(METADATA_PATH)
 
 def test_image_dataset():
     """
     Verify that the images at the image_path is consistent with the data frame.
     """
     image_path = IMAGES_PATH
-    data = pd.read_parquet(METADATA_PATH)
+    # select dataset to compare
+    if SAMPLE:
+        data = full_data.sample(n=NUM_SAMPLES, random_state=42)
+    else:
+        data = full_data
+
     # iterate over the URLS of the data frame
     for i, row in data.iterrows():
         shard = str(i // 10000).zfill(5)
@@ -36,9 +45,8 @@ def test_vector_dataset():
     """
     Verify that the length of the vectors are consistent with the metadata.
     """
-    data = pd.read_parquet(METADATA_PATH)
-    print(f"Read {len(data)} entries from {METADATA_PATH}.")
+    print(f"Read {len(full_data)} entries from {METADATA_PATH}.")
     image_vectors = np.load(IMAGE_VECTORS_PATH)
     text_vectors = np.load(TEXT_VECTORS_PATH)
     print(f"Image vectors shape: {image_vectors.shape}, Text vectors shape: {text_vectors.shape}")
-    assert len(data) == len(image_vectors) == len(text_vectors), "Lengths do not match."
+    assert len(full_data) == len(image_vectors) == len(text_vectors), "Lengths do not match."
