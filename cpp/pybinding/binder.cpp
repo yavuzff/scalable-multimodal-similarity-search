@@ -3,7 +3,7 @@
 //
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
-#include "../add.hpp"
+#include "../index/add.hpp"
 
 namespace py = pybind11;
 
