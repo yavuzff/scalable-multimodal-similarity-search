@@ -28,10 +28,10 @@ Alternatively, you can run the project in a Docker container.
 
 #### Compile C++ code and setup Python bindings:
 1. `cd cpp`
-2. `python3 pybinding/setup.py install`
+2. `pip install ./pybinding`
 
 #### Run sample Python code:
-1. From the project root, run `python3 -m src.pybindtest`
+1. From the project root, run `python3 -m src.main`
 
 
 ### Additional Information
@@ -39,7 +39,7 @@ Alternatively, you can run the project in a Docker container.
 #### C++ development:
 Run cmake manually from `cpp/`:
 1. `cmake -S . -B cmake-build-debug`
-2. `cmake --build cmake-build-debug --target example -j 6`
+2. `cmake --build cmake-build-debug -j 6 --target cppindex`
 
 
 #### Dataset generation:

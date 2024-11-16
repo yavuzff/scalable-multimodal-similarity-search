@@ -25,7 +25,9 @@ PLAT_TO_CMAKE = {
 class CMakeExtension(Extension):
     def __init__(self, name: str, sourcedir: str = "") -> None:
         super().__init__(name, sources=[])
-        self.sourcedir = os.fspath(Path(sourcedir).resolve())
+
+        # The sourcedir folder for CMake is in the parent directory of setup.py since we store setup.py in pybinding/
+        self.sourcedir = os.fspath(Path(sourcedir).resolve().parent)
 
 
 class CMakeBuild(build_ext):
@@ -135,7 +137,7 @@ setup(
     author_email="dean0x7d@gmail.com",
     description="A test project using pybind11 and CMake",
     long_description="",
-    ext_modules=[CMakeExtension("example")], # this should be the name of the .so file/module name in binder
+    ext_modules=[CMakeExtension("cppindex")], # this should be the name of the .so file/module name in binder
     cmdclass={"build_ext": CMakeBuild},
     zip_safe=False,
     extras_require={"test": ["pytest>=6.0"]},
