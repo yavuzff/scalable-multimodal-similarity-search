@@ -28,7 +28,7 @@ Alternatively, you can run the project in a Docker container.
 
 #### Compile C++ code and setup Python bindings:
 1. `cd cpp`
-2. `pip install ./pybinding`
+2. `pip install ./pybinding`. Note: IDE may not index the module correctly. This is not the case if you run `python3 pybinding/setup.py install` instead.
 
 #### Run sample Python code:
 1. From the project root, run `python3 -m src.main`

@@ -26,9 +26,10 @@ class CMakeExtension(Extension):
     def __init__(self, name: str, sourcedir: str = "") -> None:
         super().__init__(name, sources=[])
 
-        # The sourcedir folder for CMake is in the parent directory of setup.py since we store setup.py in pybinding/
-        self.sourcedir = os.fspath(Path(sourcedir).resolve().parent)
-
+        # Use line below if running with `pip install ./pybinding` (which checks parent directory for Cmake):
+        # self.sourcedir = os.fspath(Path(sourcedir).resolve().parent)
+        # or if installing with `python3 pybinding/setup.py install` (not recommended but IDE indexes correctly unlike above)
+        self.sourcedir = os.fspath(Path(sourcedir).resolve())
 
 class CMakeBuild(build_ext):
     def build_extension(self, ext: CMakeExtension) -> None:
