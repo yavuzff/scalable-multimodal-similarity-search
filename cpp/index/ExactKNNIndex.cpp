@@ -3,14 +3,7 @@
 //
 
 #include "ExactKNNIndex.hpp"
-
-// #ifndef DEBUG
-// #define DEBUG 0
-// #endif
-// #define debug_printf(fmt, ...) \
-// do { if (DEBUG) { fprintf(stderr, fmt, __VA_ARGS__); \
-// fflush(stderr); } } while (0)
-
+#include "../common.hpp"
 
 #include <cassert>
 #include <queue>
@@ -39,6 +32,7 @@ ExactKNNIndex::~ExactKNNIndex() = default;
 
 // Add a vector to the index
 void ExactKNNIndex::add(const std::vector<float>& vector) {
+    debug_printf("Adding vector of size %lu\n", vector.size());
     data.push_back(vector);
 }
 
