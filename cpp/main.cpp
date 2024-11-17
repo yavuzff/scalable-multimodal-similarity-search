@@ -11,10 +11,8 @@ int main() {
     index.add({5.0f, 6.0f});
     index.add({1.0f, 1.0f});
 
-    // Perform a search
     std::vector<int> neighbours = index.search({1.0f, 1.0f}, 2);
 
-    // Print the results
     std::cout << "Indices of nearest neighbors: ";
     for (int idx : neighbours) {
         std::cout << idx << " ";

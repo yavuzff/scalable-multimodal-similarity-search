@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.29)
-project(CppTest)
+project(scalable-multimodal-similarity-search)
 
 set(CMAKE_CXX_STANDARD 20)
 
@@ -16,12 +16,11 @@ add_library(exact STATIC
         index/ExactKNNIndex.hpp)
 set_target_properties(exact PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-# can deploy add as library, create executable for unit testing and create separate executables
+# can also create executable for unit testing
 
 # create executable with target main and link to library:
 add_executable(main main.cpp)
 target_link_libraries(main PRIVATE exact)
-
 
 # Find pybind11 installed with conda
 find_package(pybind11 REQUIRED)
