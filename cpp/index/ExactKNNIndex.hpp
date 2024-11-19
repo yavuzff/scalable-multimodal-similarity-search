@@ -1,7 +1,7 @@
 #ifndef EXACTKNNINDEX_HPP
 #define EXACTKNNINDEX_HPP
 
-#include "KNNIndex.hpp"
+#include "AbstractKNNIndex.hpp"
 
 class ExactKNNIndex : public KNNIndex {
 private:
