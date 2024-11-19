@@ -5,10 +5,10 @@
 
 class ExactKNNIndex : public KNNIndex {
 private:
-    std::vector<std::vector<float>> data; // Stored vectors
+    std::vector<std::vector<float>> data; // store collection of vectors
 
 public:
-    ~ExactKNNIndex() override; // Virtual destructor
+    ~ExactKNNIndex() override;
 
     // Add a vector to the index
     void add(const std::vector<float>& vector) override;

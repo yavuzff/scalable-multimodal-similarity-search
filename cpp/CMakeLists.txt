@@ -13,7 +13,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
 
 add_library(exact STATIC
         index/ExactKNNIndex.cpp
-        index/ExactKNNIndex.hpp)
+        index/DistanceMetrics.cpp
+)
 set_target_properties(exact PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # can also create executable for unit testing
