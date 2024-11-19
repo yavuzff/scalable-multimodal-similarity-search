@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "index/ExactKNNIndex.hpp"
+#include "index/simple-knn/ExactKNNIndex.hpp"
 #include "index/ExactMultiIndex.hpp"
 
 void exact_demo() {
@@ -21,7 +21,7 @@ void exact_demo() {
     std::cout << std::endl;
 }
 
-void multi_demo() {
+void multi_exact_demo() {
     // initialise an index
     size_t modalities = 2;
     std::vector<size_t> dims = {1, 2};
@@ -47,7 +47,7 @@ void multi_demo() {
 
 int main() {
 
-    multi_demo();
+    multi_exact_demo();
 
     return 0;
 }

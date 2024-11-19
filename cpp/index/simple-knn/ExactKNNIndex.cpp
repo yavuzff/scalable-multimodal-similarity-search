@@ -1,6 +1,6 @@
 #include "ExactKNNIndex.hpp"
-#include "../common.hpp"
-#include "DistanceMetrics.hpp"
+#include "../../common.hpp"
+#include "../DistanceMetrics.hpp"
 
 #include <cassert>
 #include <queue>

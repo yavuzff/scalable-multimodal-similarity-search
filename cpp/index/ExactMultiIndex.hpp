@@ -10,7 +10,7 @@ private:
     void validateEntity(const std::vector<std::vector<float>> &entity) const;
 
 public:
-    ExactMultiIndex(size_t modalities,
+    ExactMultiIndex(const size_t modalities,
                     std::vector<size_t> dims,
                     std::vector<std::string> distance_metrics,
                     std::vector<float> weights)

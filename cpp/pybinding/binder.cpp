@@ -1,6 +1,6 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
-#include "../index/ExactKNNIndex.hpp"
+#include "../index/simple-knn/ExactKNNIndex.hpp"
 
 namespace py = pybind11;
 

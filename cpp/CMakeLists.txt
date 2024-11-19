@@ -13,7 +13,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
 
 # library for simple exact knn search
 add_library(exact STATIC
-        index/ExactKNNIndex.cpp
+        index/simple-knn/ExactKNNIndex.cpp
         index/DistanceMetrics.cpp
 )
 set_target_properties(exact PROPERTIES POSITION_INDEPENDENT_CODE ON)
