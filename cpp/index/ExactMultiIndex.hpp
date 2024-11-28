@@ -20,11 +20,11 @@ public:
 
     std::vector<size_t> search(const std::vector<std::vector<float>>& query, size_t k, const std::vector<float>& query_weights) override;
 
+    std::vector<size_t> search(const std::vector<std::vector<float>>& query, size_t k) override;
+
     void save(const std::string& path) const override;
 
     void load(const std::string& path) override;
 };
-
-
 
 #endif //EXACTMULTIINDEX_HPP

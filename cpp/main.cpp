@@ -36,7 +36,8 @@ void multi_exact_demo() {
     index.add({{1.0f}, {1.0f, 1.0f}});
 
     // search for nearest neighbors
-    std::vector<size_t> neighbours = index.search({{1.0f}, {1.0f, 1.0f}}, 2,  {0.5f, 0.5f});
+    //std::vector<size_t> neighbours = index.search({{1.0f}, {1.0f, 1.0f}}, 2,  {0.5f, 0.5f});
+    std::vector<size_t> neighbours = index.search({{1.0f}, {1.0f, 1.0f}}, 2);
 
     std::cout << "Indices of nearest neighbors: ";
     for (size_t idx : neighbours) {

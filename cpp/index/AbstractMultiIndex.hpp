@@ -33,6 +33,8 @@ public:
     virtual std::vector<size_t> search(const std::vector<std::vector<float>>& query, size_t k,
                                        const std::vector<float>& query_weights) = 0;
 
+    virtual std::vector<size_t> search(const std::vector<std::vector<float>>& query, size_t k) = 0;
+
     virtual void save(const std::string& path) const = 0;
 
     virtual void load(const std::string& path) = 0;

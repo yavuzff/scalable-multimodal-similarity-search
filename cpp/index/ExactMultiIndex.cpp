@@ -4,6 +4,17 @@
 #include <iostream>
 #include <queue>
 
+//TODO:
+// - integrate with pybind
+// - add distance metric selection
+// - validate weights length etc. in constructor, have optional weights
+// - add optional weights usage in search (so would default to index weights)
+// Lower priority:
+// - add multiple entity addition? check with pybind
+// - return vectors from search? Or add method to retrieve vector with certain index?
+// - add save and load index
+
+
 //private function to validate an input entity
 void ExactMultiIndex::validateEntity(const std::vector<std::vector<float>>& entity) const {
     if (entity.size() != modalities) {
@@ -21,7 +32,7 @@ void ExactMultiIndex::add(const std::vector<std::vector<float>>& entity) {
     entities.push_back(entity);
 }
 
-std::vector<size_t> ExactMultiIndex::search(const std::vector<std::vector<float>>& query, size_t k,
+std::vector<size_t> ExactMultiIndex::search(const std::vector<std::vector<float>>& query, const size_t k,
                         const std::vector<float>& query_weights) {
     validateEntity(query);
 
@@ -49,6 +60,10 @@ std::vector<size_t> ExactMultiIndex::search(const std::vector<std::vector<float>
     // return in increasing distance order
     std::ranges::reverse(result);
     return result;
+}
+
+std::vector<size_t> ExactMultiIndex::search(const std::vector<std::vector<float>>& query, size_t k) {
+    return search(query, k, weights);
 }
 
 void ExactMultiIndex::save(const std::string& path) const {
