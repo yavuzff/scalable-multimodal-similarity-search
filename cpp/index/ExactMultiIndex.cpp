@@ -5,10 +5,9 @@
 #include <queue>
 
 //TODO:
+// - use array representation for contiguous storage
 // - integrate with pybind
 // - add distance metric selection
-// - validate weights length etc. in constructor, have optional weights
-// - add optional weights usage in search (so would default to index weights)
 // Lower priority:
 // - add multiple entity addition? check with pybind
 // - return vectors from search? Or add method to retrieve vector with certain index?
@@ -35,9 +34,9 @@ void ExactMultiIndex::add(const std::vector<std::vector<float>>& entity) {
 std::vector<size_t> ExactMultiIndex::search(const std::vector<std::vector<float>>& query, const size_t k,
                         const std::vector<float>& query_weights) {
     validateEntity(query);
+    validateWeights(query_weights, modalities);
 
     std::priority_queue<std::pair<float, size_t>> maxHeap;
-
     for (size_t i = 0; i < entities.size(); i++) {
         float dist = weightedEuclideanDistance(query, entities[i], query_weights);
 

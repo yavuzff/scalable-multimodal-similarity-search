@@ -26,8 +26,9 @@ void multi_exact_demo() {
     size_t modalities = 2;
     std::vector<size_t> dims = {1, 2};
     std::vector<std::string> distance_metrics = {"euclidean", "euclidean"};
+    std::cout << "distance_metrics.size() = " << distance_metrics.size() << std::endl;
     std::vector<float> weights = {0.5f, 0.5f};
-    ExactMultiIndex index(modalities, dims, distance_metrics, weights);
+    ExactMultiIndex index(modalities, dims, distance_metrics);
 
     // add some entities
     index.add({{1.0f}, {2.0f, 3.0f}});

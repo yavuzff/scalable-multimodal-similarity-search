@@ -1,8 +1,19 @@
 #ifndef MULTIINDEX_HPP
 #define MULTIINDEX_HPP
 
-#include <utility>
+#include <iostream>
 #include <vector>
+
+// function to validate weights
+inline void validateWeights(const std::vector<float>& weights, size_t modalities) {
+    if (weights.size() != modalities) {
+        throw std::invalid_argument("Number of weights must match number of modalities");
+    }
+    // check weights are non-negative
+    if (std::ranges::any_of(weights, [](float weight) { return weight < 0; })) {
+        throw std::invalid_argument("Weights must be non-negative");
+    }
+}
 
 // Abstract class for Multi vector K-NN index
 class AbstractMultiIndex {
@@ -13,12 +24,26 @@ public:
     std::vector<float> weights;
 
     // Constructor: take parameters in by value to gain ownership
+    AbstractMultiIndex(size_t the_modalities,
+        std::vector<size_t> dims,
+        std::vector<std::string> dist_metrics,
+        std::vector<float> ws)
+        : modalities(the_modalities), dimensions(std::move(dims)),distance_metrics(std::move(dist_metrics)), weights(std::move(ws)) {
+        if (dimensions.size() != modalities) {
+            throw std::invalid_argument("Number of dimensions must match number of modalities");
+        }
+        if (distance_metrics.size() != modalities) {
+            throw std::invalid_argument("Number of distance metrics must match number of modalities");
+        }
+        validateWeights(weights, modalities);
+    }
+
+    // weights are optional, default is uniform weights which sum to 1
     AbstractMultiIndex(size_t modalities,
         std::vector<size_t> dims,
-        std::vector<std::string> distance_metrics,
-        std::vector<float> weights)
-        : modalities(modalities), dimensions(std::move(dims)),distance_metrics(std::move(distance_metrics)), weights(std::move(weights)) {}
-        //validate parameters
+        std::vector<std::string> distance_metrics)
+        : AbstractMultiIndex(modalities, std::move(dims), std::move(distance_metrics), std::vector<float>(modalities, 1.0f / modalities)) {}
+
 
     virtual ~AbstractMultiIndex() = default;
 
@@ -40,6 +65,5 @@ public:
     virtual void load(const std::string& path) = 0;
 
 };
-
 
 #endif //MULTIINDEX_HPP

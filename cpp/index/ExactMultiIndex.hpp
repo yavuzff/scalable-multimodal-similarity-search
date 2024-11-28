@@ -16,6 +16,10 @@ public:
                     std::vector<float> weights)
         : AbstractMultiIndex(modalities, std::move(dims), std::move(distance_metrics), std::move(weights)) {}
 
+    ExactMultiIndex(const size_t modalities,
+                    std::vector<size_t> dims,
+                    std::vector<std::string> distance_metrics): AbstractMultiIndex(modalities, std::move(dims), std::move(distance_metrics)) {}
+
     void add(const std::vector<std::vector<float>>& entity) override;
 
     std::vector<size_t> search(const std::vector<std::vector<float>>& query, size_t k, const std::vector<float>& query_weights) override;
