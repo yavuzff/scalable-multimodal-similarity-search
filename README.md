@@ -39,8 +39,8 @@ Alternatively, you can run the project in a Docker container.
 #### C++ development:
 Run cmake manually from `cpp/`:
 1. `cmake -S . -B cmake-build-debug`
-2. `cmake --build cmake-build-debug -j 6 --target cppindex`
-
+2. `cmake --build cmake-build-debug -j 6 --target main`
+3. `./cmake-build-debug/main`
 
 #### Dataset generation:
 - Used data_processing/dataset_preparation to download images and save image/metadata.

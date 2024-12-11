@@ -36,6 +36,12 @@ public:
             throw std::invalid_argument("Number of distance metrics must match number of modalities");
         }
         validateWeights(weights, modalities);
+
+        // print out what we just initialised:
+        std::cout << "Created MultiIndex with " << modalities << " modalities" << std::endl;
+        for (size_t i = 0; i < modalities; ++i) {
+            std::cout << "Modality " << i << " has dimension " << dimensions[i] << ", distance metric " << distance_metrics[i] << " and weight " << weights[i] << std::endl;
+        }
     }
 
     // weights are optional, default is uniform weights which sum to 1

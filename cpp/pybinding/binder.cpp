@@ -1,6 +1,8 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
+#include <pybind11/stl.h>
 #include "../index/simple-knn/ExactKNNIndex.hpp"
+#include "../index/ExactMultiIndex.hpp"
 
 namespace py = pybind11;
 
@@ -30,12 +32,11 @@ py::array_t<int> convert_to_numpy(const std::vector<int> &result) {
     return result_array;
 }
 
-class ExactIndex {
-private:
+class ExactKNNIndexPyWrapper {
     ExactKNNIndex index;
 
 public:
-    ExactIndex() : index(ExactKNNIndex()){}
+    ExactKNNIndexPyWrapper() : index(ExactKNNIndex()){}
 
     void add(const py::object &vector) {
         index.add(convert_to_vector(vector));
@@ -47,11 +48,45 @@ public:
 };
 
 
+class ExactMultiIndexPyWrapper {
+    ExactMultiIndex index;
+
+public:
+
+    ExactMultiIndexPyWrapper(const size_t modalities,
+                             const std::vector<size_t> &dims,
+                             const std::vector<std::string> &distance_metrics,
+                             const std::optional<std::vector<float>> &weights)
+            : index(weights ? ExactMultiIndex(modalities, dims, distance_metrics, *weights)
+                            : ExactMultiIndex(modalities, dims, distance_metrics)) {}
+
+
+    void save(const std::string &path) const {
+        index.save(path);
+    }
+
+    void load(const std::string &path) {
+        index.load(path);
+    }
+};
+
+
+
 PYBIND11_MODULE(cppindex, m) {
-    m.doc() = "Exact KNN Index"; // optional module docstring
-    //m.def("add", &add, "A function that adds two numbers");
-    py::class_<ExactIndex>(m, "ExactIndex")
+    m.doc() = "This module contains different knn indexes: ExactIndex, ExactMultiIndex"; // optional module docstring
+
+    // simple exact index
+    py::class_<ExactKNNIndexPyWrapper>(m, "ExactIndex")
         .def(py::init<>())
-        .def("add", &ExactIndex::add)
-        .def("search", &ExactIndex::search);
+        .def("add", &ExactKNNIndexPyWrapper::add)
+        .def("search", &ExactKNNIndexPyWrapper::search);
+
+
+    py::class_<ExactMultiIndexPyWrapper>(m, "ExactMultiIndex")
+        // note that pybind11/stl.h automatic conversions occur here, which copy these vectors - this is fine for initialisation
+        .def(py::init<size_t, const std::vector<size_t>&, const std::vector<std::string>&, const std::optional<std::vector<float>>&>(), py::arg("modalities"), py::arg("dims"), py::arg("distance_metrics"), py::arg("weights")=std::nullopt)
+
+        .def("save", &ExactMultiIndexPyWrapper::save, "Method to save index", py::arg("path"))
+        .def("load", &ExactMultiIndexPyWrapper::load, "Method to load index", py::arg("path"));
+
 }

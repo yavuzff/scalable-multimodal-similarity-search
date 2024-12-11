@@ -8,11 +8,18 @@ def form_index():
     my_index.add(np.array([0,0]))
     my_index.add(np.array([-1,-2]))
     my_index.add(np.array([-3,-4]))
-    return my_index
 
-index = form_index()
+    print(my_index.search(np.array([0,0]),2))
+    print(my_index.search(np.array([0,0]),3))
+    print(my_index.search(np.array([5,6]),3))
+    print(my_index.search(np.array([15,16]),5))
 
-print(index.search(np.array([0,0]),2))
-print(index.search(np.array([0,0]),3))
-print(index.search(np.array([5,6]),3))
-print(index.search(np.array([15,16]),5))
+
+def form_exact_multi_index():
+    index1 = cppindex.ExactMultiIndex()
+    index2 = cppindex.ExactMultiIndex(2, dims=np.array([1,2]), distance_metrics=["a","b"], weights=[0.5,0.5])
+
+    index2.save("mypath")
+
+form_index()
+form_exact_multi_index()

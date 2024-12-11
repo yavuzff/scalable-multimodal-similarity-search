@@ -34,4 +34,4 @@ target_link_libraries(main PRIVATE exact multiExact)
 # Find pybind11 installed with conda
 find_package(pybind11 REQUIRED)
 pybind11_add_module(cppindex pybinding/binder.cpp)
-target_link_libraries(cppindex PRIVATE exact)
+target_link_libraries(cppindex PRIVATE exact multiExact)

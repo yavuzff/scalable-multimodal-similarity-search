@@ -28,6 +28,7 @@ void ExactMultiIndex::validateEntity(const std::vector<std::vector<float>>& enti
 
 void ExactMultiIndex::add(const std::vector<std::vector<float>>& entity) {
     validateEntity(entity);
+    std::cout << "Adding entity!" << std::endl;
     entities.push_back(entity);
 }
 
@@ -67,6 +68,7 @@ std::vector<size_t> ExactMultiIndex::search(const std::vector<std::vector<float>
 
 void ExactMultiIndex::save(const std::string& path) const {
     std::cout << "Saving index to " << path << std::endl;
+    std::cout << "Index properties: " << modalities << ", num_items: " << entities.size() << std::endl;
 }
 
 void ExactMultiIndex::load(const std::string& path) {
