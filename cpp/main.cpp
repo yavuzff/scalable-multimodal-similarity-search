@@ -1,7 +1,7 @@
 #include <iostream>
 
-#include "index/simple-knn/ExactKNNIndex.hpp"
-#include "index/ExactMultiIndex.hpp"
+#include "include/simple-knn/ExactKNNIndex.hpp"
+#include "include/ExactMultiIndex.hpp"
 
 void exact_demo() {
     ExactKNNIndex index;

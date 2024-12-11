@@ -1,4 +1,4 @@
-#include "DistanceMetrics.hpp"
+#include "../include/DistanceMetrics.hpp"
 
 #include <vector>
 

@@ -1,8 +1,8 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
-#include "../index/simple-knn/ExactKNNIndex.hpp"
-#include "../index/ExactMultiIndex.hpp"
+#include "../include/simple-knn/ExactKNNIndex.hpp"
+#include "../include/ExactMultiIndex.hpp"
 
 namespace py = pybind11;
 
@@ -58,6 +58,21 @@ public:
                              const std::optional<std::vector<float>> &weights)
             : index(weights ? ExactMultiIndex(modalities, dims, distance_metrics, *weights)
                             : ExactMultiIndex(modalities, dims, distance_metrics)) {}
+    // // Add method
+    // void add(const py::object &entity) {
+    //     index.add(convert_to_nested_vector(entity));
+    // }
+    //
+    // // Search method (with weights)
+    // py::array_t<int> search(const py::object &query, size_t k, const py::object &query_weights) const {
+    //     return convert_to_numpy(index.search(convert_to_nested_vector(query), k,
+    //                                          convert_to_vector(query_weights)));
+    // }
+    //
+    // // Search method (without weights)
+    // py::array_t<int> search(const py::object &query, size_t k) const {
+    //     return convert_to_numpy(index.search(convert_to_nested_vector(query), k));
+    // }
 
     void save(const std::string &path) const {
         index.save(path);

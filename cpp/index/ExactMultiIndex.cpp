@@ -1,5 +1,5 @@
-#include "ExactMultiIndex.hpp"
-#include "DistanceMetrics.hpp"
+#include "../include/ExactMultiIndex.hpp"
+#include "../include/DistanceMetrics.hpp"
 
 #include <iostream>
 #include <queue>
