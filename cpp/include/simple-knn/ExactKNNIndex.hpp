@@ -14,7 +14,7 @@ public:
     void add(const std::vector<float>& vector) override;
 
     // Perform a k-nearest neighbor search
-    [[nodiscard]] std::vector<int> search(const std::vector<float>& query, size_t k) const override;
+    [[nodiscard]] std::vector<size_t> search(const std::vector<float>& query, size_t k) const override;
 };
 
 

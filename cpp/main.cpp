@@ -12,7 +12,7 @@ void exact_demo() {
     index.add({5.0f, 6.0f});
     index.add({1.0f, 1.0f});
 
-    std::vector<int> neighbours = index.search({1.0f, 1.0f}, 2);
+    std::vector<size_t> neighbours = index.search({1.0f, 1.0f}, 2);
 
     std::cout << "Indices of nearest neighbors: ";
     for (int idx : neighbours) {

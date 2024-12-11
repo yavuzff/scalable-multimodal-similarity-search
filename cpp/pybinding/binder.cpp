@@ -23,12 +23,12 @@ std::vector<float> convert_to_vector(const py::object &vector) {
     throw std::runtime_error("Input must be a numpy array");
 }
 
-py::array_t<int> convert_to_numpy(const std::vector<int> &result) {
+py::array_t<size_t> convert_to_numpy(const std::vector<size_t> &result) {
     // convert std::vector<int> of ids to numpy array of integers
     // note that we are copying the data to a new location for the numpy array
-    py::array_t<int> result_array(static_cast<py::ssize_t>(result.size()));
+    py::array_t<size_t> result_array(static_cast<py::ssize_t>(result.size()));
     const py::buffer_info result_buffer = result_array.request();
-    std::memcpy(result_buffer.ptr, result.data(), result.size() * sizeof(int));
+    std::memcpy(result_buffer.ptr, result.data(), result.size() * sizeof(size_t));
     return result_array;
 }
 
@@ -42,7 +42,7 @@ public:
         index.add(convert_to_vector(vector));
     };
 
-    [[nodiscard]] py::array_t<int> search(const py::object &query, size_t k) const {
+    [[nodiscard]] py::array_t<size_t> search(const py::object &query, size_t k) const {
         return convert_to_numpy(index.search(convert_to_vector(query), k));
     };
 };
@@ -58,21 +58,15 @@ public:
                              const std::optional<std::vector<float>> &weights)
             : index(weights ? ExactMultiIndex(modalities, dims, distance_metrics, *weights)
                             : ExactMultiIndex(modalities, dims, distance_metrics)) {}
-    // // Add method
-    // void add(const py::object &entity) {
-    //     index.add(convert_to_nested_vector(entity));
-    // }
-    //
-    // // Search method (with weights)
-    // py::array_t<int> search(const py::object &query, size_t k, const py::object &query_weights) const {
-    //     return convert_to_numpy(index.search(convert_to_nested_vector(query), k,
-    //                                          convert_to_vector(query_weights)));
-    // }
-    //
-    // // Search method (without weights)
-    // py::array_t<int> search(const py::object &query, size_t k) const {
-    //     return convert_to_numpy(index.search(convert_to_nested_vector(query), k));
-    // }
+
+    void addEntities(const py::object &entities) {
+
+    }
+
+    // [[nodiscard]] py::array_t<int> search(const py::object &query, size_t k) const {
+    //     std::vector<size_t> res = //
+    //     return convert_to_numpy(res);
+    // };
 
     void save(const std::string &path) const {
         index.save(path);
@@ -114,6 +108,10 @@ PYBIND11_MODULE(cppindex, m) {
     py::class_<ExactMultiIndexPyWrapper>(m, "ExactMultiIndex")
         // note that pybind11/stl.h automatic conversions occur here, which copy these vectors - this is fine for initialisation
         .def(py::init<size_t, const std::vector<size_t>&, const std::vector<std::string>&, const std::optional<std::vector<float>>&>(), py::arg("modalities"), py::arg("dims"), py::arg("distance_metrics"), py::arg("weights")=std::nullopt)
+
+        .def("add_entities", &ExactMultiIndexPyWrapper::addEntities, "Adds multiple entities to the index. To add `n` entities with `k` modalities, provide a list of length `k`, where each element is a 2D numpy array of shape `(n, dimensions_of_modality)`. Each array corresponds to one modality.", py::arg("entities"))
+        //.def("search", &ExactMultiIndexPyWrapper::search, "Returns the indices for the k-nearest neighbors of a query entity. Query should be a list of length `k`, where each element is a vector for that modality", py::arg("query"), py::arg("k"))
+
 
         .def("save", &ExactMultiIndexPyWrapper::save, "Method to save index", py::arg("path"))
         .def("load", &ExactMultiIndexPyWrapper::load, "Method to load index", py::arg("path"))

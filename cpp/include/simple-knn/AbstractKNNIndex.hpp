@@ -12,7 +12,7 @@ public:
 
     // Pure virtual function to search given query vector
     // Returns indices of the k-nearest vectors
-    [[nodiscard]] virtual std::vector<int> search(const std::vector<float>& query, size_t k) const = 0;
+    [[nodiscard]] virtual std::vector<size_t> search(const std::vector<float>& query, size_t k) const = 0;
 };
 
 

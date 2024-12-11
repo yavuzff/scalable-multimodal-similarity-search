@@ -13,11 +13,11 @@ void ExactKNNIndex::add(const std::vector<float>& vector) {
 }
 
 // linear search using priority queue
-std::vector<int> ExactKNNIndex::search(const std::vector<float>& query, size_t k) const {
+std::vector<size_t> ExactKNNIndex::search(const std::vector<float>& query, size_t k) const {
     assert(k <= data.size());
 
     // max-heap priority queue to store the k-nearest neighbors. Pair: <distance, index>.
-    std::priority_queue<std::pair<float, int>> maxHeap;
+    std::priority_queue<std::pair<float, size_t>> maxHeap;
 
     for (size_t i = 0; i < data.size(); i++) {
         float dist = euclideanDistance(query, data[i]);
@@ -32,7 +32,7 @@ std::vector<int> ExactKNNIndex::search(const std::vector<float>& query, size_t k
     }
 
     // extract indices from priority queue
-    std::vector<int> result;
+    std::vector<size_t> result;
     while (!maxHeap.empty()) {
         result.push_back(maxHeap.top().second);
         maxHeap.pop();

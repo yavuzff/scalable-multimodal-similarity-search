@@ -53,7 +53,7 @@ def test_valid_exact_multi_index_initialisation_with_arguments():
     assert index4.modalities == 2
     assert index4.dimensions == [1,2]
     assert index4.distance_metrics == ["a", "b"]
-    assert np.allclose(index4.weights,[1.0, 1.0])
+    assert np.allclose(index4.weights,[0.5, 0.5])
 
 
     index5 = cppindex.ExactMultiIndex(2, dims=np.array([1, 2]), distance_metrics=["a", "b"], weights = None)
@@ -61,7 +61,7 @@ def test_valid_exact_multi_index_initialisation_with_arguments():
     assert index5.modalities == 2
     assert index5.dimensions == [1,2]
     assert index5.distance_metrics == ["a", "b"]
-    assert np.allclose(index5.weights,[1.0, 1.0])
+    assert np.allclose(index5.weights,[0.5, 0.5])
 
 def test_immutable_exact_multi_index_attributes():
     index = cppindex.ExactMultiIndex(2, dims=np.array([1, 2]), distance_metrics=["a", "b"], weights=[0.3, 0.7])

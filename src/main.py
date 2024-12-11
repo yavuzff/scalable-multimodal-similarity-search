@@ -16,10 +16,9 @@ def form_index():
 
 
 def form_exact_multi_index():
-    index1 = cppindex.ExactMultiIndex()
-    index2 = cppindex.ExactMultiIndex(2, dims=np.array([1,2]), distance_metrics=["a","b"], weights=[0.5,0.5])
+    index = cppindex.ExactMultiIndex(2, dims=np.array([1,2]), distance_metrics=["a","b"], weights=[0.5,0.5])
 
-    index2.save("mypath")
+    index.save("mypath")
 
 form_index()
 form_exact_multi_index()
