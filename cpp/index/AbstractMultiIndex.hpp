@@ -18,10 +18,10 @@ inline void validateWeights(const std::vector<float>& weights, size_t modalities
 // Abstract class for Multi vector K-NN index
 class AbstractMultiIndex {
 public:
-    size_t modalities;
-    std::vector<size_t> dimensions;
-    std::vector<std::string> distance_metrics;
-    std::vector<float> weights;
+    const size_t modalities;
+    const std::vector<size_t> dimensions;
+    const std::vector<std::string> distance_metrics;
+    const std::vector<float> weights;
 
     // Constructor: take parameters in by value to gain ownership
     AbstractMultiIndex(size_t the_modalities,

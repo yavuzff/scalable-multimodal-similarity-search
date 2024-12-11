@@ -49,9 +49,8 @@ public:
 
 
 class ExactMultiIndexPyWrapper {
-    ExactMultiIndex index;
-
 public:
+    ExactMultiIndex index;
 
     ExactMultiIndexPyWrapper(const size_t modalities,
                              const std::vector<size_t> &dims,
@@ -60,13 +59,28 @@ public:
             : index(weights ? ExactMultiIndex(modalities, dims, distance_metrics, *weights)
                             : ExactMultiIndex(modalities, dims, distance_metrics)) {}
 
-
     void save(const std::string &path) const {
         index.save(path);
     }
 
     void load(const std::string &path) {
         index.load(path);
+    }
+
+    [[nodiscard]] size_t modalities() const {
+        return index.modalities;
+    }
+
+    [[nodiscard]]const std::vector<size_t>& dimensions() const {
+        return index.dimensions;
+    }
+
+    [[nodiscard]] const std::vector<std::string>& distance_metrics() const {
+        return index.distance_metrics;
+    }
+
+    [[nodiscard]] const std::vector<float>& weights() const {
+        return index.weights;
     }
 };
 
@@ -87,6 +101,12 @@ PYBIND11_MODULE(cppindex, m) {
         .def(py::init<size_t, const std::vector<size_t>&, const std::vector<std::string>&, const std::optional<std::vector<float>>&>(), py::arg("modalities"), py::arg("dims"), py::arg("distance_metrics"), py::arg("weights")=std::nullopt)
 
         .def("save", &ExactMultiIndexPyWrapper::save, "Method to save index", py::arg("path"))
-        .def("load", &ExactMultiIndexPyWrapper::load, "Method to load index", py::arg("path"));
+        .def("load", &ExactMultiIndexPyWrapper::load, "Method to load index", py::arg("path"))
+
+        // read-only attributes
+        .def_property_readonly("modalities", &ExactMultiIndexPyWrapper::modalities)
+        .def_property_readonly("dimensions", &ExactMultiIndexPyWrapper::dimensions)
+        .def_property_readonly("distance_metrics", &ExactMultiIndexPyWrapper::distance_metrics)
+        .def_property_readonly("weights", &ExactMultiIndexPyWrapper::weights);
 
 }
