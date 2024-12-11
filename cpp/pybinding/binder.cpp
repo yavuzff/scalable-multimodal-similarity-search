@@ -3,28 +3,26 @@
 #include <pybind11/stl.h>
 #include "../include/simple-knn/ExactKNNIndex.hpp"
 #include "../include/ExactMultiIndex.hpp"
+#include <span>
 
 namespace py = pybind11;
 
-std::vector<float> convert_to_vector(const py::object &vector) {
-    // perform checks on numpy array input and convert it to std::vector<float>
-    // note that it uses the same memory as the numpy array
-    if (py::isinstance<py::array>(vector)) {
-        const auto array = vector.cast<py::array_t<float>>();
-        const py::buffer_info buf = array.request();
-        if (buf.ndim != 1) {
-            throw std::runtime_error("Input must be a 1D array");
-        }
-        if (buf.format != py::format_descriptor<float>::format()) {
-            throw std::runtime_error("Data type must be float32");
-        }
-        return {static_cast<float*>(buf.ptr), static_cast<float*>(buf.ptr) + buf.size};
+// perform checks on array-like input and convert it to std::vector<span>
+// note that span means we use the same memory as the input array
+std::span<float> convert_to_span(const py::object &input) {
+    // casting the input to a numpy array with C-style memory layout and forcecasting
+    py::array_t<float, py::array::c_style | py::array::forcecast> items(input);
+    auto buffer = items.request();
+
+    if (buffer.ndim != 1) {
+        throw std::runtime_error("Input must be a 1D array");
     }
-    throw std::runtime_error("Input must be a numpy array");
+    return std::span<float>(static_cast<float*>(buffer.ptr), buffer.size);
 }
 
+
+// convert std::vector<size_t> of ids to numpy array of integers
 py::array_t<size_t> convert_to_numpy(const std::vector<size_t> &result) {
-    // convert std::vector<int> of ids to numpy array of integers
     // note that we are copying the data to a new location for the numpy array
     py::array_t<size_t> result_array(static_cast<py::ssize_t>(result.size()));
     const py::buffer_info result_buffer = result_array.request();
@@ -39,11 +37,13 @@ public:
     ExactKNNIndexPyWrapper() : index(ExactKNNIndex()){}
 
     void add(const py::object &vector) {
-        index.add(convert_to_vector(vector));
+        auto span = convert_to_span(vector);
+        index.add(std::vector(span.begin(), span.end()));
     };
 
     [[nodiscard]] py::array_t<size_t> search(const py::object &query, size_t k) const {
-        return convert_to_numpy(index.search(convert_to_vector(query), k));
+        auto span = convert_to_span(query);
+        return convert_to_numpy(index.search(std::vector<float>(span.begin(), span.end()), k));
     };
 };
 
@@ -109,9 +109,12 @@ PYBIND11_MODULE(cppindex, m) {
         // note that pybind11/stl.h automatic conversions occur here, which copy these vectors - this is fine for initialisation
         .def(py::init<size_t, const std::vector<size_t>&, const std::vector<std::string>&, const std::optional<std::vector<float>>&>(), py::arg("modalities"), py::arg("dims"), py::arg("distance_metrics"), py::arg("weights")=std::nullopt)
 
-        .def("add_entities", &ExactMultiIndexPyWrapper::addEntities, "Adds multiple entities to the index. To add `n` entities with `k` modalities, provide a list of length `k`, where each element is a 2D numpy array of shape `(n, dimensions_of_modality)`. Each array corresponds to one modality.", py::arg("entities"))
-        //.def("search", &ExactMultiIndexPyWrapper::search, "Returns the indices for the k-nearest neighbors of a query entity. Query should be a list of length `k`, where each element is a vector for that modality", py::arg("query"), py::arg("k"))
-
+        .def("add_entities", &ExactMultiIndexPyWrapper::addEntities, "Adds multiple entities to the index. To add `n` entities with `k` modalities, provide a list of length `k`, where each element is a 2D numpy array of shape `(n, dimensions_of_modality)`. Each array corresponds to one modality.",
+            py::arg("entities"))
+        // .def("search", &ExactMultiIndexPyWrapper::search, "Returns the indices for the k-nearest neighbors of a query entity. Query should be a list of length `k`, where each element is a vector for that modality",
+        //     py::arg("query"),
+        //     py::arg("k"),
+        //     py::arg("query_weights")=std::nullopt)
 
         .def("save", &ExactMultiIndexPyWrapper::save, "Method to save index", py::arg("path"))
         .def("load", &ExactMultiIndexPyWrapper::load, "Method to load index", py::arg("path"))
