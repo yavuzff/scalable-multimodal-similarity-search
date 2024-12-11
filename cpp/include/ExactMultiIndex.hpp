@@ -4,23 +4,22 @@
 #include "AbstractMultiIndex.hpp"
 
 class ExactMultiIndex : public AbstractMultiIndex {
-
-private:
-    std::vector<std::vector<std::vector<float>>> entities;
-    void validateEntity(const std::vector<std::vector<float>> &entity) const;
+    std::vector<std::vector<float>> storedEntities;
+    size_t numEntities = 0;
+    size_t validateEntities(const std::vector<std::vector<float>> &entities) const;
 
 public:
-    ExactMultiIndex(const size_t modalities,
+    ExactMultiIndex(size_t modalities,
                     std::vector<size_t> dims,
                     std::vector<std::string> distance_metrics,
-                    std::vector<float> weights)
-        : AbstractMultiIndex(modalities, std::move(dims), std::move(distance_metrics), std::move(weights)) {}
+                    std::vector<float> weights);
 
-    ExactMultiIndex(const size_t modalities,
+    ExactMultiIndex(size_t modalities,
                     std::vector<size_t> dims,
-                    std::vector<std::string> distance_metrics): AbstractMultiIndex(modalities, std::move(dims), std::move(distance_metrics)) {}
+                    std::vector<std::string> distance_metrics);
 
-    void add(const std::vector<std::vector<float>>& entity) override;
+
+    void addEntities(const std::vector<std::vector<float>>& entities) override;
 
     std::vector<size_t> search(const std::vector<std::vector<float>>& query, size_t k, const std::vector<float>& query_weights) override;
 

@@ -29,6 +29,9 @@ public:
         std::vector<std::string> dist_metrics,
         std::vector<float> ws)
         : modalities(the_modalities), dimensions(std::move(dims)),distance_metrics(std::move(dist_metrics)), weights(std::move(ws)) {
+        if (modalities == 0) {
+            throw std::invalid_argument("Number of modalities must be positive");
+        }
         if (dimensions.size() != modalities) {
             throw std::invalid_argument("Number of dimensions must match number of modalities");
         }
@@ -53,11 +56,10 @@ public:
 
     virtual ~AbstractMultiIndex() = default;
 
-    // add a single entity to the index
-    virtual void add(const std::vector<std::vector<float>>& entity) = 0;
-
-    // add multiple entites
-    // virtual void addMultiple(const std::vector<std::vector<std::vector<float>>>& entity) = 0;
+    // add multiple entities - note that the inner vector is flattened for performance
+    // To add n entities with k modalities, provide a vector of length k,
+    // where each element is a flattened vector of size n * dimensions_of_modality
+    virtual void addEntities(const std::vector<std::vector<float>>& entities) = 0;
 
 
     // Return indices of the k-nearest neighbors (MAYBE: also return vectors themselves)

@@ -20,6 +20,18 @@ float dotProduct(const std::vector<float>& a, const std::vector<float>& b) {
     return sum;
 }
 
+// compute the Euclidean distance from slices of two vectors
+float computeEuclideanDistanceFromSlice(const std::vector<float>& storedEntity, const size_t startIdx, const size_t endIdx,
+                               const std::vector<float>& queryEntity, const size_t queryStartIdx) {
+    float sum = 0.0f;
+    for (size_t idx = startIdx, queryIdx = queryStartIdx; idx < endIdx; ++idx, ++queryIdx) {
+        float diff = storedEntity[idx] - queryEntity[queryIdx];
+        sum += diff * diff; // Add squared difference
+    }
+    return std::sqrt(sum);
+}
+
+
 float weightedEuclideanDistance(const std::vector<std::vector<float>>& a, const std::vector<std::vector<float>>& b,
     const std::vector<float>& weights) {
     float entity_distance = 0.0f;
