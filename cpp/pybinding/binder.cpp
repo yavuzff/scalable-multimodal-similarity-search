@@ -157,7 +157,7 @@ PYBIND11_MODULE(cppindex, m) {
 
     py::class_<ExactMultiIndexPyWrapper>(m, "ExactMultiIndex")
         // note that pybind11/stl.h automatic conversions occur here, which copy these vectors - this is fine for initialisation
-        .def(py::init<size_t, const std::vector<size_t>&, const std::vector<std::string>&, const std::optional<std::vector<float>>&>(), py::arg("num_modalities"), py::arg("dims"), py::arg("distance_metrics"), py::arg("weights")=std::nullopt)
+        .def(py::init<size_t, const std::vector<size_t>&, const std::vector<std::string>&, const std::optional<std::vector<float>>&>(), py::arg("num_modalities"), py::arg("dimensions"), py::arg("distance_metrics"), py::arg("weights")=std::nullopt)
 
         .def("add_entities", &ExactMultiIndexPyWrapper::addEntities, "Adds multiple entities to the index. To add `n` entities with `k` modalities, provide a list of length `k`, where each element is a 2D numpy array of shape `(n, dimensions_of_modality)`. Each array corresponds to one modality.",
             py::arg("entities"))
