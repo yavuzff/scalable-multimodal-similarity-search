@@ -10,13 +10,8 @@ class ExactMultiIndex : public AbstractMultiIndex {
 public:
     ExactMultiIndex(size_t numModalities,
                     std::vector<size_t> dims,
-                    std::vector<std::string> distance_metrics,
-                    std::vector<float> weights);
-
-    ExactMultiIndex(size_t numModalities,
-                    std::vector<size_t> dims,
-                    std::vector<std::string> distance_metrics);
-
+                    std::vector<std::string> distance_metrics = {},
+                    std::vector<float> weights = {});
 
     void addEntities(const std::vector<std::vector<float>>& entities) override;
 

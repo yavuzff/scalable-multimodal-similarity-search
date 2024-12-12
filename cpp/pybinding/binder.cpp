@@ -68,10 +68,9 @@ public:
 
     ExactMultiIndexPyWrapper(const size_t numModalities,
                              const std::vector<size_t> &dims,
-                             const std::vector<std::string> &distance_metrics,
-                             const std::optional<std::vector<float>> &weights)
-            : index(weights ? ExactMultiIndex(numModalities, dims, distance_metrics, *weights)
-                            : ExactMultiIndex(numModalities, dims, distance_metrics)) {}
+                             const std::vector<std::string> &distance_metrics = {},
+                             const std::vector<float> &weights = {})
+            : index(ExactMultiIndex(numModalities, dims, distance_metrics, weights)) {}
 
     void addEntities(const py::object &entities) {
         //input is a list of numpy arrays (1D or 2D each)
@@ -157,7 +156,7 @@ PYBIND11_MODULE(cppindex, m) {
 
     py::class_<ExactMultiIndexPyWrapper>(m, "ExactMultiIndex")
         // note that pybind11/stl.h automatic conversions occur here, which copy these vectors - this is fine for initialisation
-        .def(py::init<size_t, const std::vector<size_t>&, const std::vector<std::string>&, const std::optional<std::vector<float>>&>(), py::arg("num_modalities"), py::arg("dimensions"), py::arg("distance_metrics"), py::arg("weights")=std::nullopt)
+        .def(py::init<size_t, const std::vector<size_t>&, const std::vector<std::string>&, const std::vector<float>&>(), py::arg("num_modalities"), py::arg("dimensions"), py::arg("distance_metrics")=std::vector<std::string>(), py::arg("weights")=std::vector<float>())
 
         .def("add_entities", &ExactMultiIndexPyWrapper::addEntities, "Adds multiple entities to the index. To add `n` entities with `k` modalities, provide a list of length `k`, where each element is a 2D numpy array of shape `(n, dimensions_of_modality)`. Each array corresponds to one modality.",
             py::arg("entities"))

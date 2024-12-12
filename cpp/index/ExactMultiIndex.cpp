@@ -16,13 +16,6 @@ ExactMultiIndex::ExactMultiIndex(const size_t numModalities,
     storedEntities.resize(numModalities);
 }
 
-ExactMultiIndex::ExactMultiIndex(const size_t numModalities,
-                                 std::vector<size_t> dims,
-                                 std::vector<std::string> distance_metrics)
-    : AbstractMultiIndex(numModalities, std::move(dims), std::move(distance_metrics)) {
-    storedEntities.resize(numModalities);
-}
-
 void ExactMultiIndex::addEntities(const std::vector<std::vector<float>> &entities) {
     size_t numNewEntities = validateEntities(entities);
     numEntities += numNewEntities;
@@ -126,4 +119,3 @@ size_t ExactMultiIndex::validateEntities(const std::vector<std::vector<float>>& 
     }
     return numNewEntities.value();
 }
-

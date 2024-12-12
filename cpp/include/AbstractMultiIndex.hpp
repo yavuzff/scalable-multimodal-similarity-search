@@ -7,7 +7,7 @@
 
 
 // function to validate and normalise weights
-inline void validateAndNormaliseWeights(std::vector<float>& ws, size_t numModalities) {
+inline void validateAndNormaliseWeights(std::vector<float>& ws, const size_t numModalities) {
     if (ws.size() != numModalities) {
         throw std::invalid_argument("Number of weights must match number of modalities");
     }
@@ -38,20 +38,29 @@ public:
     // Constructor: take parameters in by value to gain ownership
     AbstractMultiIndex(size_t the_modalities,
         std::vector<size_t> dims,
-        std::vector<std::string> dist_metrics,
-        std::vector<float> ws)
-        : numModalities(the_modalities), dimensions(std::move(dims)),distance_metrics(std::move(dist_metrics)) {
+        std::vector<std::string> dist_metrics = {},
+        std::vector<float> ws = {})
+        : numModalities(the_modalities), dimensions(std::move(dims)),distance_metrics(std::move(dist_metrics)), weights(std::move(ws)) {
         if (numModalities == 0) {
             throw std::invalid_argument("Number of modalities must be positive");
         }
         if (dimensions.size() != numModalities) {
             throw std::invalid_argument("Number of dimensions must match number of modalities");
         }
-        if (distance_metrics.size() != numModalities) {
+
+        // initialise distance metrics if not provided
+        if (distance_metrics.empty()) {
+            distance_metrics.resize(numModalities, "euclidean");
+        } else if (distance_metrics.size() != numModalities) {
             throw std::invalid_argument("Number of distance metrics must match number of modalities");
         }
-        validateAndNormaliseWeights(ws, numModalities);
-        weights = std::move(ws);
+
+        // initialise weights if not provided
+        if (weights.empty()) {
+            weights.resize(numModalities, 1.0f / numModalities);
+        } else {
+            validateAndNormaliseWeights(weights, numModalities);
+        }
 
         // print out what we just initialised:
         std::cout << "Created MultiIndex with " << numModalities << " modalities" << std::endl;
@@ -59,13 +68,6 @@ public:
             std::cout << "Modality " << i << " has dimension " << dimensions[i] << ", distance metric " << distance_metrics[i] << " and weight " << weights[i] << std::endl;
         }
     }
-
-    // weights are optional, default is uniform weights which sum to 1
-    AbstractMultiIndex(size_t numModalities,
-        std::vector<size_t> dims,
-        std::vector<std::string> distance_metrics)
-        : AbstractMultiIndex(numModalities, std::move(dims), std::move(distance_metrics), std::vector<float>(numModalities, 1.0f / numModalities)) {}
-
 
     virtual ~AbstractMultiIndex() = default;
 
