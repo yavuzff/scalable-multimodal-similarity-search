@@ -66,12 +66,12 @@ class ExactMultiIndexPyWrapper {
 public:
     ExactMultiIndex index;
 
-    ExactMultiIndexPyWrapper(const size_t modalities,
+    ExactMultiIndexPyWrapper(const size_t numModalities,
                              const std::vector<size_t> &dims,
                              const std::vector<std::string> &distance_metrics,
                              const std::optional<std::vector<float>> &weights)
-            : index(weights ? ExactMultiIndex(modalities, dims, distance_metrics, *weights)
-                            : ExactMultiIndex(modalities, dims, distance_metrics)) {}
+            : index(weights ? ExactMultiIndex(numModalities, dims, distance_metrics, *weights)
+                            : ExactMultiIndex(numModalities, dims, distance_metrics)) {}
 
     void addEntities(const py::object &entities) {
         //input is a list of numpy arrays (1D or 2D each)
@@ -122,8 +122,8 @@ public:
         index.load(path);
     }
 
-    [[nodiscard]] size_t modalities() const {
-        return index.getModalities();
+    [[nodiscard]] size_t numModalities() const {
+        return index.getNumModalities();
     }
 
     [[nodiscard]]const std::vector<size_t>& dimensions() const {
@@ -157,7 +157,7 @@ PYBIND11_MODULE(cppindex, m) {
 
     py::class_<ExactMultiIndexPyWrapper>(m, "ExactMultiIndex")
         // note that pybind11/stl.h automatic conversions occur here, which copy these vectors - this is fine for initialisation
-        .def(py::init<size_t, const std::vector<size_t>&, const std::vector<std::string>&, const std::optional<std::vector<float>>&>(), py::arg("modalities"), py::arg("dims"), py::arg("distance_metrics"), py::arg("weights")=std::nullopt)
+        .def(py::init<size_t, const std::vector<size_t>&, const std::vector<std::string>&, const std::optional<std::vector<float>>&>(), py::arg("num_modalities"), py::arg("dims"), py::arg("distance_metrics"), py::arg("weights")=std::nullopt)
 
         .def("add_entities", &ExactMultiIndexPyWrapper::addEntities, "Adds multiple entities to the index. To add `n` entities with `k` modalities, provide a list of length `k`, where each element is a 2D numpy array of shape `(n, dimensions_of_modality)`. Each array corresponds to one modality.",
             py::arg("entities"))
@@ -170,7 +170,7 @@ PYBIND11_MODULE(cppindex, m) {
         .def("load", &ExactMultiIndexPyWrapper::load, "Method to load index", py::arg("path"))
 
         // read-only attributes
-        .def_property_readonly("modalities", &ExactMultiIndexPyWrapper::modalities)
+        .def_property_readonly("num_modalities", &ExactMultiIndexPyWrapper::numModalities)
         .def_property_readonly("dimensions", &ExactMultiIndexPyWrapper::dimensions)
         .def_property_readonly("distance_metrics", &ExactMultiIndexPyWrapper::distance_metrics)
         .def_property_readonly("weights", &ExactMultiIndexPyWrapper::weights)

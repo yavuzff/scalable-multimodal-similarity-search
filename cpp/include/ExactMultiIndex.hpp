@@ -8,12 +8,12 @@ class ExactMultiIndex : public AbstractMultiIndex {
     size_t validateEntities(const std::vector<std::vector<float>> &entities) const;
 
 public:
-    ExactMultiIndex(size_t modalities,
+    ExactMultiIndex(size_t numModalities,
                     std::vector<size_t> dims,
                     std::vector<std::string> distance_metrics,
                     std::vector<float> weights);
 
-    ExactMultiIndex(size_t modalities,
+    ExactMultiIndex(size_t numModalities,
                     std::vector<size_t> dims,
                     std::vector<std::string> distance_metrics);
 

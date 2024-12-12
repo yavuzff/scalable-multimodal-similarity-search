@@ -7,8 +7,8 @@
 
 
 // function to validate and normalise weights
-inline void validateAndNormaliseWeights(std::vector<float>& ws, size_t modalities) {
-    if (ws.size() != modalities) {
+inline void validateAndNormaliseWeights(std::vector<float>& ws, size_t numModalities) {
+    if (ws.size() != numModalities) {
         throw std::invalid_argument("Number of weights must match number of modalities");
     }
     // check weights are non-negative
@@ -20,7 +20,7 @@ inline void validateAndNormaliseWeights(std::vector<float>& ws, size_t modalitie
     if (sum == 0) {
         throw std::invalid_argument("Weights must not be all zero");
     }
-    for (size_t i = 0; i < modalities; ++i) {
+    for (size_t i = 0; i < numModalities; ++i) {
         ws[i] /= sum;
     }
 }
@@ -28,7 +28,7 @@ inline void validateAndNormaliseWeights(std::vector<float>& ws, size_t modalitie
 // Abstract class for Multi vector K-NN index
 class AbstractMultiIndex {
 protected:
-    size_t modalities;
+    size_t numModalities;
     std::vector<size_t> dimensions;
     std::vector<std::string> distance_metrics;
     std::vector<float> weights;
@@ -40,31 +40,31 @@ public:
         std::vector<size_t> dims,
         std::vector<std::string> dist_metrics,
         std::vector<float> ws)
-        : modalities(the_modalities), dimensions(std::move(dims)),distance_metrics(std::move(dist_metrics)) {
-        if (modalities == 0) {
+        : numModalities(the_modalities), dimensions(std::move(dims)),distance_metrics(std::move(dist_metrics)) {
+        if (numModalities == 0) {
             throw std::invalid_argument("Number of modalities must be positive");
         }
-        if (dimensions.size() != modalities) {
+        if (dimensions.size() != numModalities) {
             throw std::invalid_argument("Number of dimensions must match number of modalities");
         }
-        if (distance_metrics.size() != modalities) {
+        if (distance_metrics.size() != numModalities) {
             throw std::invalid_argument("Number of distance metrics must match number of modalities");
         }
-        validateAndNormaliseWeights(ws, modalities);
+        validateAndNormaliseWeights(ws, numModalities);
         weights = std::move(ws);
 
         // print out what we just initialised:
-        std::cout << "Created MultiIndex with " << modalities << " modalities" << std::endl;
-        for (size_t i = 0; i < modalities; ++i) {
+        std::cout << "Created MultiIndex with " << numModalities << " modalities" << std::endl;
+        for (size_t i = 0; i < numModalities; ++i) {
             std::cout << "Modality " << i << " has dimension " << dimensions[i] << ", distance metric " << distance_metrics[i] << " and weight " << weights[i] << std::endl;
         }
     }
 
     // weights are optional, default is uniform weights which sum to 1
-    AbstractMultiIndex(size_t modalities,
+    AbstractMultiIndex(size_t numModalities,
         std::vector<size_t> dims,
         std::vector<std::string> distance_metrics)
-        : AbstractMultiIndex(modalities, std::move(dims), std::move(distance_metrics), std::vector<float>(modalities, 1.0f / modalities)) {}
+        : AbstractMultiIndex(numModalities, std::move(dims), std::move(distance_metrics), std::vector<float>(numModalities, 1.0f / numModalities)) {}
 
 
     virtual ~AbstractMultiIndex() = default;
@@ -86,8 +86,8 @@ public:
     virtual void load(const std::string& path) = 0;
 
     //getters for the properties
-    [[nodiscard]] size_t getModalities() const {
-        return modalities;
+    [[nodiscard]] size_t getNumModalities() const {
+        return numModalities;
     }
 
     [[nodiscard]] const std::vector<size_t>& getDimensions() const {

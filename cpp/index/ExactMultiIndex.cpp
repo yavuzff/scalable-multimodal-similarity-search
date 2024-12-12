@@ -8,19 +8,19 @@
 // - add distance metric selection
 
 
-ExactMultiIndex::ExactMultiIndex(const size_t modalities,
+ExactMultiIndex::ExactMultiIndex(const size_t numModalities,
                                  std::vector<size_t> dims,
                                  std::vector<std::string> distance_metrics,
                                  std::vector<float> weights)
-    : AbstractMultiIndex(modalities, std::move(dims), std::move(distance_metrics), std::move(weights)) {
-    storedEntities.resize(modalities);
+    : AbstractMultiIndex(numModalities, std::move(dims), std::move(distance_metrics), std::move(weights)) {
+    storedEntities.resize(numModalities);
 }
 
-ExactMultiIndex::ExactMultiIndex(const size_t modalities,
+ExactMultiIndex::ExactMultiIndex(const size_t numModalities,
                                  std::vector<size_t> dims,
                                  std::vector<std::string> distance_metrics)
-    : AbstractMultiIndex(modalities, std::move(dims), std::move(distance_metrics)) {
-    storedEntities.resize(modalities);
+    : AbstractMultiIndex(numModalities, std::move(dims), std::move(distance_metrics)) {
+    storedEntities.resize(numModalities);
 }
 
 void ExactMultiIndex::addEntities(const std::vector<std::vector<float>> &entities) {
@@ -30,7 +30,7 @@ void ExactMultiIndex::addEntities(const std::vector<std::vector<float>> &entitie
 
     // add each modality's data to the corresponding storedEntities modality vector
     // note that we copy the input into savedEntities
-    for (size_t i = 0; i < modalities; ++i) {
+    for (size_t i = 0; i < numModalities; ++i) {
         const auto& modalityVectors = entities[i];
         storedEntities[i].insert(storedEntities[i].end(), modalityVectors.begin(), modalityVectors.end());
     }
@@ -46,13 +46,13 @@ std::vector<size_t> ExactMultiIndex::search(const std::vector<std::vector<float>
 
     // copy weights as we will normalise them
     auto normalised_query_weights = std::vector(query_weights);
-    validateAndNormaliseWeights(normalised_query_weights, modalities);
+    validateAndNormaliseWeights(normalised_query_weights, numModalities);
 
     // iterate over entities through modality vectors
     std::priority_queue<std::pair<float, size_t>> maxHeap;
     for (size_t i = 0; i < numEntities; ++i) {
         float dist = 0.0f;
-        for (size_t modality = 0; modality < modalities; ++modality) {
+        for (size_t modality = 0; modality < numModalities; ++modality) {
             const size_t vectorStart = i * dimensions[modality];
             const size_t vectorEnd = vectorStart + dimensions[modality];
 
@@ -88,7 +88,7 @@ std::vector<size_t> ExactMultiIndex::search(const std::vector<std::vector<float>
 
 void ExactMultiIndex::save(const std::string& path) const {
     std::cout << "Saving index to " << path << std::endl;
-    std::cout << "Index properties: " << modalities << ", Num Entities: " << numEntities << std::endl;
+    std::cout << "Index properties: " << numModalities << ", Num Entities: " << numEntities << std::endl;
 }
 
 void ExactMultiIndex::load(const std::string& path) {
@@ -97,12 +97,12 @@ void ExactMultiIndex::load(const std::string& path) {
 
 //private function to validate an input entity and return the number of entities
 size_t ExactMultiIndex::validateEntities(const std::vector<std::vector<float>>& entities) const {
-    if (entities.size() != modalities) {
+    if (entities.size() != numModalities) {
         throw std::invalid_argument("Entity must have the same number of modalities as the index");
     }
 
     std::optional<size_t> numNewEntities;
-    for (size_t i = 0; i < modalities; ++i) {
+    for (size_t i = 0; i < numModalities; ++i) {
         const auto& modalityVectors = entities[i];
 
         // check that modality vectors is a multiple of the dimension count
