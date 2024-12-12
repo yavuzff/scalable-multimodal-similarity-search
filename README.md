@@ -34,11 +34,53 @@ Alternatively, you can run the project in a Docker container.
 
       Note: IDE may not index the module correctly. This is not the case if you run `python3 pybinding/setup.py install` instead.
 
-#### Run sample Python code:
-1. From the project root, run `python3 -m src.main`
+#### Using the C++ index through Python:
+
+The C++ index can be imported and used in Python. In a Python file, you can:
+1. Import the index:
+
+    `from cppindex import ExactMultiIndex`
+
+
+2. Initialise the index, e.g.:
+```
+index = ExactMultiIndex(
+    num_modalities=2,
+    dimensions=[128, 64],
+    distance_metrics=["euclidean", "cosine"],  # optional: distance metrics for each modality. Default: "euclidean"
+    weights=[0.3, 0.7]  # optional: Weights for each modality. Default: uniform weights.
+)
+```
+3. Add items to the index:
+```
+# Example: adding 3 entities to an index with 2 modalities
+modality_1_data = np.random.rand(3, 128)  # 128-dimensional data for modality 1
+modality_2_data = np.random.rand(3, 64)   # 64-dimensional data for modality 2
+
+index.add_entities([modality_1_data, modality_2_data])
+```
+
+4. Search the index:
+```
+query = [
+    np.random.rand(128),  # modality 1 vector
+    np.random.rand(64)    # modality 2 vector
+]
+
+k = 5
+results = index.search(query, k) # can optionally provide query_weights
+print("Indices of nearest neighbors:", results)
+```
+
+
+5. Example usage can be found in `src/main`. To run it, run the below command from the project root:
+
+    `python3 -m src.main`
 
 
 ### Additional Information
+
+This section contains information on how to develop the project, generate datasets, and run tests.
 
 #### C++ development:
 Run from `cpp/`:
