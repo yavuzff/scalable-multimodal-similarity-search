@@ -2,7 +2,7 @@
 
 This project is for the Part II Computer Science course at the University of Cambridge.
 
-### Setup
+### Prerequisites
 
 You can set up environment locally (involving venv, Cmake, conda, pybind), or run the Docker container.
 
@@ -28,7 +28,11 @@ Alternatively, you can run the project in a Docker container.
 
 #### Compile C++ code and setup Python bindings:
 1. `cd cpp`
-2. `pip install ./pybinding`. Note: IDE may not index the module correctly. This is not the case if you run `python3 pybinding/setup.py install` instead.
+2. `cmake -S . -B cmake-build-debug`
+3. `cmake --build cmake-build-debug -j 6 --target cppindex`
+4. `pip install ./pybinding`
+
+      Note: IDE may not index the module correctly. This is not the case if you run `python3 pybinding/setup.py install` instead.
 
 #### Run sample Python code:
 1. From the project root, run `python3 -m src.main`
@@ -37,10 +41,15 @@ Alternatively, you can run the project in a Docker container.
 ### Additional Information
 
 #### C++ development:
-Run cmake manually from `cpp/`:
+Run from `cpp/`:
 1. `cmake -S . -B cmake-build-debug`
 2. `cmake --build cmake-build-debug -j 6 --target main`
 3. `./cmake-build-debug/main`
+
+Alternatively, to develop with the Python bindings:
+1. Change C++ code.
+2. Run `sh clean-and-rebind-module.sh` to recompile the module.
+3. Run `python3 -m src.main` to test the changes.
 
 #### Dataset generation:
 - Used data_processing/dataset_preparation to download images and save image/metadata.
@@ -53,3 +62,4 @@ To run the Python tests: `pytest -v tests` in `scalable-multimodal-similarity-se
 - Tests regarding datasets (test/data_processing):
     - test_dataset: validates the raw dataset of images and metadata is consistent
     - test_vector_dataset: validates the generated vectors are consistent with the dataset
+- Tests for the exact multi search C++ library are in `test_exact_multi_index_bindings.py`
