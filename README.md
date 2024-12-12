@@ -2,6 +2,7 @@
 
 This project is for the Part II Computer Science course at the University of Cambridge.
 
+
 ### Prerequisites
 
 You can set up environment locally (involving venv, Cmake, conda, pybind), or run the Docker container.
@@ -19,6 +20,7 @@ In order to run C++ code:
 
 #### Docker:
 Alternatively, you can run the project in a Docker container.
+
 
 0. (On Mac) Launch Docker Desktop or run `open -a Docker`
 1. `docker build -t scalable-multimodal-similarity-search .`
