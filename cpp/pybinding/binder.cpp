@@ -44,23 +44,6 @@ py::array_t<size_t> convert_to_numpy(const std::vector<size_t> &result) {
     return result_array;
 }
 
-class ExactKNNIndexPyWrapper {
-    ExactKNNIndex index;
-
-public:
-    ExactKNNIndexPyWrapper() : index(ExactKNNIndex()){}
-
-    void add(const py::object &vector) {
-        auto span = convert_py_to_span(vector);
-        index.add(std::vector(span.begin(), span.end()));
-    };
-
-    [[nodiscard]] py::array_t<size_t> search(const py::object &query, size_t k) const {
-        auto span = convert_py_to_span(query);
-        return convert_to_numpy(index.search(std::vector<float>(span.begin(), span.end()), k));
-    };
-};
-
 
 class ExactMultiIndexPyWrapper {
 public:
@@ -97,7 +80,10 @@ public:
         index.addEntities(cppEntities);
     }
 
-    [[nodiscard]] py::array_t<int> search(const py::object &query, size_t k, const std::optional<std::vector<float>> &query_weights) {
+    [[nodiscard]] py::array_t<int> search(const py::object &query, const int k, const std::vector<float> &query_weights) {
+        if (k < 1) {
+            throw std::invalid_argument("k must be at least 1");
+        }
         std::vector<std::vector<float>> vecQuery;
         if (py::isinstance<py::list>(query) || py::isinstance<py::tuple>(query)) {
             for (const auto& modalityVector: query) {
@@ -109,7 +95,7 @@ public:
             throw std::runtime_error("Input must be a list or tuple of numpy arrays");
         }
 
-        const std::vector<size_t> res = query_weights.has_value() ? index.search(vecQuery, k, query_weights.value()) : index.search(vecQuery, k);
+        const std::vector<size_t> res = query_weights.empty() ? index.search(vecQuery, k) : index.search(vecQuery, k, query_weights);
         return convert_to_numpy(res);
     };
 
@@ -147,13 +133,6 @@ public:
 PYBIND11_MODULE(cppindex, m) {
     m.doc() = "This module contains different knn indexes: ExactIndex, ExactMultiIndex"; // optional module docstring
 
-    // simple exact index
-    py::class_<ExactKNNIndexPyWrapper>(m, "ExactIndex")
-        .def(py::init<>())
-        .def("add", &ExactKNNIndexPyWrapper::add)
-        .def("search", &ExactKNNIndexPyWrapper::search);
-
-
     py::class_<ExactMultiIndexPyWrapper>(m, "ExactMultiIndex")
         // note that pybind11/stl.h automatic conversions occur here, which copy these vectors - this is fine for initialisation
         .def(py::init<size_t, const std::vector<size_t>&, const std::vector<std::string>&, const std::vector<float>&>(), py::arg("num_modalities"), py::arg("dimensions"), py::arg("distance_metrics")=std::vector<std::string>(), py::arg("weights")=std::vector<float>())
@@ -163,7 +142,7 @@ PYBIND11_MODULE(cppindex, m) {
         .def("search", &ExactMultiIndexPyWrapper::search, "Returns the indices for the k-nearest neighbors of a query entity. Query should be a list of length `k`, where each element is a vector for that modality",
             py::arg("query"),
             py::arg("k"),
-            py::arg("query_weights")=std::nullopt)
+            py::arg("query_weights")=std::vector<float>())
 
         .def("save", &ExactMultiIndexPyWrapper::save, "Method to save index", py::arg("path"))
         .def("load", &ExactMultiIndexPyWrapper::load, "Method to load index", py::arg("path"))
@@ -174,5 +153,4 @@ PYBIND11_MODULE(cppindex, m) {
         .def_property_readonly("distance_metrics", &ExactMultiIndexPyWrapper::distance_metrics)
         .def_property_readonly("weights", &ExactMultiIndexPyWrapper::weights)
         .def_property_readonly("num_entities", &ExactMultiIndexPyWrapper::numEntities);
-
 }

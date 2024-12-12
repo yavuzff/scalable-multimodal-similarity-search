@@ -2,6 +2,36 @@
 
 #include <vector>
 
+
+DistanceMetric stringToDistanceMetric(const std::string& str) {
+    // take lowercase of the string
+    std::string strLower = str;
+    std::ranges::transform(strLower, strLower.begin(), ::tolower);
+
+    if (strLower == "euclidean" or strLower == "l2") {
+        return DistanceMetric::Euclidean;
+    }
+    if (strLower == "manhattan" or strLower == "l1") {
+        return DistanceMetric::Manhattan;
+    }
+    if (strLower == "cosine") {
+        return DistanceMetric::Cosine;
+    }
+    throw std::invalid_argument("Invalid distance metric: " + str + ". Must be one of 'euclidean', 'manhattan' or 'cosine'");
+}
+
+std::string distanceMetricToString(DistanceMetric metric) {
+    switch (metric) {
+        case DistanceMetric::Euclidean:
+            return "euclidean";
+        case DistanceMetric::Manhattan:
+            return "manhattan";
+        case DistanceMetric::Cosine:
+            return "cosine";
+    }
+    throw std::invalid_argument("Invalid distance metric");
+}
+
 float euclideanDistance(const std::vector<float>& a, const std::vector<float>& b) {
     float sum = 0.0f;
     for (size_t i = 0; i < a.size(); i++) {
@@ -31,13 +61,37 @@ float computeEuclideanDistanceFromSlice(const std::vector<float>& storedEntity, 
     return std::sqrt(sum);
 }
 
-
-float weightedEuclideanDistance(const std::vector<std::vector<float>>& a, const std::vector<std::vector<float>>& b,
-    const std::vector<float>& weights) {
-    float entity_distance = 0.0f;
-    for (size_t i = 0; i < a.size(); i++) {
-        const float vector_distance = euclideanDistance(a[i], b[i]);
-        entity_distance += vector_distance * weights[i];
+float computeDotProductFromSlice(const std::vector<float> &storedEntity, size_t startIdx, size_t endIdx, const std::vector<float> &queryEntity, size_t queryStartIdx) {
+    float sum = 0.0f;
+    for (size_t idx = startIdx, queryIdx = queryStartIdx; idx < endIdx; ++idx, ++queryIdx) {
+        sum += storedEntity[idx] * queryEntity[queryIdx];
     }
-    return entity_distance;
+    return sum;
+}
+
+// cosine distance ranges from 0 to 2, where 0 is identical and 2 is opposite direction
+// we assume it is not 0
+float computeCosineDistanceFromSlice(const std::vector<float> &storedEntity, size_t startIdx, size_t endIdx, const std::vector<float> &queryEntity, size_t queryStartIdx, const bool normalised) {
+    const float dot_product = computeDotProductFromSlice(storedEntity, startIdx, endIdx, queryEntity, queryStartIdx);
+    if (normalised) {
+        return 1.0f - dot_product;
+    }
+    float stored_norm = 0.0f;
+    float query_norm = 0.0f;
+    for (size_t idx = startIdx, queryIdx = queryStartIdx; idx < endIdx; ++idx, ++queryIdx) {
+        stored_norm += storedEntity[idx] * storedEntity[idx];
+        query_norm += queryEntity[queryIdx] * queryEntity[queryIdx];
+    }
+    stored_norm = std::sqrt(stored_norm);
+    query_norm = std::sqrt(query_norm);
+    return 1.0f - dot_product / (stored_norm * query_norm);
+}
+
+float computeManhattanDistanceFromSlice(const std::vector<float>& storedEntity, size_t startIdx, size_t endIdx,
+                               const std::vector<float>& queryEntity, size_t queryStartIdx) {
+    float sum = 0.0f;
+    for (size_t idx = startIdx, queryIdx = queryStartIdx; idx < endIdx; ++idx, ++queryIdx) {
+        sum += std::abs(storedEntity[idx] - queryEntity[queryIdx]);
+    }
+    return sum;
 }

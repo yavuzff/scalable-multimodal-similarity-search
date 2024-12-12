@@ -1,5 +1,6 @@
 """
 File from pybind11 repository to setup pybind: https://github.com/pybind/pybind11
+(Specifically from the Cmake example setup.py: https://github.com/pybind/cmake_example?tab=readme-ov-file)
 """
 import os
 import re

@@ -3,6 +3,8 @@
 
 #include <vector>
 
+#include "DistanceMetrics.hpp"
+
 void validateAndNormaliseWeights(std::vector<float>& ws, size_t numModalities);
 
 // Abstract class for Multi vector K-NN index
@@ -10,7 +12,8 @@ class AbstractMultiIndex {
 protected:
     size_t numModalities;
     std::vector<size_t> dimensions;
-    std::vector<std::string> distance_metrics;
+    std::vector<DistanceMetric> distance_metrics;
+    std::vector<std::string> str_distance_metrics;
     std::vector<float> weights;
     size_t numEntities = 0;
 

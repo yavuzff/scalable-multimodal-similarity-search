@@ -1,11 +1,7 @@
 #include "../include/ExactMultiIndex.hpp"
-#include "../include/DistanceMetrics.hpp"
 
 #include <iostream>
 #include <queue>
-
-//TODO:
-// - add distance metric selection
 
 
 ExactMultiIndex::ExactMultiIndex(const size_t numModalities,
@@ -31,16 +27,22 @@ void ExactMultiIndex::addEntities(const std::vector<std::vector<float>> &entitie
 
 std::vector<size_t> ExactMultiIndex::search(const std::vector<std::vector<float>>& query, const size_t k,
                         const std::vector<float>& query_weights) {
-    // validate the inputs
-    size_t numNewEntities = validateEntities(query);
-    if (numNewEntities != 1) {
-        throw std::invalid_argument("Query must contain exactly one entity, but got " + std::to_string(numNewEntities));
-    }
+    validateQuery(query, k);
 
     // copy weights as we will normalise them
     auto normalised_query_weights = std::vector(query_weights);
     validateAndNormaliseWeights(normalised_query_weights, numModalities);
 
+    return internalSearch(query, k, normalised_query_weights);
+}
+
+std::vector<size_t> ExactMultiIndex::search(const std::vector<std::vector<float>>& query, const size_t k) {
+    validateQuery(query, k);
+    return internalSearch(query, k, weights);
+}
+
+std::vector<size_t> ExactMultiIndex::internalSearch(const std::vector<std::vector<float>>& query, const size_t k,
+                        const std::vector<float>& normalisedWeights) const {
     // iterate over entities through modality vectors
     std::priority_queue<std::pair<float, size_t>> maxHeap;
     for (size_t i = 0; i < numEntities; ++i) {
@@ -49,9 +51,25 @@ std::vector<size_t> ExactMultiIndex::search(const std::vector<std::vector<float>
             const size_t vectorStart = i * dimensions[modality];
             const size_t vectorEnd = vectorStart + dimensions[modality];
 
-            // compute Euclidean distance between storedEntities[modality][vectorStart:vectorEnd] and query[modality]
-            const float modalityDistance = computeEuclideanDistanceFromSlice(storedEntities[modality], vectorStart, vectorEnd, query[modality], 0);
-            dist += normalised_query_weights[modality] * modalityDistance;
+            float modalityDistance;
+            // compute distance based on distance_metric for this modality
+            // distance is computed between storedEntities[modality][vectorStart:vectorEnd] and query[modality]
+            switch(distance_metrics[modality]){
+                case DistanceMetric::Euclidean:
+                    modalityDistance = computeEuclideanDistanceFromSlice(storedEntities[modality], vectorStart, vectorEnd, query[modality], 0);
+                    break;
+                case DistanceMetric::Manhattan:
+                    modalityDistance = computeManhattanDistanceFromSlice(storedEntities[modality], vectorStart, vectorEnd, query[modality], 0);
+                    break;
+                case DistanceMetric::Cosine:
+                    modalityDistance = computeCosineDistanceFromSlice(storedEntities[modality], vectorStart, vectorEnd, query[modality], 0);
+                    break;
+                default:
+                    throw std::invalid_argument("Invalid distance metric. You should not be seeing this message.");
+            }
+
+            // aggregate distance by summing modalityDistance*weight
+            dist += normalisedWeights[modality] * modalityDistance;
         }
 
         // add directly if the heap isn't full, otherwise replace largest distance item
@@ -75,10 +93,6 @@ std::vector<size_t> ExactMultiIndex::search(const std::vector<std::vector<float>
     return result;
 }
 
-std::vector<size_t> ExactMultiIndex::search(const std::vector<std::vector<float>>& query, size_t k) {
-    return search(query, k, weights);
-}
-
 void ExactMultiIndex::save(const std::string& path) const {
     std::cout << "Saving index to " << path << std::endl;
     std::cout << "Index properties: " << numModalities << ", Num Entities: " << numEntities << std::endl;
@@ -88,7 +102,8 @@ void ExactMultiIndex::load(const std::string& path) {
     std::cout << "Loading index from " << path << std::endl;
 }
 
-//private function to validate an input entity and return the number of entities
+
+//private function to validate input entities and return the number of entities
 size_t ExactMultiIndex::validateEntities(const std::vector<std::vector<float>>& entities) const {
     if (entities.size() != numModalities) {
         throw std::invalid_argument("Entity must have the same number of modalities as the index");
@@ -118,4 +133,15 @@ size_t ExactMultiIndex::validateEntities(const std::vector<std::vector<float>>& 
         }
     }
     return numNewEntities.value();
+}
+
+void ExactMultiIndex::validateQuery(const std::vector<std::vector<float>> &query, size_t k) const {
+    // validate the query entity and k
+    if (k < 1) {
+        throw std::invalid_argument("k must be at least 1");
+    }
+    size_t numNewEntities = validateEntities(query);
+    if (numNewEntities != 1) {
+        throw std::invalid_argument("Query must contain exactly one entity, but got " + std::to_string(numNewEntities));
+    }
 }

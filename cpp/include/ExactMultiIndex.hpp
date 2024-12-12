@@ -2,10 +2,15 @@
 #define EXACTMULTIINDEX_HPP
 
 #include "AbstractMultiIndex.hpp"
+#include "DistanceMetrics.hpp"
 
 class ExactMultiIndex : public AbstractMultiIndex {
     std::vector<std::vector<float>> storedEntities;
     size_t validateEntities(const std::vector<std::vector<float>> &entities) const;
+    void validateQuery(const std::vector<std::vector<float>> &query, size_t k) const;
+
+    std::vector<size_t> internalSearch(const std::vector<std::vector<float>>& query, size_t k,
+                        const std::vector<float>& normalisedWeights) const;
 
 public:
     ExactMultiIndex(size_t numModalities,
