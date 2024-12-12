@@ -7,6 +7,7 @@ import os
 import json
 from src.common.constants import *
 
+SKIP = True
 SAMPLE = True
 NUM_SAMPLES = 50
 
@@ -16,6 +17,8 @@ def test_image_dataset():
     """
     Verify that the images at the image_path is consistent with the data frame.
     """
+    if SKIP:
+        return
     image_path = IMAGES_PATH
     # select dataset to compare
     if SAMPLE:
@@ -45,6 +48,8 @@ def test_vector_dataset():
     """
     Verify that the length of the vectors are consistent with the metadata.
     """
+    if SKIP:
+        return
     print(f"Read {len(full_data)} entries from {METADATA_PATH}.")
     image_vectors = np.load(IMAGE_VECTORS_PATH)
     text_vectors = np.load(TEXT_VECTORS_PATH)

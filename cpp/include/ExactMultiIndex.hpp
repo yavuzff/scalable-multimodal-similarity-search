@@ -28,6 +28,8 @@ public:
     void save(const std::string& path) const override;
 
     void load(const std::string& path) override;
+
+    [[nodiscard]] size_t getNumEntities() const;
 };
 
 #endif //EXACTMULTIINDEX_HPP

@@ -5,13 +5,7 @@
 #include <queue>
 
 //TODO:
-// - use array representation for contiguous storage
-// - integrate with pybind
 // - add distance metric selection
-// Lower priority:
-// - add multiple entity addition? check with pybind
-// - return vectors from search? Or add method to retrieve vector with certain index?
-// - add save and load index
 
 
 ExactMultiIndex::ExactMultiIndex(const size_t modalities,
@@ -29,7 +23,7 @@ ExactMultiIndex::ExactMultiIndex(const size_t modalities,
     storedEntities.resize(modalities);
 }
 
-void ExactMultiIndex::addEntities(const std::vector<std::vector<float> > &entities) {
+void ExactMultiIndex::addEntities(const std::vector<std::vector<float>> &entities) {
     size_t numNewEntities = validateEntities(entities);
     numEntities += numNewEntities;
     std::cout << "Adding " << numNewEntities << " entities!" << std::endl;
@@ -104,7 +98,7 @@ size_t ExactMultiIndex::validateEntities(const std::vector<std::vector<float>>& 
         throw std::invalid_argument("Entity must have the same number of modalities as the index");
     }
 
-    std::optional<size_t> numEntities;
+    std::optional<size_t> numNewEntities;
     for (size_t i = 0; i < modalities; ++i) {
         const auto& modalityVectors = entities[i];
 
@@ -118,14 +112,18 @@ size_t ExactMultiIndex::validateEntities(const std::vector<std::vector<float>>& 
 
         // check that modality vectors contains the same number of entities
         size_t numEntitiesThisModality = modalityVectors.size() / dimensions[i];
-        if (numEntities.has_value()) {
-            if (numEntitiesThisModality != numEntities.value()) {
-                throw std::invalid_argument("Modality " + std::to_string(i) + " has a different number of entities than the other modalities, expected" + std::to_string(numEntities.value()) + " but got " + std::to_string(numEntitiesThisModality));
+        if (numNewEntities.has_value()) {
+            if (numEntitiesThisModality != numNewEntities.value()) {
+                throw std::invalid_argument("Modality " + std::to_string(i) + " has a different number of entities than the other modalities, expected " + std::to_string(numNewEntities.value()) + " but got " + std::to_string(numEntitiesThisModality));
             }
         } else {
             // this is the first modality, so set the number of entities
-            numEntities = numEntitiesThisModality;
+            numNewEntities = numEntitiesThisModality;
         }
     }
-    return numEntities.value();
+    return numNewEntities.value();
+}
+
+[[nodiscard]] size_t ExactMultiIndex::getNumEntities() const {
+    return numEntities;
 }

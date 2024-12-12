@@ -7,12 +7,17 @@
 
 namespace py = pybind11;
 
-// perform checks on array-like input and convert it to std::vector<span>
-// note that span means we use the same memory as the input array
-std::span<float> convert_to_span(const py::object &input) {
-    // casting the input to a numpy array with C-style memory layout and forcecasting
-    py::array_t<float, py::array::c_style | py::array::forcecast> items(input);
+// cast the input object to a numpy array with C-style memory layout and forcecasting buffer
+pybind11::buffer_info to_buffer(const py::object &pyobject) {
+    py::array_t<float, py::array::c_style | py::array::forcecast> items(pyobject);
     auto buffer = items.request();
+    return buffer;
+}
+
+// perform checks on array-like py object and convert it to std::vector<span>
+// note that span means we use the same memory as the input array
+std::span<float> convert_py_to_span(const py::object &pyArrayLike) {
+    auto buffer = to_buffer(pyArrayLike);
 
     if (buffer.ndim != 1) {
         throw std::runtime_error("Input must be a 1D array");
@@ -20,6 +25,15 @@ std::span<float> convert_to_span(const py::object &input) {
     return std::span<float>(static_cast<float*>(buffer.ptr), buffer.size);
 }
 
+// convert a buffer to a flattened span
+std::span<float> buffer_to_flattened_span(const pybind11::buffer_info &buffer) {
+    if (buffer.ndim == 1 || buffer.ndim == 2) {
+        // for 2D array: return a span corresponding to the flattened version of the buffer
+        // since it's stored in row-major order, we can treat it as a contiguous block of memory.
+        return std::span<float>(static_cast<float*>(buffer.ptr), buffer.size);
+    }
+    throw std::runtime_error("Subarray must be a 1D or 2D array-like object");
+}
 
 // convert std::vector<size_t> of ids to numpy array of integers
 py::array_t<size_t> convert_to_numpy(const std::vector<size_t> &result) {
@@ -37,12 +51,12 @@ public:
     ExactKNNIndexPyWrapper() : index(ExactKNNIndex()){}
 
     void add(const py::object &vector) {
-        auto span = convert_to_span(vector);
+        auto span = convert_py_to_span(vector);
         index.add(std::vector(span.begin(), span.end()));
     };
 
     [[nodiscard]] py::array_t<size_t> search(const py::object &query, size_t k) const {
-        auto span = convert_to_span(query);
+        auto span = convert_py_to_span(query);
         return convert_to_numpy(index.search(std::vector<float>(span.begin(), span.end()), k));
     };
 };
@@ -60,13 +74,45 @@ public:
                             : ExactMultiIndex(modalities, dims, distance_metrics)) {}
 
     void addEntities(const py::object &entities) {
+        //input is a list of numpy arrays (1D or 2D each)
+        std::vector<std::vector<float>> cppEntities;
 
+        if (py::isinstance<py::list>(entities) || py::isinstance<py::tuple>(entities)) {
+            for (const auto& entity: entities) {
+
+                auto buffer = to_buffer(py::cast<py::object>(entity));
+                if (buffer.ndim == 2) {
+                    // shape should be (number of entities, dimensions of the modality)
+                    if (static_cast<size_t>(buffer.shape[1]) != index.dimensions[cppEntities.size()]) {
+                        throw std::runtime_error("Modality " + std::to_string(cppEntities.size()) + " has incorrect data size: " +
+                                                 std::to_string(buffer.shape[1]) + " is not equal to the expected dimension " + std::to_string(index.dimensions[cppEntities.size()]));
+                    }
+                }
+                std::span<float> span = buffer_to_flattened_span(buffer);
+                // copy the span to a vector as we append it to the cppEntities
+                cppEntities.emplace_back(span.begin(), span.end());
+            }
+        } else {
+            throw std::runtime_error("Input must be a list or tuple of numpy arrays");
+        }
+        index.addEntities(cppEntities);
     }
 
-    // [[nodiscard]] py::array_t<int> search(const py::object &query, size_t k) const {
-    //     std::vector<size_t> res = //
-    //     return convert_to_numpy(res);
-    // };
+    [[nodiscard]] py::array_t<int> search(const py::object &query, size_t k, const std::optional<std::vector<float>> &query_weights) {
+        std::vector<std::vector<float>> vecQuery;
+        if (py::isinstance<py::list>(query) || py::isinstance<py::tuple>(query)) {
+            for (const auto& modalityVector: query) {
+                std::span<float> span = convert_py_to_span(py::cast<py::object>(modalityVector));
+                // copy to a vector as we append it to the cppEntities
+                vecQuery.emplace_back(span.begin(), span.end());
+            }
+        } else {
+            throw std::runtime_error("Input must be a list or tuple of numpy arrays");
+        }
+
+        const std::vector<size_t> res = query_weights.has_value() ? index.search(vecQuery, k, query_weights.value()) : index.search(vecQuery, k);
+        return convert_to_numpy(res);
+    };
 
     void save(const std::string &path) const {
         index.save(path);
@@ -91,6 +137,10 @@ public:
     [[nodiscard]] const std::vector<float>& weights() const {
         return index.weights;
     }
+
+    [[nodiscard]] size_t numEntities() const {
+        return index.getNumEntities();
+    }
 };
 
 
@@ -111,10 +161,10 @@ PYBIND11_MODULE(cppindex, m) {
 
         .def("add_entities", &ExactMultiIndexPyWrapper::addEntities, "Adds multiple entities to the index. To add `n` entities with `k` modalities, provide a list of length `k`, where each element is a 2D numpy array of shape `(n, dimensions_of_modality)`. Each array corresponds to one modality.",
             py::arg("entities"))
-        // .def("search", &ExactMultiIndexPyWrapper::search, "Returns the indices for the k-nearest neighbors of a query entity. Query should be a list of length `k`, where each element is a vector for that modality",
-        //     py::arg("query"),
-        //     py::arg("k"),
-        //     py::arg("query_weights")=std::nullopt)
+        .def("search", &ExactMultiIndexPyWrapper::search, "Returns the indices for the k-nearest neighbors of a query entity. Query should be a list of length `k`, where each element is a vector for that modality",
+            py::arg("query"),
+            py::arg("k"),
+            py::arg("query_weights")=std::nullopt)
 
         .def("save", &ExactMultiIndexPyWrapper::save, "Method to save index", py::arg("path"))
         .def("load", &ExactMultiIndexPyWrapper::load, "Method to load index", py::arg("path"))
@@ -123,6 +173,7 @@ PYBIND11_MODULE(cppindex, m) {
         .def_property_readonly("modalities", &ExactMultiIndexPyWrapper::modalities)
         .def_property_readonly("dimensions", &ExactMultiIndexPyWrapper::dimensions)
         .def_property_readonly("distance_metrics", &ExactMultiIndexPyWrapper::distance_metrics)
-        .def_property_readonly("weights", &ExactMultiIndexPyWrapper::weights);
+        .def_property_readonly("weights", &ExactMultiIndexPyWrapper::weights)
+        .def_property_readonly("num_entities", &ExactMultiIndexPyWrapper::numEntities);
 
 }
