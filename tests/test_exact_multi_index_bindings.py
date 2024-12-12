@@ -37,7 +37,7 @@ def test_valid_exact_multi_index_initialisation_with_arguments():
     assert index2.modalities == 1
     assert index2.dimensions == [1]
     assert index2.distance_metrics == ["euclidean"]
-    assert np.allclose(index2.weights,[0.3])
+    assert np.allclose(index2.weights,[1]) # normalised so should be 1
 
     # should succeed with different orders
     index3 = cppindex.ExactMultiIndex(weights=[0.3, 0.7], modalities=2, dims=np.array([1, 2]), distance_metrics=["euclidean", "euclidean"])
@@ -63,6 +63,17 @@ def test_valid_exact_multi_index_initialisation_with_arguments():
     assert index5.distance_metrics == ["euclidean", "euclidean"]
     assert np.allclose(index5.weights,[0.5, 0.5])
 
+
+    # check normalisation of weights
+    index6 = cppindex.ExactMultiIndex(4, dims=np.array([1, 2,3,4]), distance_metrics=["euclidean"]*4, weights = [1,2,3,4])
+
+    assert np.allclose(index6.weights,np.array([.1,.2,.3,.4]))
+
+    # check normalisation of weights
+    index7 = cppindex.ExactMultiIndex(4, dims=np.array([1, 2,3,4]), distance_metrics=["euclidean"]*4, weights = [0,0,0,100])
+
+    assert np.allclose(index7.weights,np.array([0,0,0,1]))
+
 def test_immutable_exact_multi_index_attributes():
     index = cppindex.ExactMultiIndex(2, dims=np.array([1, 2]), distance_metrics=["euclidean", "euclidean"], weights=[0.3, 0.7])
 
@@ -80,7 +91,7 @@ def test_immutable_exact_multi_index_attributes():
 
 def test_invalid_exact_multi_index_initialization():
 
-    with pytest.raises(TypeError):  # pybind11 raises TypeError for type mismatches
+    with pytest.raises(TypeError):
         cppindex.ExactMultiIndex(
             2,
             weights=np.array([1, 2]),
@@ -88,12 +99,28 @@ def test_invalid_exact_multi_index_initialization():
             dims=[0.5, 0.5]  # incorrect type, expected to be list of ints
         )
 
-    with pytest.raises(TypeError):  # pybind11 raises TypeError for type mismatches
+    with pytest.raises(TypeError):
         cppindex.ExactMultiIndex(
             modalities = 2,
             dims=np.array([0.7, 1.2]), # incorrect type, expected to be list of ints
             distance_metrics=["euclidean", "euclidean"],
             weights=[1.0, 1.0]
+        )
+
+    with pytest.raises(ValueError, match="Weights must be non-negative"):
+            cppindex.ExactMultiIndex(
+                modalities = 2,
+                dims=np.array([1, 2]),
+                distance_metrics=["euclidean", "euclidean"],
+                weights=[1.0, -2] # negative weight is not allowed
+            )
+
+    with pytest.raises(ValueError, match="Weights must not be all zero"):
+        cppindex.ExactMultiIndex(
+            modalities = 2,
+            dims=np.array([1, 2]),
+            distance_metrics=["euclidean", "euclidean"],
+            weights=[0, 0] # zero weights not allowed
         )
 
 def test_invalid_item_type_added_to_exact_index():
@@ -232,3 +259,11 @@ def test_searching_exact_multi_index_multiple_modalities_multiple_dim():
     assert eq(index.search(query3, 4, [0.6, 0.4]), [1,2,0,3])
     assert eq(index.search(query3, 4, [0.4, 0.6]), [2,1,3,0])
 
+
+    # testing if normalised search weights
+    query4 = [[1,3],[3,2,4]]
+    assert eq(index.search(query4, 1, [5, 5]), [2])
+    assert eq(index.search(query4, 2, [0.15, 0.15]), [2,1])
+    assert eq(index.search(query4, 4, [300, 300]), [2,1,3,0])
+    assert eq(index.search(query4, 4, [1.2, 0.8]), [1,2,0,3])
+    assert eq(index.search(query4, 4, [1.2, 1.8]), [2,1,3,0])

@@ -43,7 +43,10 @@ std::vector<size_t> ExactMultiIndex::search(const std::vector<std::vector<float>
     if (numNewEntities != 1) {
         throw std::invalid_argument("Query must contain exactly one entity, but got " + std::to_string(numNewEntities));
     }
-    validateWeights(query_weights, modalities);
+
+    // copy weights as we will normalise them
+    auto normalised_query_weights = std::vector(query_weights);
+    validateAndNormaliseWeights(normalised_query_weights, modalities);
 
     // iterate over entities through modality vectors
     std::priority_queue<std::pair<float, size_t>> maxHeap;
@@ -55,7 +58,7 @@ std::vector<size_t> ExactMultiIndex::search(const std::vector<std::vector<float>
 
             // compute Euclidean distance between storedEntities[modality][vectorStart:vectorEnd] and query[modality]
             const float modalityDistance = computeEuclideanDistanceFromSlice(storedEntities[modality], vectorStart, vectorEnd, query[modality], 0);
-            dist += query_weights[modality] * modalityDistance;
+            dist += normalised_query_weights[modality] * modalityDistance;
         }
 
         // add directly if the heap isn't full, otherwise replace largest distance item
@@ -124,6 +127,3 @@ size_t ExactMultiIndex::validateEntities(const std::vector<std::vector<float>>& 
     return numNewEntities.value();
 }
 
-[[nodiscard]] size_t ExactMultiIndex::getNumEntities() const {
-    return numEntities;
-}

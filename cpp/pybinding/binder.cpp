@@ -83,9 +83,9 @@ public:
                 auto buffer = to_buffer(py::cast<py::object>(entity));
                 if (buffer.ndim == 2) {
                     // shape should be (number of entities, dimensions of the modality)
-                    if (static_cast<size_t>(buffer.shape[1]) != index.dimensions[cppEntities.size()]) {
+                    if (static_cast<size_t>(buffer.shape[1]) != index.getDimensions()[cppEntities.size()]) {
                         throw std::runtime_error("Modality " + std::to_string(cppEntities.size()) + " has incorrect data size: " +
-                                                 std::to_string(buffer.shape[1]) + " is not equal to the expected dimension " + std::to_string(index.dimensions[cppEntities.size()]));
+                                                 std::to_string(buffer.shape[1]) + " is not equal to the expected dimension " + std::to_string(index.getDimensions()[cppEntities.size()]));
                     }
                 }
                 std::span<float> span = buffer_to_flattened_span(buffer);
@@ -123,19 +123,19 @@ public:
     }
 
     [[nodiscard]] size_t modalities() const {
-        return index.modalities;
+        return index.getModalities();
     }
 
     [[nodiscard]]const std::vector<size_t>& dimensions() const {
-        return index.dimensions;
+        return index.getDimensions();
     }
 
     [[nodiscard]] const std::vector<std::string>& distance_metrics() const {
-        return index.distance_metrics;
+        return index.getDistanceMetrics();
     }
 
     [[nodiscard]] const std::vector<float>& weights() const {
-        return index.weights;
+        return index.getWeights();
     }
 
     [[nodiscard]] size_t numEntities() const {

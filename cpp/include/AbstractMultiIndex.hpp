@@ -2,33 +2,45 @@
 #define MULTIINDEX_HPP
 
 #include <iostream>
+#include <numeric>
 #include <vector>
 
-// function to validate weights
-inline void validateWeights(const std::vector<float>& weights, size_t modalities) {
-    if (weights.size() != modalities) {
+
+// function to validate and normalise weights
+inline void validateAndNormaliseWeights(std::vector<float>& ws, size_t modalities) {
+    if (ws.size() != modalities) {
         throw std::invalid_argument("Number of weights must match number of modalities");
     }
     // check weights are non-negative
-    if (std::ranges::any_of(weights, [](float weight) { return weight < 0; })) {
+    if (std::ranges::any_of(ws, [](float weight) { return weight < 0; })) {
         throw std::invalid_argument("Weights must be non-negative");
+    }
+    // normalise weights
+    float sum = std::accumulate(ws.begin(), ws.end(), 0.0f);
+    if (sum == 0) {
+        throw std::invalid_argument("Weights must not be all zero");
+    }
+    for (size_t i = 0; i < modalities; ++i) {
+        ws[i] /= sum;
     }
 }
 
 // Abstract class for Multi vector K-NN index
 class AbstractMultiIndex {
-public:
-    const size_t modalities;
-    const std::vector<size_t> dimensions;
-    const std::vector<std::string> distance_metrics;
-    const std::vector<float> weights;
+protected:
+    size_t modalities;
+    std::vector<size_t> dimensions;
+    std::vector<std::string> distance_metrics;
+    std::vector<float> weights;
+    size_t numEntities = 0;
 
+public:
     // Constructor: take parameters in by value to gain ownership
     AbstractMultiIndex(size_t the_modalities,
         std::vector<size_t> dims,
         std::vector<std::string> dist_metrics,
         std::vector<float> ws)
-        : modalities(the_modalities), dimensions(std::move(dims)),distance_metrics(std::move(dist_metrics)), weights(std::move(ws)) {
+        : modalities(the_modalities), dimensions(std::move(dims)),distance_metrics(std::move(dist_metrics)) {
         if (modalities == 0) {
             throw std::invalid_argument("Number of modalities must be positive");
         }
@@ -38,7 +50,8 @@ public:
         if (distance_metrics.size() != modalities) {
             throw std::invalid_argument("Number of distance metrics must match number of modalities");
         }
-        validateWeights(weights, modalities);
+        validateAndNormaliseWeights(ws, modalities);
+        weights = std::move(ws);
 
         // print out what we just initialised:
         std::cout << "Created MultiIndex with " << modalities << " modalities" << std::endl;
@@ -71,6 +84,27 @@ public:
     virtual void save(const std::string& path) const = 0;
 
     virtual void load(const std::string& path) = 0;
+
+    //getters for the properties
+    [[nodiscard]] size_t getModalities() const {
+        return modalities;
+    }
+
+    [[nodiscard]] const std::vector<size_t>& getDimensions() const {
+        return dimensions;
+    }
+
+    [[nodiscard]] const std::vector<std::string>& getDistanceMetrics() const {
+        return distance_metrics;
+    }
+
+    [[nodiscard]] const std::vector<float>& getWeights() const {
+        return weights;
+    }
+
+    [[nodiscard]] size_t getNumEntities() const {
+        return numEntities;
+    }
 
 };
 

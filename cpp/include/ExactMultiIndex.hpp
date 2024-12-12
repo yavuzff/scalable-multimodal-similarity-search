@@ -5,7 +5,6 @@
 
 class ExactMultiIndex : public AbstractMultiIndex {
     std::vector<std::vector<float>> storedEntities;
-    size_t numEntities = 0;
     size_t validateEntities(const std::vector<std::vector<float>> &entities) const;
 
 public:
@@ -29,7 +28,6 @@ public:
 
     void load(const std::string& path) override;
 
-    [[nodiscard]] size_t getNumEntities() const;
 };
 
 #endif //EXACTMULTIINDEX_HPP
