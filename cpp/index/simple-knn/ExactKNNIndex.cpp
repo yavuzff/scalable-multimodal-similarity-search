@@ -39,6 +39,6 @@ std::vector<size_t> ExactKNNIndex::search(const std::vector<float>& query, size_
     }
 
     // return in increasing distance order
-    std::ranges::reverse(result);
+    std::reverse(result.begin(), result.end());
     return result;
 }

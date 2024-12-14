@@ -1,12 +1,14 @@
 #include "../include/DistanceMetrics.hpp"
 
 #include <vector>
-
+#include <string>
+#include <stdexcept>
+#include <cmath>
 
 DistanceMetric stringToDistanceMetric(const std::string& str) {
     // take lowercase of the string
     std::string strLower = str;
-    std::ranges::transform(strLower, strLower.begin(), ::tolower);
+    std::transform(strLower.begin(), strLower.end(), strLower.begin(), ::tolower);
 
     if (strLower == "euclidean" or strLower == "l2") {
         return DistanceMetric::Euclidean;

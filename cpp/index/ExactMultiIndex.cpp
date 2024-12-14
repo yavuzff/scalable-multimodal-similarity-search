@@ -2,7 +2,7 @@
 
 #include <iostream>
 #include <queue>
-
+#include <optional>
 
 ExactMultiIndex::ExactMultiIndex(const size_t numModalities,
                                  std::vector<size_t> dims,
@@ -89,7 +89,7 @@ std::vector<size_t> ExactMultiIndex::internalSearch(const std::vector<std::vecto
     }
 
     // return in increasing distance order
-    std::ranges::reverse(result);
+    std::reverse(result.begin(), result.end());
     return result;
 }
 

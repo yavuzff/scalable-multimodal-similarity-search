@@ -1,8 +1,8 @@
-
 #ifndef DISTANCEMETRICS_HPP
 #define DISTANCEMETRICS_HPP
 
 #include <vector>
+#include <string>
 
 enum class DistanceMetric {
     Euclidean,

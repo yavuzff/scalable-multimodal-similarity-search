@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <numeric>
+#include <algorithm>
 
 // function to validate and normalise weights
 void validateAndNormaliseWeights(std::vector<float>& ws, const size_t numModalities) {
@@ -43,7 +44,7 @@ AbstractMultiIndex::AbstractMultiIndex(size_t the_modalities,
         } else if (dist_metrics.size() != numModalities) {
             throw std::invalid_argument("Number of distance metrics must match number of modalities");
         } else {
-            std::ranges::transform(dist_metrics, std::back_inserter(distance_metrics),&stringToDistanceMetric);
+            std::transform(dist_metrics.begin(), dist_metrics.end(), std::back_inserter(distance_metrics), &stringToDistanceMetric);
         }
 
         // initialise weights if not provided
