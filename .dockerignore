@@ -1,0 +1,21 @@
+# top level files
+.git
+.gitignore
+logs/
+data/
+.idea/
+
+# mac-specific file
+**/.DS_Store
+
+#python
+*.pyc
+**/.pytest_cache
+**/__pycache__/
+.venv/
+
+# cpp stuff
+cpp/build/
+cpp/cmake_example.egg-info/
+cpp/cmake-build-debug/
+cpp/dist/
