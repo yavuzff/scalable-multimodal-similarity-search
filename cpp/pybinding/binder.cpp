@@ -1,7 +1,6 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
-#include "../include/simple-knn/ExactKNNIndex.hpp"
 #include "../include/ExactMultiIndex.hpp"
 #include <span>
 
@@ -16,21 +15,21 @@ pybind11::buffer_info to_buffer(const py::object &pyobject) {
 
 // perform checks on array-like py object and convert it to std::vector<span>
 // note that span means we use the same memory as the input array
-std::span<float> convert_py_to_span(const py::object &pyArrayLike) {
-    auto buffer = to_buffer(pyArrayLike);
+std::span<const float> convert_py_to_span(const py::object &pyArrayLike) {
+    const auto buffer = to_buffer(pyArrayLike);
 
     if (buffer.ndim != 1) {
         throw std::runtime_error("Input must be a 1D array");
     }
-    return std::span<float>(static_cast<float*>(buffer.ptr), buffer.size);
+    return std::span<const float>(static_cast<float*>(buffer.ptr), buffer.size);
 }
 
 // convert a buffer to a flattened span
-std::span<float> buffer_to_flattened_span(const pybind11::buffer_info &buffer) {
+std::span<const float> buffer_to_flattened_span(const pybind11::buffer_info &buffer) {
     if (buffer.ndim == 1 || buffer.ndim == 2) {
         // for 2D array: return a span corresponding to the flattened version of the buffer
         // since it's stored in row-major order, we can treat it as a contiguous block of memory.
-        return std::span<float>(static_cast<float*>(buffer.ptr), buffer.size);
+        return std::span<const float>(static_cast<const float*>(buffer.ptr), buffer.size);
     }
     throw std::runtime_error("Subarray must be a 1D or 2D array-like object");
 }
@@ -57,25 +56,22 @@ public:
 
     void addEntities(const py::object &entities) {
         //input is a list of numpy arrays (1D or 2D each)
-        std::vector<std::vector<float>> cppEntities;
-
-        if (py::isinstance<py::list>(entities) || py::isinstance<py::tuple>(entities)) {
-            for (const auto& entity: entities) {
-
-                auto buffer = to_buffer(py::cast<py::object>(entity));
-                if (buffer.ndim == 2) {
-                    // shape should be (number of entities, dimensions of the modality)
-                    if (static_cast<size_t>(buffer.shape[1]) != index.getDimensions()[cppEntities.size()]) {
-                        throw std::runtime_error("Modality " + std::to_string(cppEntities.size()) + " has incorrect data size: " +
-                                                 std::to_string(buffer.shape[1]) + " is not equal to the expected dimension " + std::to_string(index.getDimensions()[cppEntities.size()]));
-                    }
-                }
-                std::span<float> span = buffer_to_flattened_span(buffer);
-                // copy the span to a vector as we append it to the cppEntities
-                cppEntities.emplace_back(span.begin(), span.end());
-            }
-        } else {
+        if (!py::isinstance<py::list>(entities) && !py::isinstance<py::tuple>(entities)) {
             throw std::runtime_error("Input must be a list or tuple of numpy arrays");
+        }
+        std::vector<std::span<const float>> cppEntities;
+        for (const auto& modality: entities) {
+            auto buffer = to_buffer(py::cast<py::object>(modality));
+            if (buffer.ndim == 2) {
+                // if we are adding a 2d array, shape should be (number of entities, dimensions of the modality)
+                if (static_cast<size_t>(buffer.shape[1]) != index.getDimensions()[cppEntities.size()]) {
+                    throw std::runtime_error("Modality " + std::to_string(cppEntities.size()) + " has incorrect data size: " +
+                                             std::to_string(buffer.shape[1]) + " is not equal to the expected dimension " + std::to_string(index.getDimensions()[cppEntities.size()]));
+                }
+            }
+            std::span<const float> span = buffer_to_flattened_span(buffer);
+            // copy the span to a vector as we append it to the cppEntities
+            cppEntities.emplace_back(span);
         }
         index.addEntities(cppEntities);
     }
@@ -84,12 +80,12 @@ public:
         if (k < 1) {
             throw std::invalid_argument("k must be at least 1");
         }
-        std::vector<std::vector<float>> vecQuery;
+        std::vector<std::span<const float>> vecQuery;
         if (py::isinstance<py::list>(query) || py::isinstance<py::tuple>(query)) {
             for (const auto& modalityVector: query) {
-                std::span<float> span = convert_py_to_span(py::cast<py::object>(modalityVector));
+                std::span<const float> span = convert_py_to_span(py::cast<py::object>(modalityVector));
                 // copy to a vector as we append it to the cppEntities
-                vecQuery.emplace_back(span.begin(), span.end());
+                vecQuery.emplace_back(span);
             }
         } else {
             throw std::runtime_error("Input must be a list or tuple of numpy arrays");
