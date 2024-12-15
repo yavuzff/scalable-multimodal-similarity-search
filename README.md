@@ -1,48 +1,88 @@
 # scalable-multimodal-similarity-search
 
-This project is for the Part II Computer Science course at the University of Cambridge.
+This project is being developed for the Part II Computer Science course at the University of Cambridge. 
+It provides a multimodal similarity search system in C++ for efficient indexing and searching, with Python bindings exposing it as a Python module.
 
 
 ### Prerequisites
 
-You can set up environment locally (involving venv, Cmake, conda, pybind), or run the Docker container.
+You can run the project using Docker (recommended) or set up the environment locally.
+
+#### Using Docker
+The project includes a Dockerfile to build an image with all required dependencies.
+
+1. Start Docker Desktop (on macOS):
+```
+open -a Docker
+```
+2. Build the Docker image:
+```
+docker build -t scalable-multimodal-similarity-search . 
+```
+3. Run the container (optionally mounting data directories, and the repository directory using argument `-v $(pwd):/scalable-multimodal-similarity-search`):
+
+```
+docker run -it --rm \
+    -v /Users/yavuz/data/:/Users/yavuz/data \
+    scalable-multimodal-similarity-search
+```
 
 #### Local:
-1. Run `pip install -r requirements.txt` in a virtual environment.
 
-In order to run C++ code:
+Follow these steps to set up the environment locally (involving venv, Cmake, conda, pybind):
 
-1. Ensure CMake is installed, e.g. Homebrew: `brew install cmake`
-2. Setup pybind11:
-    - Ensure conda is installed, e.g. [miniconda](https://docs.anaconda.com/miniconda/#quick-command-line-install).
-    - Update with `conda-forge` channel: `conda update -n base --all -c conda-forge -c defaults`
-    - Install pybind11: `conda install -c conda-forge pybind11`
+1. Ensure Python 3.11 is installed, and create a virtual environment with the required libraries:
+```bash
+python3.11 -m venv ".venv"
+source .venv/bin/activate
+pip install -r requirements.txt
+```
 
-#### Docker:
-Alternatively, you can run the project in a Docker container.
+2. Ensure the following is installed to compile and run C++ code:
 
+   1. Install CMake version >3.29 (e.g., using Homebrew): 
+   ```
+   brew install cmake
+   ```
+   2. Setup pybind11 (using Conda):
+      1. Ensure conda is installed, e.g. [miniconda](https://docs.anaconda.com/miniconda/#quick-command-line-install).
+      2. Update with `conda-forge` channel:
+        ```
+        conda update -n base --all -c conda-forge -c defaults
+        ```
+      3. Install pybind11:
+        ```
+        conda install -c conda-forge pybind11
+        ```
 
-0. (On Mac) Launch Docker Desktop or run `open -a Docker`
-1. `docker build -t scalable-multimodal-similarity-search .`
-2.  `docker run -it --rm -v $(pwd):/scalable-multimodal-similarity-search -v /Users/yavuz/data/:/Users/yavuz/data scalable-multimodal-similarity-search`
+    
+### Compile C++ code and setup Python bindings:
+To use the C++ index in Python, compile the code and set up the Python bindings:
 
-### Running
+1. Navigate to the cpp/ directory:
+```
+cd cpp
+```
 
-#### Compile C++ code and setup Python bindings:
-1. `cd cpp`
-2. `cmake -S . -B cmake-build-debug`
-3. `cmake --build cmake-build-debug -j 6 --target cppindex`
-4. `pip install ./pybinding`
+2. Build the project using CMake:
+```
+cmake -S . -B cmake-build-debug
+cmake --build cmake-build-debug -j 6 --target cppindex
+```
+3. Install the Python bindings:
+```
+python3 pybinding/setup.py install
+```
 
-      Note: IDE may not index the module correctly. This is not the case if you run `python3 pybinding/setup.py install` instead.
+### Using the C++ index through Python:
 
-#### Using the C++ index through Python:
+The C++ index can be imported and used within Python scripts.
 
-The C++ index can be imported and used in Python. In a Python file, you can:
 1. Import the index:
 
-    `from cppindex import ExactMultiIndex`
-
+```
+from cppindex import ExactMultiIndex
+```
 
 2. Initialise the index, e.g.:
 ```
@@ -76,8 +116,9 @@ print("Indices of nearest neighbors:", results)
 
 
 5. Example usage can be found in `src/main`. To run it, run the below command from the project root:
-
-    `python3 -m src.main`
+```
+python3 -m src.main
+```
 
 
 ### Additional Information
@@ -85,15 +126,19 @@ print("Indices of nearest neighbors:", results)
 This section contains information on how to develop the project, generate datasets, and run tests.
 
 #### C++ development:
-Run from `cpp/`:
-1. `cmake -S . -B cmake-build-debug`
-2. `cmake --build cmake-build-debug -j 6 --target main`
-3. `./cmake-build-debug/main`
+To develop and test the C++ code:
 
-Alternatively, to develop with the Python bindings:
-1. Change C++ code.
-2. Run `sh clean-and-rebind-module.sh` to recompile the module.
-3. Run `python3 -m src.main` to test the changes.
+1. Build and run the C++ executable:
+```
+cmake -S . -B cmake-build-debug
+cmake --build cmake-build-debug -j 6 --target main
+./cmake-build-debug/main
+```
+
+2. Optionally, to develop with Python bindings:
+    - Change C++ code. 
+    - Run `sh clean-and-rebind-module.sh` to recompile the module. 
+    - Run `python3 -m src.main` to test the changes.
 
 #### Dataset generation:
 - Used data_processing/dataset_preparation to download images and save image/metadata.
@@ -106,4 +151,4 @@ To run the Python tests: `pytest -v tests` in `scalable-multimodal-similarity-se
 - Tests regarding datasets (test/data_processing):
     - test_dataset: validates the raw dataset of images and metadata is consistent
     - test_vector_dataset: validates the generated vectors are consistent with the dataset
-- Tests for the exact multi search C++ library are in `test_exact_multi_index_bindings.py`
+- Tests for the exact multi search C++ index are in `test_exact_multi_index_bindings.py`
