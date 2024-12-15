@@ -1,6 +1,9 @@
 import time
 from cppindex import ExactMultiIndex
 import numpy as np
+import psutil
+import os
+
 
 class IndexEvaluator:
     def __init__(self, index: ExactMultiIndex):
@@ -14,19 +17,29 @@ class IndexEvaluator:
             weights = index.weights
         )
 
-    def evaluate_add_entities(self, entities: list[np.ndarray]) -> float:
+        self.process = psutil.Process(os.getpid())
+
+    def evaluate_add_entities(self, entities: list[np.ndarray]) -> tuple[float, int]:
         """
         Evaluates the time it takes to add entities to the index.
         :arg entities: A list of numpy arrays, each containing the entity vectors for a modality.
-        :returns: The total time it took to add the entities to the index.
+        :returns: The total time it took to add the entities to the index and the max memory usage in bytes.
         """
+        mem_before = self.process.memory_info().rss
         start_time = time.time()
         self.index.add_entities(entities)
+        mem_after = self.process.memory_info().rss
+
         total_time = time.time() - start_time
+        mem_usage = mem_after - mem_before
 
         # also add it to exact index
+        mem_before = self.process.memory_info().rss
         self.exact_index.add_entities(entities)
-        return total_time
+        mem_after = self.process.memory_info().rss
+        print(f"Exact index memory consumption: {(mem_after - mem_before)/1024/1024} MiB.")
+
+        return total_time, mem_usage
 
     def evaluate_search(self, queries: list[np.ndarray], k: int):
         """
@@ -38,19 +51,24 @@ class IndexEvaluator:
         num_queries = len(queries[0])
         search_times = []
         recall_scores = []
+        memory_consumptions = []
         for i in range(num_queries):
             query = [modality[i] for modality in queries]
 
+            mem_before = self.process.memory_info().rss
             start_time = time.time()
             results = self.index.search(query, k)
-            search_time = time.time() - start_time
-            search_times.append(search_time)
+            end_time = time.time()
+            mem_after = self.process.memory_info().rss
+
+            search_times.append(end_time-start_time)
+            memory_consumptions.append(mem_after - mem_before)
 
             # calculate recall
             exact_results = self.exact_index.search(query, k)
             recall_scores.append(compute_recall(results, exact_results))
 
-        return search_times, recall_scores
+        return search_times, recall_scores, memory_consumptions
 
 def compute_recall(results, exact_results):
     """

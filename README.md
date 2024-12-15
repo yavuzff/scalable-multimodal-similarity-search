@@ -120,6 +120,10 @@ print("Indices of nearest neighbors:", results)
 python3 -m src.main
 ```
 
+6. For memory profiling that is not just on the C++ index, use `filprofiler`. From the project root, run:
+```
+fil-profile run -m src.main
+```
 
 ### Additional Information
 

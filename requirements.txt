@@ -7,3 +7,5 @@ transformers~=4.46.1
 pillow~=11.0.0
 pyarrow==15.0.2
 pytest==8.3.3
+filprofiler==2024.11.2
+psutil==6.1.0
