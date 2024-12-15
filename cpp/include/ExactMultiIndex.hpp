@@ -3,13 +3,14 @@
 
 #include "AbstractMultiIndex.hpp"
 #include "DistanceMetrics.hpp"
+#include <span>
 
 class ExactMultiIndex : public AbstractMultiIndex {
     std::vector<std::vector<float>> storedEntities;
-    size_t validateEntities(const std::vector<std::vector<float>> &entities) const;
-    void validateQuery(const std::vector<std::vector<float>> &query, size_t k) const;
+    size_t validateEntities(const std::vector<std::span<const float>> &entities) const;
+    void validateQuery(const std::vector<std::span<const float>> &query, size_t k) const;
 
-    std::vector<size_t> internalSearch(const std::vector<std::vector<float>>& query, size_t k,
+    std::vector<size_t> internalSearch(const std::vector<std::span<const float>>& query, size_t k,
                         const std::vector<float>& normalisedWeights) const;
 
 public:
@@ -20,9 +21,15 @@ public:
 
     void addEntities(const std::vector<std::vector<float>>& entities) override;
 
+    void addEntities(const std::vector<std::span<const float>>& entities) override;
+
     std::vector<size_t> search(const std::vector<std::vector<float>>& query, size_t k, const std::vector<float>& query_weights) override;
 
     std::vector<size_t> search(const std::vector<std::vector<float>>& query, size_t k) override;
+
+    std::vector<size_t> search(const std::vector<std::span<const float>>& query, size_t k, const std::vector<float>& query_weights) override;
+
+    std::vector<size_t> search(const std::vector<std::span<const float>>& query, size_t k) override;
 
     void save(const std::string& path) const override;
 

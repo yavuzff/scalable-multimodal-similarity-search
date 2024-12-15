@@ -4,6 +4,7 @@
 #include <string>
 #include <stdexcept>
 #include <cmath>
+#include <span>
 
 DistanceMetric stringToDistanceMetric(const std::string& str) {
     // take lowercase of the string
@@ -53,8 +54,8 @@ float dotProduct(const std::vector<float>& a, const std::vector<float>& b) {
 }
 
 // compute the Euclidean distance from slices of two vectors
-float computeEuclideanDistanceFromSlice(const std::vector<float>& storedEntity, const size_t startIdx, const size_t endIdx,
-                               const std::vector<float>& queryEntity, const size_t queryStartIdx) {
+float computeEuclideanDistanceFromSlice(const std::span<const float>& storedEntity, const size_t startIdx, const size_t endIdx,
+                               const std::span<const float>& queryEntity, const size_t queryStartIdx) {
     float sum = 0.0f;
     for (size_t idx = startIdx, queryIdx = queryStartIdx; idx < endIdx; ++idx, ++queryIdx) {
         float diff = storedEntity[idx] - queryEntity[queryIdx];
@@ -63,7 +64,7 @@ float computeEuclideanDistanceFromSlice(const std::vector<float>& storedEntity, 
     return std::sqrt(sum);
 }
 
-float computeDotProductFromSlice(const std::vector<float> &storedEntity, size_t startIdx, size_t endIdx, const std::vector<float> &queryEntity, size_t queryStartIdx) {
+float computeDotProductFromSlice(const std::span<const float> &storedEntity, size_t startIdx, size_t endIdx, const std::span<const float> &queryEntity, size_t queryStartIdx) {
     float sum = 0.0f;
     for (size_t idx = startIdx, queryIdx = queryStartIdx; idx < endIdx; ++idx, ++queryIdx) {
         sum += storedEntity[idx] * queryEntity[queryIdx];
@@ -73,7 +74,7 @@ float computeDotProductFromSlice(const std::vector<float> &storedEntity, size_t 
 
 // cosine distance ranges from 0 to 2, where 0 is identical and 2 is opposite direction
 // we assume it is not 0
-float computeCosineDistanceFromSlice(const std::vector<float> &storedEntity, size_t startIdx, size_t endIdx, const std::vector<float> &queryEntity, size_t queryStartIdx, const bool normalised) {
+float computeCosineDistanceFromSlice(const std::span<const float> &storedEntity, size_t startIdx, size_t endIdx, const std::span<const float> &queryEntity, size_t queryStartIdx, const bool normalised) {
     const float dot_product = computeDotProductFromSlice(storedEntity, startIdx, endIdx, queryEntity, queryStartIdx);
     if (normalised) {
         return 1.0f - dot_product;
@@ -89,8 +90,8 @@ float computeCosineDistanceFromSlice(const std::vector<float> &storedEntity, siz
     return 1.0f - dot_product / (stored_norm * query_norm);
 }
 
-float computeManhattanDistanceFromSlice(const std::vector<float>& storedEntity, size_t startIdx, size_t endIdx,
-                               const std::vector<float>& queryEntity, size_t queryStartIdx) {
+float computeManhattanDistanceFromSlice(const std::span<const float>& storedEntity, size_t startIdx, size_t endIdx,
+                               const std::span<const float>& queryEntity, size_t queryStartIdx) {
     float sum = 0.0f;
     for (size_t idx = startIdx, queryIdx = queryStartIdx; idx < endIdx; ++idx, ++queryIdx) {
         sum += std::abs(storedEntity[idx] - queryEntity[queryIdx]);

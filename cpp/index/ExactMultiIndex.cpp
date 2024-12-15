@@ -3,6 +3,19 @@
 #include <iostream>
 #include <queue>
 #include <optional>
+#include <span>
+
+
+std::vector<std::span<const float>> getSpanViewOfVectors(const std::vector<std::vector<float>> &vectors) {
+    // convert std::vector<std::vector<float>> to std::vector<std::span<float>>
+    std::vector<std::span<const float>> entitiesAsSpans;
+    for (const auto& modality : vectors) {
+        // Use std::span<const float> because modality is const
+        std::span<const float> span(modality.data(), modality.size());  // Correct way
+        entitiesAsSpans.push_back(span);
+    }
+    return entitiesAsSpans;
+}
 
 ExactMultiIndex::ExactMultiIndex(const size_t numModalities,
                                  std::vector<size_t> dims,
@@ -13,7 +26,11 @@ ExactMultiIndex::ExactMultiIndex(const size_t numModalities,
 }
 
 void ExactMultiIndex::addEntities(const std::vector<std::vector<float>> &entities) {
-    size_t numNewEntities = validateEntities(entities);
+    addEntities(getSpanViewOfVectors(entities));
+}
+
+void ExactMultiIndex::addEntities(const std::vector<std::span<const float>>& entities) {
+    const size_t numNewEntities = validateEntities(entities);
     numEntities += numNewEntities;
     std::cout << "Adding " << numNewEntities << " entities!" << std::endl;
 
@@ -25,7 +42,7 @@ void ExactMultiIndex::addEntities(const std::vector<std::vector<float>> &entitie
     }
 }
 
-std::vector<size_t> ExactMultiIndex::search(const std::vector<std::vector<float>>& query, const size_t k,
+std::vector<size_t> ExactMultiIndex::search(const std::vector<std::span<const float>>& query, const size_t k,
                         const std::vector<float>& query_weights) {
     validateQuery(query, k);
 
@@ -36,12 +53,22 @@ std::vector<size_t> ExactMultiIndex::search(const std::vector<std::vector<float>
     return internalSearch(query, k, normalised_query_weights);
 }
 
-std::vector<size_t> ExactMultiIndex::search(const std::vector<std::vector<float>>& query, const size_t k) {
+std::vector<size_t> ExactMultiIndex::search(const std::vector<std::span<const float>>& query, const size_t k) {
     validateQuery(query, k);
     return internalSearch(query, k, weights);
 }
 
-std::vector<size_t> ExactMultiIndex::internalSearch(const std::vector<std::vector<float>>& query, const size_t k,
+
+std::vector<size_t> ExactMultiIndex::search(const std::vector<std::vector<float>>& query, const size_t k,
+                        const std::vector<float>& query_weights) {
+    return search(getSpanViewOfVectors(query), k, query_weights);
+}
+
+std::vector<size_t> ExactMultiIndex::search(const std::vector<std::vector<float>>& query, const size_t k) {
+    return search(getSpanViewOfVectors(query), k);
+}
+
+std::vector<size_t> ExactMultiIndex::internalSearch(const std::vector<std::span<const float>>& query, const size_t k,
                         const std::vector<float>& normalisedWeights) const {
     // iterate over entities through modality vectors
     std::priority_queue<std::pair<float, size_t>> maxHeap;
@@ -104,7 +131,7 @@ void ExactMultiIndex::load(const std::string& path) {
 
 
 //private function to validate input entities and return the number of entities
-size_t ExactMultiIndex::validateEntities(const std::vector<std::vector<float>>& entities) const {
+size_t ExactMultiIndex::validateEntities(const std::vector<std::span<const float>>& entities) const {
     if (entities.size() != numModalities) {
         throw std::invalid_argument("Entity must have the same number of modalities as the index");
     }
@@ -135,7 +162,7 @@ size_t ExactMultiIndex::validateEntities(const std::vector<std::vector<float>>& 
     return numNewEntities.value();
 }
 
-void ExactMultiIndex::validateQuery(const std::vector<std::vector<float>> &query, size_t k) const {
+void ExactMultiIndex::validateQuery(const std::vector<std::span<const float>> &query, size_t k) const {
     // validate the query entity and k
     if (k < 1) {
         throw std::invalid_argument("k must be at least 1");

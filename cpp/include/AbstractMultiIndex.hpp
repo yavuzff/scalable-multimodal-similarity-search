@@ -2,6 +2,7 @@
 #define MULTIINDEX_HPP
 
 #include <vector>
+#include <span>
 
 #include "DistanceMetrics.hpp"
 
@@ -31,12 +32,18 @@ public:
     // where each element is a flattened vector of size n * dimensions_of_modality
     virtual void addEntities(const std::vector<std::vector<float>>& entities) = 0;
 
+    virtual void addEntities(const std::vector<std::span<const float>>& entities) = 0;
 
     // Return indices of the k-nearest neighbors (MAYBE: also return vectors themselves)
     virtual std::vector<size_t> search(const std::vector<std::vector<float>>& query, size_t k,
                                        const std::vector<float>& query_weights) = 0;
 
     virtual std::vector<size_t> search(const std::vector<std::vector<float>>& query, size_t k) = 0;
+
+    virtual std::vector<size_t> search(const std::vector<std::span<const float>>& query, size_t k,
+                                   const std::vector<float>& query_weights) = 0;
+
+    virtual std::vector<size_t> search(const std::vector<std::span<const float>>& query, size_t k) = 0;
 
     virtual void save(const std::string& path) const = 0;
 
