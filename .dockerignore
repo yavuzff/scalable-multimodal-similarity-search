@@ -4,6 +4,7 @@
 logs/
 data/
 .idea/
+clean-and-rebind-module.sh
 
 # mac-specific file
 **/.DS_Store
