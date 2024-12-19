@@ -33,3 +33,15 @@
 *.exe
 *.out
 *.app
+
+# Mac-specific files
+**/.DS_Store
+
+# Python files
+**/__pycache__/
+
+# cpp folders
+cpp/build/
+cpp/cmake_example.egg-info/
+cpp/dist/
+cpp/cmake-build-debug/

@@ -1,27 +1,71 @@
 # Use an official Ubuntu base image
 FROM ubuntu:22.04
 
-# Install the necessary python packages
+# Prevent interactive prompts
+ARG DEBIAN_FRONTEND=noninteractive
+
+# Install essential tools and Python 3.11
 RUN apt-get update && \
-    apt-get install -y python3 python3-pip python3-venv && \
+    apt-get install -y --no-install-recommends \
+        software-properties-common \
+        wget \
+        gpg-agent \
+        nano \
+        bzip2 \
+        build-essential \
+        tar && \
+    add-apt-repository -y ppa:deadsnakes/ppa && \
+    apt-get install -y --no-install-recommends \
+        python3.11 \
+        python3.11-venv \
+        python3.11-distutils \
+        python3-pip \
+        python3.11-dev && \
     rm -rf /var/lib/apt/lists/*
 
-# Set the working directory inside the container
+# Set Python 3.11 as default
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 && \
+    update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1 && \
+    update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 1
+
+# Set working directory
 WORKDIR /scalable-multimodal-similarity-search
 
-# Copy the requirements.txt file to the working directory
+# Copy and install Python dependencies
 COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Create a virtual environment and install the required Python packages
-RUN python3 -m venv /venv
-RUN /venv/bin/pip install --upgrade pip && \
-    /venv/bin/pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the application code to the working directory
+# Install CMake 3.29.2
+ARG CMAKE_VERSION=3.29.2
+RUN wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz && \
+    tar -xzvf cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz && \
+    mv cmake-${CMAKE_VERSION}-linux-x86_64 /opt/cmake && \
+    ln -s /opt/cmake/bin/cmake /usr/bin/cmake && \
+    rm cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz
+
+# Install Miniconda
+RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && \
+    bash Miniconda3-latest-Linux-x86_64.sh -b -p /opt/conda && \
+    rm Miniconda3-latest-Linux-x86_64.sh && \
+    /opt/conda/bin/conda clean --all -y
+
+# Add Conda to the PATH
+ENV PATH="${PATH}:/opt/conda/bin"
+
+# Install pybind11 via conda
+RUN conda update -n base --all -c conda-forge -c defaults -y && \
+    conda install -c conda-forge pybind11 -y #&&
+
+# Copy the rest of the application code
 COPY . .
 
-# Set the environment variables
-ENV PATH="$PATH:/venv/bin"
-ENV PYTHONPATH="${PYTHONPATH}:/scalable-multimodal-similarity-search"
 
+# Compile the Cpp code and setup the bindings
+#RUN cd cpp && \
+#    cmake -S . -B cmake-build-debug && \
+#    cmake --build cmake-build-debug -j 6 --target cppindex && \
+#    python3 pybinding/setup.py install
+
+# Default to bash
 CMD ["bash"]
