@@ -11,7 +11,8 @@ SKIP = True
 SAMPLE = True
 NUM_SAMPLES = 50
 
-full_data = pd.read_parquet(METADATA_PATH)
+if not SKIP:
+    full_data = pd.read_parquet(METADATA_PATH)
 
 def test_image_dataset():
     """
