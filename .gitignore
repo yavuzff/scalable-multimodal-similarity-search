@@ -39,6 +39,7 @@
 
 # Python files
 **/__pycache__/
+*.venv/**
 
 # cpp folders
 cpp/build/
