@@ -17,7 +17,7 @@ open -a Docker
 ```
 2. Build the Docker image:
 ```
-docker build -t scalable-multimodal-similarity-search . 
+docker build --platform linux/amd64 -t scalable-multimodal-similarity-search . 
 ```
 3. Run the container (optionally mounting data directories, and the repository directory using argument `-v $(pwd):/scalable-multimodal-similarity-search`):
 
