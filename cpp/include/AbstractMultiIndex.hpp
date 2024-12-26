@@ -7,6 +7,7 @@
 #include "DistanceMetrics.hpp"
 
 void validateAndNormaliseWeights(std::vector<float>& ws, size_t numModalities);
+std::vector<std::span<const float>> getSpanViewOfVectors(const std::vector<std::vector<float>> &vectors);
 
 // Abstract class for Multi vector K-NN index
 class AbstractMultiIndex {
@@ -17,6 +18,9 @@ protected:
     std::vector<std::string> str_distance_metrics;
     std::vector<float> weights;
     size_t numEntities = 0;
+
+    size_t validateEntities(const std::vector<std::span<const float>> &entities) const;
+    void validateQuery(const std::vector<std::span<const float>> &query, size_t k) const;
 
 public:
     // Constructor: take parameters in by value to gain ownership

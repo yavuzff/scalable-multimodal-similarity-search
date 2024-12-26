@@ -3,6 +3,7 @@
 #include <iostream>
 #include <numeric>
 #include <algorithm>
+#include <optional>
 
 // function to validate and normalise weights
 void validateAndNormaliseWeights(std::vector<float>& ws, const size_t numModalities) {
@@ -21,6 +22,18 @@ void validateAndNormaliseWeights(std::vector<float>& ws, const size_t numModalit
     for (size_t i = 0; i < numModalities; ++i) {
         ws[i] /= sum;
     }
+}
+
+// get span view of vectors
+std::vector<std::span<const float>> getSpanViewOfVectors(const std::vector<std::vector<float>> &vectors) {
+    // convert std::vector<std::vector<float>> to std::vector<std::span<float>>
+    std::vector<std::span<const float>> entitiesAsSpans;
+    for (const auto& modality : vectors) {
+        // Use std::span<const float> because modality is const
+        std::span<const float> span(modality.data(), modality.size());  // Correct way
+        entitiesAsSpans.push_back(span);
+    }
+    return entitiesAsSpans;
 }
 
 
@@ -61,6 +74,48 @@ AbstractMultiIndex::AbstractMultiIndex(size_t the_modalities,
         }
     }
 
+//private function to validate input entities and return the number of entities
+size_t AbstractMultiIndex::validateEntities(const std::vector<std::span<const float>>& entities) const {
+    if (entities.size() != numModalities) {
+        throw std::invalid_argument("Entity must have the same number of modalities as the index");
+    }
+
+    std::optional<size_t> numNewEntities;
+    for (size_t i = 0; i < numModalities; ++i) {
+        const auto& modalityVectors = entities[i];
+
+        // check that modality vectors is a multiple of the dimension count
+        if (modalityVectors.size() % dimensions[i] != 0) {
+            throw std::invalid_argument(
+                "Modality " + std::to_string(i) + " has incorrect data size: " +
+                std::to_string(modalityVectors.size()) + " is not a multiple of the expected dimension " + std::to_string(dimensions[i])
+                );
+        }
+
+        // check that modality vectors contains the same number of entities
+        size_t numEntitiesThisModality = modalityVectors.size() / dimensions[i];
+        if (numNewEntities.has_value()) {
+            if (numEntitiesThisModality != numNewEntities.value()) {
+                throw std::invalid_argument("Modality " + std::to_string(i) + " has a different number of entities than the other modalities, expected " + std::to_string(numNewEntities.value()) + " but got " + std::to_string(numEntitiesThisModality));
+            }
+        } else {
+            // this is the first modality, so set the number of entities
+            numNewEntities = numEntitiesThisModality;
+        }
+    }
+    return numNewEntities.value();
+}
+
+void AbstractMultiIndex::validateQuery(const std::vector<std::span<const float>> &query, size_t k) const {
+    // validate the query entity and k
+    if (k < 1) {
+        throw std::invalid_argument("k must be at least 1");
+    }
+    size_t numNewEntities = validateEntities(query);
+    if (numNewEntities != 1) {
+        throw std::invalid_argument("Query must contain exactly one entity, but got " + std::to_string(numNewEntities));
+    }
+}
 
     // getter implementations
     [[nodiscard]] size_t AbstractMultiIndex::getNumModalities() const {
