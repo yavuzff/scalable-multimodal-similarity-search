@@ -14,18 +14,18 @@ class ExactMultiIndex : public AbstractMultiIndex {
 public:
     ExactMultiIndex(size_t numModalities,
                     std::vector<size_t> dims,
-                    std::vector<std::string> distance_metrics = {},
+                    std::vector<std::string> distanceMetrics = {},
                     std::vector<float> weights = {});
 
     void addEntities(const std::vector<std::vector<float>>& entities) override;
 
     void addEntities(const std::vector<std::span<const float>>& entities) override;
 
-    std::vector<size_t> search(const std::vector<std::vector<float>>& query, size_t k, const std::vector<float>& query_weights) override;
+    std::vector<size_t> search(const std::vector<std::vector<float>>& query, size_t k, const std::vector<float>& queryWeights) override;
 
     std::vector<size_t> search(const std::vector<std::vector<float>>& query, size_t k) override;
 
-    std::vector<size_t> search(const std::vector<std::span<const float>>& query, size_t k, const std::vector<float>& query_weights) override;
+    std::vector<size_t> search(const std::vector<std::span<const float>>& query, size_t k, const std::vector<float>& queryWeights) override;
 
     std::vector<size_t> search(const std::vector<std::span<const float>>& query, size_t k) override;
 

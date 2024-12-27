@@ -2,6 +2,7 @@
 
 #include "include/simple-knn/ExactKNNIndex.hpp"
 #include "include/ExactMultiIndex.hpp"
+#include "include/MultiHNSW.hpp"
 
 void exact_demo() {
     ExactKNNIndex index;
@@ -47,9 +48,28 @@ void multi_exact_demo() {
     std::cout << std::endl;
 }
 
+//multi hnsw demo
+void multi_hnsw_demo() {
+    // initialise an index
+    size_t modalities = 2;
+    std::vector<size_t> dims = {1, 2};
+    std::vector<std::string> distance_metrics = {"euclidean", "euclidean"};
+    std::vector<float> weights = {0.5f, 0.5f};
+    MultiHNSW index(modalities, dims, distance_metrics, {}, 1.0f, 32, 32, 200, 50, 20);
+
+    // print properties of the index
+    std::cout << "Number of modalities: " << index.getNumModalities() << std::endl;
+    std::cout << "Seed: " << index.getSeed() << std::endl;
+    std::cout << "Target degree: " << index.getTargetDegree() << std::endl;
+    std::cout << "efSearch: " << index.getEfSearch() << std::endl;
+
+    index.addEntities({{1.0f}, {2.0f, 3.0f}}); // add a single entity
+    std::vector<size_t> neighbours = index.search({{1.0f}, {1.0f, 1.0f}}, 2, {0.5f, 0.5f});
+}
+
 int main() {
 
-    multi_exact_demo();
+    multi_hnsw_demo();
 
     return 0;
 }

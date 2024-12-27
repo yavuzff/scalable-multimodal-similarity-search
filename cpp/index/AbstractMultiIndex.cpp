@@ -38,11 +38,11 @@ std::vector<std::span<const float>> getSpanViewOfVectors(const std::vector<std::
 
 
 // Constructor: take parameters in by value to gain ownership
-AbstractMultiIndex::AbstractMultiIndex(size_t the_modalities,
+AbstractMultiIndex::AbstractMultiIndex(size_t theModalities,
         std::vector<size_t> dims,
-        std::vector<std::string> dist_metrics,
+        std::vector<std::string> distMetrics,
         std::vector<float> ws)
-        : numModalities(the_modalities), dimensions(std::move(dims)), str_distance_metrics(dist_metrics), weights(std::move(ws)) {
+        : numModalities(theModalities), dimensions(std::move(dims)), strDistanceMetrics(distMetrics), weights(std::move(ws)) {
         if (numModalities == 0) {
             throw std::invalid_argument("Number of modalities must be positive");
         }
@@ -51,13 +51,13 @@ AbstractMultiIndex::AbstractMultiIndex(size_t the_modalities,
         }
 
         // initialise distance metrics if not provided, otherwise validate and convert to enum
-        if (dist_metrics.empty()) {
-            distance_metrics.resize(numModalities, DistanceMetric::Euclidean);
-            str_distance_metrics.resize(numModalities, "euclidean");
-        } else if (dist_metrics.size() != numModalities) {
+        if (distMetrics.empty()) {
+            distanceMetrics.resize(numModalities, DistanceMetric::Euclidean);
+            strDistanceMetrics.resize(numModalities, "euclidean");
+        } else if (distMetrics.size() != numModalities) {
             throw std::invalid_argument("Number of distance metrics must match number of modalities");
         } else {
-            std::transform(dist_metrics.begin(), dist_metrics.end(), std::back_inserter(distance_metrics), &stringToDistanceMetric);
+            std::transform(distMetrics.begin(), distMetrics.end(), std::back_inserter(distanceMetrics), &stringToDistanceMetric);
         }
 
         // initialise weights if not provided
@@ -70,7 +70,7 @@ AbstractMultiIndex::AbstractMultiIndex(size_t the_modalities,
         // print out what we just initialised:
         std::cout << "Created MultiIndex with " << numModalities << " modalities" << std::endl;
         for (size_t i = 0; i < numModalities; ++i) {
-            std::cout << "Modality " << i << " has dimension " << dimensions[i] << ", distance metric " << distanceMetricToString(distance_metrics[i]) << " and weight " << weights[i] << std::endl;
+            std::cout << "Modality " << i << " has dimension " << dimensions[i] << ", distance metric " << distanceMetricToString(distanceMetrics[i]) << " and weight " << weights[i] << std::endl;
         }
     }
 
@@ -127,7 +127,7 @@ void AbstractMultiIndex::validateQuery(const std::vector<std::span<const float>>
     }
 
     [[nodiscard]] const std::vector<std::string>& AbstractMultiIndex::getDistanceMetrics() const {
-        return str_distance_metrics;
+        return strDistanceMetrics;
     }
 
     [[nodiscard]] const std::vector<float>& AbstractMultiIndex::getWeights() const {

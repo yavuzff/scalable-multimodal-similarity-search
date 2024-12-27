@@ -7,9 +7,9 @@
 
 ExactMultiIndex::ExactMultiIndex(const size_t numModalities,
                                  std::vector<size_t> dims,
-                                 std::vector<std::string> distance_metrics,
+                                 std::vector<std::string> distanceMetrics,
                                  std::vector<float> weights)
-    : AbstractMultiIndex(numModalities, std::move(dims), std::move(distance_metrics), std::move(weights)) {
+    : AbstractMultiIndex(numModalities, std::move(dims), std::move(distanceMetrics), std::move(weights)) {
     storedEntities.resize(numModalities);
 }
 
@@ -31,14 +31,14 @@ void ExactMultiIndex::addEntities(const std::vector<std::span<const float>>& ent
 }
 
 std::vector<size_t> ExactMultiIndex::search(const std::vector<std::span<const float>>& query, const size_t k,
-                        const std::vector<float>& query_weights) {
+                        const std::vector<float>& queryWeights) {
     validateQuery(query, k);
 
     // copy weights as we will normalise them
-    auto normalised_query_weights = std::vector(query_weights);
-    validateAndNormaliseWeights(normalised_query_weights, numModalities);
+    auto normalisedQueryWeights = std::vector(queryWeights);
+    validateAndNormaliseWeights(normalisedQueryWeights, numModalities);
 
-    return internalSearch(query, k, normalised_query_weights);
+    return internalSearch(query, k, normalisedQueryWeights);
 }
 
 std::vector<size_t> ExactMultiIndex::search(const std::vector<std::span<const float>>& query, const size_t k) {
@@ -48,8 +48,8 @@ std::vector<size_t> ExactMultiIndex::search(const std::vector<std::span<const fl
 
 
 std::vector<size_t> ExactMultiIndex::search(const std::vector<std::vector<float>>& query, const size_t k,
-                        const std::vector<float>& query_weights) {
-    return search(getSpanViewOfVectors(query), k, query_weights);
+                        const std::vector<float>& queryWeights) {
+    return search(getSpanViewOfVectors(query), k, queryWeights);
 }
 
 std::vector<size_t> ExactMultiIndex::search(const std::vector<std::vector<float>>& query, const size_t k) {
@@ -69,7 +69,7 @@ std::vector<size_t> ExactMultiIndex::internalSearch(const std::vector<std::span<
             float modalityDistance;
             // compute distance based on distance_metric for this modality
             // distance is computed between storedEntities[modality][vectorStart:vectorEnd] and query[modality]
-            switch(distance_metrics[modality]){
+            switch(distanceMetrics[modality]){
                 case DistanceMetric::Euclidean:
                     modalityDistance = computeEuclideanDistanceFromSlice(storedEntities[modality], vectorStart, vectorEnd, query[modality], 0);
                     break;

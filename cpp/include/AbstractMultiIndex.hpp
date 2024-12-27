@@ -14,8 +14,8 @@ class AbstractMultiIndex {
 protected:
     size_t numModalities;
     std::vector<size_t> dimensions;
-    std::vector<DistanceMetric> distance_metrics;
-    std::vector<std::string> str_distance_metrics;
+    std::vector<DistanceMetric> distanceMetrics;
+    std::vector<std::string> strDistanceMetrics;
     std::vector<float> weights;
     size_t numEntities = 0;
 
@@ -24,9 +24,9 @@ protected:
 
 public:
     // Constructor: take parameters in by value to gain ownership
-    AbstractMultiIndex(size_t the_modalities,
+    AbstractMultiIndex(size_t theModalities,
         std::vector<size_t> dims,
-        std::vector<std::string> dist_metrics = {},
+        std::vector<std::string> distMetrics = {},
         std::vector<float> ws = {});
 
     virtual ~AbstractMultiIndex() = default;
@@ -45,7 +45,7 @@ public:
     virtual std::vector<size_t> search(const std::vector<std::vector<float>>& query, size_t k) = 0;
 
     virtual std::vector<size_t> search(const std::vector<std::span<const float>>& query, size_t k,
-                                   const std::vector<float>& query_weights) = 0;
+                                   const std::vector<float>& queryWeights) = 0;
 
     virtual std::vector<size_t> search(const std::vector<std::span<const float>>& query, size_t k) = 0;
 

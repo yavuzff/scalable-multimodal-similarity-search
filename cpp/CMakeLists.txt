@@ -23,6 +23,7 @@ add_library(multiExact STATIC
         index/ExactMultiIndex.cpp
         index/DistanceMetrics.cpp
         index/AbstractMultiIndex.cpp
+        index/MultiHNSW.cpp
 )
 set_target_properties(multiExact PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
