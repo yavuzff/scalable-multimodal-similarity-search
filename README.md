@@ -44,6 +44,10 @@ pip install -r requirements.txt
    ```
    brew install cmake
    ```
+   2. Install catch2 (v3) for testing (e.g., using Homebrew):
+   ```
+   brew install catch2
+   ```
    2. Setup pybind11 (using Conda):
       1. Ensure conda is installed, e.g. [miniconda](https://docs.anaconda.com/miniconda/#quick-command-line-install).
       2. Update with `conda-forge` channel:
@@ -156,3 +160,20 @@ To run the Python tests: `pytest -v tests` in `scalable-multimodal-similarity-se
     - test_dataset: validates the raw dataset of images and metadata is consistent
     - test_vector_dataset: validates the generated vectors are consistent with the dataset
 - Tests for the exact multi search C++ index are in `test_exact_multi_index_bindings.py`
+
+To run the C++ tests:
+
+1. Navigate to the cpp/ directory:
+```
+cd cpp
+```
+
+2. Build the CMake tests target:
+```
+cmake -S . -B cmake-build-debug
+cmake --build cmake-build-debug -j 6 --target tests
+```
+3. Run the `tests` executable:
+```
+./cmake-build-debug/tests
+```

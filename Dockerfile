@@ -13,7 +13,8 @@ RUN apt-get update && \
         nano \
         bzip2 \
         build-essential \
-        tar && \
+        tar \
+        git && \
     add-apt-repository -y ppa:deadsnakes/ppa && \
     apt-get install -y --no-install-recommends \
         python3.11 \
@@ -28,14 +29,6 @@ RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
     update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1 && \
     update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 1
 
-# Set working directory
-WORKDIR /scalable-multimodal-similarity-search
-
-# Copy and install Python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-
 # Install CMake 3.29.2
 ARG CMAKE_VERSION=3.29.2
 RUN wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz && \
@@ -43,6 +36,14 @@ RUN wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cm
     mv cmake-${CMAKE_VERSION}-linux-x86_64 /opt/cmake && \
     ln -s /opt/cmake/bin/cmake /usr/bin/cmake && \
     rm cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz
+
+# Install Catch2 for C++ testing (via git clone)
+RUN git clone https://github.com/catchorg/Catch2.git &&\
+    cd Catch2 &&\
+    cmake -B build -S . -DBUILD_TESTING=OFF &&\
+    cmake --build build/ --target install &&\
+    cd .. &&\
+    rm -rf Catch2
 
 # Install Miniconda
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && \
@@ -55,11 +56,19 @@ ENV PATH="${PATH}:/opt/conda/bin"
 
 # Install pybind11 via conda
 RUN conda update -n base --all -c conda-forge -c defaults -y && \
-    conda install -c conda-forge pybind11 -y #&&
+    conda install -c conda-forge pybind11 -y
+
+
+# Set working directory
+WORKDIR /scalable-multimodal-similarity-search
+
+# Copy and install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
 
 # Copy the rest of the application code
 COPY . .
-
 
 # Compile the Cpp code and setup the bindings
 #RUN cd cpp && \

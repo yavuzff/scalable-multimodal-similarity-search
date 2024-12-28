@@ -5,6 +5,7 @@ logs/
 data/
 .idea/
 clean-and-rebind-module.sh
+run-docker.sh
 
 # mac-specific file
 **/.DS_Store
