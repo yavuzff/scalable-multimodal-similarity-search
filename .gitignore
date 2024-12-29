@@ -43,6 +43,9 @@
 
 # cpp folders
 cpp/build/
-cpp/cmake_example.egg-info/
+cpp/multimodal_index.egg-info/
 cpp/dist/
 cpp/cmake-build-debug/
+
+# profiling results
+fil-result/

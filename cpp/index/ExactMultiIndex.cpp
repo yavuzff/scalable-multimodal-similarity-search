@@ -63,21 +63,22 @@ std::vector<size_t> ExactMultiIndex::internalSearch(const std::vector<std::span<
     for (size_t i = 0; i < numEntities; ++i) {
         float dist = 0.0f;
         for (size_t modality = 0; modality < numModalities; ++modality) {
-            const size_t vectorStart = i * dimensions[modality];
-            const size_t vectorEnd = vectorStart + dimensions[modality];
+            // create spans for the stored entity and the query
+            std::span<const float> storedEntitySlice = std::span(storedEntities[modality]).subspan( i * dimensions[modality], dimensions[modality]);
+            std::span<const float> querySlice = std::span(query[modality]);
 
             float modalityDistance;
             // compute distance based on distance_metric for this modality
             // distance is computed between storedEntities[modality][vectorStart:vectorEnd] and query[modality]
             switch(distanceMetrics[modality]){
                 case DistanceMetric::Euclidean:
-                    modalityDistance = computeEuclideanDistanceFromSlice(storedEntities[modality], vectorStart, vectorEnd, query[modality], 0);
+                    modalityDistance = computeEuclideanDistance(storedEntitySlice, querySlice);
                     break;
                 case DistanceMetric::Manhattan:
-                    modalityDistance = computeManhattanDistanceFromSlice(storedEntities[modality], vectorStart, vectorEnd, query[modality], 0);
+                    modalityDistance = computeManhattanDistance(storedEntitySlice, querySlice);
                     break;
                 case DistanceMetric::Cosine:
-                    modalityDistance = computeCosineDistanceFromSlice(storedEntities[modality], vectorStart, vectorEnd, query[modality], 0);
+                    modalityDistance = computeCosineDistance(storedEntitySlice, querySlice, false);
                     break;
                 default:
                     throw std::invalid_argument("Invalid distance metric. You should not be seeing this message.");

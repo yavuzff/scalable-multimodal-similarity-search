@@ -30,7 +30,7 @@ set_target_properties(multi-index PROPERTIES POSITION_INDEPENDENT_CODE ON)
 # unit testing with Catch2
 find_package(Catch2 3 REQUIRED)
 # These tests can use the Catch2-provided main
-add_executable(tests tests/test.cpp)
+add_executable(tests tests/test_metrics.cpp)
 target_link_libraries(tests PRIVATE Catch2::Catch2WithMain multi-index)
 
 # create executable with target main and link to library:
