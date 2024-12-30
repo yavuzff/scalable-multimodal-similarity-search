@@ -1,4 +1,5 @@
 #include "../include/ExactMultiIndex.hpp"
+#include "../include/utils.hpp"
 
 #include <iostream>
 #include <queue>
@@ -27,13 +28,21 @@ void ExactMultiIndex::addEntities(const std::vector<std::span<const float>>& ent
     for (size_t i = 0; i < numModalities; ++i) {
         const auto& modalityVectors = entities[i];
         storedEntities[i].insert(storedEntities[i].end(), modalityVectors.begin(), modalityVectors.end());
+
+        // if the modality uses cosine distance, normalise the inserted vectors for this modality
+        if (distanceMetrics[i] == DistanceMetric::Cosine) {
+            std::cout << "Storing normalised vectors for modality " << i << " to efficiently compute cosine distance" << std::endl;
+            for (size_t j = 0; j < numNewEntities; ++j) {
+                l2NormalizeVector(std::span(storedEntities[i]).subspan(j * dimensions[i], dimensions[i]));
+            }
+        }
     }
+    outputEntities();
 }
 
 std::vector<size_t> ExactMultiIndex::search(const std::vector<std::span<const float>>& query, const size_t k,
                         const std::vector<float>& queryWeights) {
     validateQuery(query, k);
-
     // copy weights as we will normalise them
     auto normalisedQueryWeights = std::vector(queryWeights);
     validateAndNormaliseWeights(normalisedQueryWeights, numModalities);
@@ -46,7 +55,6 @@ std::vector<size_t> ExactMultiIndex::search(const std::vector<std::span<const fl
     return internalSearch(query, k, weights);
 }
 
-
 std::vector<size_t> ExactMultiIndex::search(const std::vector<std::vector<float>>& query, const size_t k,
                         const std::vector<float>& queryWeights) {
     return search(getSpanViewOfVectors(query), k, queryWeights);
@@ -56,8 +64,32 @@ std::vector<size_t> ExactMultiIndex::search(const std::vector<std::vector<float>
     return search(getSpanViewOfVectors(query), k);
 }
 
-std::vector<size_t> ExactMultiIndex::internalSearch(const std::vector<std::span<const float>>& query, const size_t k,
+std::vector<size_t> ExactMultiIndex::internalSearch(const std::vector<std::span<const float>>& userQuery, const size_t k,
                         const std::vector<float>& normalisedWeights) const {
+
+    std::vector<std::span<const float>> query = userQuery;
+
+    // storage for normalized query vectors to ensure valid spans
+    // this storage must be defined outside the if block to ensure the data is in scope throughout the search
+    std::vector<std::vector<float>> normalisedVectors;
+
+    if (!toNormalise.empty()) {
+        std::vector<std::span<const float>> normalisedQuery;
+        for (size_t i = 0; i < numModalities; ++i) {
+            if (distanceMetrics[i] == DistanceMetric::Cosine) {
+                std::cout << "Normalising query for modality " << i << " to efficiently compute cosine distance" << std::endl;
+                // copy and normalize vector
+                normalisedVectors.emplace_back(query[i].begin(), query[i].end());
+                l2NormalizeVector(std::span(normalisedVectors.back()));
+
+                normalisedQuery.emplace_back(std::span(normalisedVectors.back()));
+            } else {
+                normalisedQuery.push_back(query[i]);
+            }
+        }
+        query = std::move(normalisedQuery);
+    }
+
     // iterate over entities through modality vectors
     std::priority_queue<std::pair<float, size_t>> maxHeap;
     for (size_t i = 0; i < numEntities; ++i) {
@@ -78,7 +110,8 @@ std::vector<size_t> ExactMultiIndex::internalSearch(const std::vector<std::span<
                     modalityDistance = computeManhattanDistance(storedEntitySlice, querySlice);
                     break;
                 case DistanceMetric::Cosine:
-                    modalityDistance = computeCosineDistance(storedEntitySlice, querySlice, false);
+                    // vectors are already normalised
+                    modalityDistance = computeCosineDistance(storedEntitySlice, querySlice, true);
                     break;
                 default:
                     throw std::invalid_argument("Invalid distance metric. You should not be seeing this message.");
@@ -118,3 +151,16 @@ void ExactMultiIndex::load(const std::string& path) {
     std::cout << "Loading index from " << path << std::endl;
 }
 
+void ExactMultiIndex::outputEntities() const {
+    // print entities one by one
+    for (size_t i = 0; i < numEntities; ++i) {
+        std::cout << "Entity " << i << ": ";
+        for (size_t j = 0; j < numModalities; ++j) {
+            std::cout << "Modality " << j << ": ";
+            for (size_t k = 0; k < dimensions[j]; ++k) {
+                std::cout << storedEntities[j][i * dimensions[j] + k] << " ";
+            }
+            std::cout << std::endl;
+        }
+    }
+}

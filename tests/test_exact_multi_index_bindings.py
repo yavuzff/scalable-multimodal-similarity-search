@@ -418,5 +418,27 @@ def test_combined_metric_exact_multi_search():
     assert eq(index.search(query1, 1, [0.019,0.981]), [0])  #(2.985485291572496, 2.9858290263333127)
     assert eq(index.search(query1, 1, [0,1]), [0]) # (3,3.01)
 
+def test_manhattan_cosine_exact_multi_search():
+    index = cppindex.ExactMultiIndex(2, dimensions=np.array([3, 3]), distance_metrics=["cosine", "manhattan"], weights=[0.5,0.5])
 
+    # add 2 modality, 2 entities with dimensions 3, 3 for the modalities
+    entities = [
+        [[3,1,5], [1.99,3,4]], #modality 1: shape (2, 3)
+        [[3,1,5], [1.99,3,4]]  #modality 2: shape (2, 3)
+    ]
 
+    index.add_entities(entities)
+
+    #from previous test: man([3,2,3], [1.99,3,4]) = 3.01
+    #from previous test: man([3,2,3], [3,1,5]) = 3
+    #cosine dist([3,2,3], [3,1,5]) = 0.063025
+    #cosine dist([3,2,3], [1.99,3,4]) = 0.050365
+
+    query1 = [[3,2,3],[3,2,3]]
+    # distances to entity 1: 0.063025, 3
+    # distances to entity 2: 0.050365, 3.01
+    assert eq(index.search(query1, 1, [1,0]), [1]) # (0.063025,  0.050365)
+    assert eq(index.search(query1, 1), [1]) # even weights - (1.5315125, 1.530182)
+    assert eq(index.search(query1, 1, [0.45,0.55]), [1]) # (1.67836125, 1.6781638)
+    assert eq(index.search(query1, 1, [0.44,0.56]), [0])  #(1.707731, 1.707760)
+    assert eq(index.search(query1, 1, [0,1]), [0]) # (3,3.01)

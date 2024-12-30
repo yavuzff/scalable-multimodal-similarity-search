@@ -20,9 +20,10 @@ set_target_properties(simple-exact PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # library for multi exact search
 add_library(multi-index STATIC
-        index/ExactMultiIndex.cpp
+        index/utils.cpp
         index/DistanceMetrics.cpp
         index/AbstractMultiIndex.cpp
+        index/ExactMultiIndex.cpp
         index/MultiHNSW.cpp
 )
 set_target_properties(multi-index PROPERTIES POSITION_INDEPENDENT_CODE ON)
@@ -30,7 +31,8 @@ set_target_properties(multi-index PROPERTIES POSITION_INDEPENDENT_CODE ON)
 # unit testing with Catch2
 find_package(Catch2 3 REQUIRED)
 # These tests can use the Catch2-provided main
-add_executable(tests tests/test_metrics.cpp)
+add_executable(tests tests/test_metrics.cpp
+        tests/test_utils.cpp)
 target_link_libraries(tests PRIVATE Catch2::Catch2WithMain multi-index)
 
 # create executable with target main and link to library:

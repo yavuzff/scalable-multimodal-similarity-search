@@ -6,9 +6,6 @@
 
 #include "DistanceMetrics.hpp"
 
-void validateAndNormaliseWeights(std::vector<float>& ws, size_t numModalities);
-std::vector<std::span<const float>> getSpanViewOfVectors(const std::vector<std::vector<float>> &vectors);
-
 // Abstract class for Multi vector K-NN index
 class AbstractMultiIndex {
 protected:
@@ -18,6 +15,7 @@ protected:
     std::vector<std::string> strDistanceMetrics;
     std::vector<float> weights;
     size_t numEntities = 0;
+    std::vector<size_t> toNormalise; // indices of modality vectors to normalise
 
     size_t validateEntities(const std::vector<std::span<const float>> &entities) const;
     void validateQuery(const std::vector<std::span<const float>> &query, size_t k) const;

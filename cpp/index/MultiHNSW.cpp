@@ -1,4 +1,5 @@
 #include "../include/MultiHNSW.hpp"
+#include "../include/utils.hpp"
 
 #include <iostream>
 

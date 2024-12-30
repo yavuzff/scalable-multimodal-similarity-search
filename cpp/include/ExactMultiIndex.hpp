@@ -8,8 +8,10 @@
 class ExactMultiIndex : public AbstractMultiIndex {
     std::vector<std::vector<float>> storedEntities;
 
-    std::vector<size_t> internalSearch(const std::vector<std::span<const float>>& query, size_t k,
+    [[nodiscard]] std::vector<size_t> internalSearch(const std::vector<std::span<const float>>& query, size_t k,
                         const std::vector<float>& normalisedWeights) const;
+
+    void outputEntities() const;
 
 public:
     ExactMultiIndex(size_t numModalities,

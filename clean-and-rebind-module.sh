@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e # exit on error
 # This script is used to remove the previously bound module (.so file) in .venv, and then recompile and rebind it.
 # This is needed because when the C library code is updated and binded,
 # the imported C++ module from does not reflect the changes as it is cached.

@@ -1,6 +1,8 @@
 #!/bin/bash
 # this script compiles the code, running both the end-to-end python tests and cpp unit tests
 
+set -e # exit on error
+
 CWD=$(pwd)
 case "$CWD" in
   */scalable-multimodal-similarity-search)

@@ -1,5 +1,6 @@
 #!/bin/bash
 # this script builds the docker container and runs it, mounting the data folder to the container
+set -e # exit on error
 
 CWD=$(pwd)
 
