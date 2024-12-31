@@ -13,7 +13,7 @@ protected:
     std::vector<size_t> dimensions;
     std::vector<DistanceMetric> distanceMetrics;
     std::vector<std::string> strDistanceMetrics;
-    std::vector<float> weights;
+    std::vector<float> indexWeights;
     size_t numEntities = 0;
     std::vector<size_t> toNormalise; // indices of modality vectors to normalise
 

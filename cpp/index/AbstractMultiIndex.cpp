@@ -9,7 +9,7 @@ AbstractMultiIndex::AbstractMultiIndex(size_t theModalities,
         std::vector<size_t> dims,
         std::vector<std::string> distMetrics,
         std::vector<float> ws)
-        : numModalities(theModalities), dimensions(std::move(dims)), strDistanceMetrics(distMetrics), weights(std::move(ws)) {
+        : numModalities(theModalities), dimensions(std::move(dims)), strDistanceMetrics(distMetrics), indexWeights(std::move(ws)) {
         if (numModalities == 0) {
             throw std::invalid_argument("Number of modalities must be positive");
         }
@@ -35,16 +35,16 @@ AbstractMultiIndex::AbstractMultiIndex(size_t theModalities,
         }
 
         // initialise weights if not provided
-        if (weights.empty()) {
-            weights.resize(numModalities, 1.0f / numModalities);
+        if (indexWeights.empty()) {
+            indexWeights.resize(numModalities, 1.0f / numModalities);
         } else {
-            validateAndNormaliseWeights(weights, numModalities);
+            validateAndNormaliseWeights(indexWeights, numModalities);
         }
 
         // print out what we just initialised:
         std::cout << "Created MultiIndex with " << numModalities << " modalities" << std::endl;
         for (size_t i = 0; i < numModalities; ++i) {
-            std::cout << "Modality " << i << " has dimension " << dimensions[i] << ", distance metric " << distanceMetricToString(distanceMetrics[i]) << " and weight " << weights[i] << std::endl;
+            std::cout << "Modality " << i << " has dimension " << dimensions[i] << ", distance metric " << distanceMetricToString(distanceMetrics[i]) << " and weight " << indexWeights[i] << std::endl;
         }
     }
 
@@ -105,7 +105,7 @@ void AbstractMultiIndex::validateQuery(const std::vector<std::span<const float>>
     }
 
     [[nodiscard]] const std::vector<float>& AbstractMultiIndex::getWeights() const {
-        return weights;
+        return indexWeights;
     }
 
     [[nodiscard]] size_t AbstractMultiIndex::getNumEntities() const {

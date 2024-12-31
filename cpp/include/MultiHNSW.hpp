@@ -13,6 +13,16 @@ class MultiHNSW : public AbstractMultiIndex {
     size_t efSearch;
     size_t seed;
 
+    std::vector<std::vector<float>> entityStorage;
+
+    friend class MultiHNSWTest;  // grant access to the test class
+
+    // private methods
+    void addToEntityStorage(const std::vector<std::span<const float>>& entities, size_t num_entities);
+    std::span<const float> getEntityModality(size_t entityId, size_t modality) const;
+    float computeDistanceBetweenEntities(size_t entityId1, size_t entityId2, const std::vector<float>& queryWeights) const;
+
+
 public:
     MultiHNSW(size_t numModalities,
                     std::vector<size_t> dims,

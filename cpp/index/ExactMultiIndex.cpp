@@ -52,7 +52,7 @@ std::vector<size_t> ExactMultiIndex::search(const std::vector<std::span<const fl
 
 std::vector<size_t> ExactMultiIndex::search(const std::vector<std::span<const float>>& query, const size_t k) {
     validateQuery(query, k);
-    return internalSearch(query, k, weights);
+    return internalSearch(query, k, indexWeights);
 }
 
 std::vector<size_t> ExactMultiIndex::search(const std::vector<std::vector<float>>& query, const size_t k,
