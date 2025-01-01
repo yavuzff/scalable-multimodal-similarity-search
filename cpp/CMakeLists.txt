@@ -4,7 +4,7 @@ project(scalable-multimodal-similarity-search)
 set(CMAKE_CXX_STANDARD 20)
 
 # Release adds -O3 and -DNDEBUG, Debug adds -g
-set(CMAKE_BUILD_TYPE Debug)
+# set(CMAKE_BUILD_TYPE Debug)
 
 # Set all warning flags for the compiler.
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")

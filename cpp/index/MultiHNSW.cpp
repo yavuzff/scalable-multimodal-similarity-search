@@ -66,12 +66,12 @@ void MultiHNSW::addToEntityStorage(const std::vector<std::span<const float>>& en
     }
 }
 
-std::span<const float> MultiHNSW::getEntityModality(size_t entityId, size_t modality) const {
+std::span<const float> MultiHNSW::getEntityModality(entity_id_t entityId, entity_id_t modality) const {
     const std::vector<float>& modalityData = entityStorage[modality];
     return std::span(modalityData.data() + entityId * dimensions[modality], dimensions[modality]);
 }
 
-float MultiHNSW::computeDistanceBetweenEntities(size_t entityId1, size_t entityId2, const std::vector<float>& weights) const{
+float MultiHNSW::computeDistanceBetweenEntities(entity_id_t entityId1, entity_id_t entityId2, const std::vector<float>& weights) const{
     float dist = 0.0f;
     for (size_t modality = 0; modality < numModalities; ++modality) {
         if (weights[modality] == 0) {
