@@ -1,5 +1,5 @@
 #include "../../include/simple-knn/ExactKNNIndex.hpp"
-#include "../../common.hpp"
+#include "../../include/common.hpp"
 #include "../../include/DistanceMetrics.hpp"
 
 #include <cassert>

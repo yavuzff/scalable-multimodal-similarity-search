@@ -2,6 +2,7 @@
 
 #ifndef COMMON_HPP
 #define COMMON_HPP
+#include <cassert>
 
 #ifndef NDEBUG
     #define debug_printf(fmt, ...) \

@@ -20,30 +20,27 @@ class MultiHNSW : public AbstractMultiIndex {
     // internal data structures
     std::vector<std::vector<float>> entityStorage;
     struct Node {
-        std::vector<std::vector<entity_id_t>> edgesPerLayer;
+        std::vector<std::vector<entity_id_t>> neighboursPerLayer;
     };
     std::vector<Node> nodes;
 
     entity_id_t entryPoint;
     size_t maxLayer;
 
-    /*
-     * Nodes: vector of Node, where index of Node corresponds to entity_id
-     * Node: adjacency list for each layer. Adjacency list: entity_id for each layer 0 to l, vector of vector of entity_id.
-     *    -> potentially pre-allocate space for each vector of entity_id
-     */
-
     mutable std::mt19937 generator;
 
     // private methods
+    void validateParameters() const;
     void addToEntityStorage(const std::vector<std::span<const float>>& entities, size_t num_entities);
     std::span<const float> getEntityModality(entity_id_t entityId, entity_id_t modality) const;
     float computeDistanceBetweenEntities(entity_id_t entityId1, entity_id_t entityId2, const std::vector<float>& weights) const;
+    float computeDistanceToQuery(entity_id_t entityId, const std::vector<std::span<const float>>& query, const std::vector<float>& weights) const;
+
 
     [[nodiscard]] int generateRandomLevel() const;
     void addEntityToGraph(entity_id_t entityId);
     std::vector<entity_id_t> internalSearchGraph(const std::vector<float>& query, size_t k, const std::vector<float>& weights, size_t ef) const;
-    [[nodiscard]] std::priority_queue<std::pair<float, entity_id_t>> searchLayer(const std::vector<float>& query, std::vector<entity_id_t> entryPoints, size_t ef, size_t layer) const;
+    [[nodiscard]] std::priority_queue<std::pair<float, entity_id_t>> searchLayer(const std::vector<std::span<const float>>& query, const std::vector<entity_id_t> &entryPoints, const std::vector<float>& weights, size_t ef, size_t layer) const;
     std::vector<entity_id_t> selectNearestCandidates(const std::vector<float>& query, std::priority_queue<std::pair<float, entity_id_t>>& candidates, size_t M) const;
     std::vector<entity_id_t> selectDiversifiedCandidates(const std::vector<float>& query, std::priority_queue<std::pair<float, entity_id_t>>& candidates, size_t M) const;
 
@@ -61,6 +58,35 @@ public:
                     size_t efConstruction = 200,
                     size_t efSearch = 50,
                     size_t seed = 42);
+
+    class Builder {
+    public:
+        Builder(size_t numModalities, const std::vector<size_t> &dims);
+
+        Builder& setDistanceMetrics(const std::vector<std::string>& val);
+        Builder& setWeights(const std::vector<float>& val);
+        Builder& setDistributionScaleFactor(float val);
+        Builder& setTargetDegree(size_t val);
+        Builder& setMaxDegree(size_t val);
+        Builder& setEfConstruction(size_t val);
+        Builder& setEfSearch(size_t val);
+        Builder& setSeed(size_t val);
+
+        MultiHNSW build() const;
+
+    private:
+        size_t numModalities;
+        std::vector<size_t> dims;
+        std::vector<std::string> distanceMetrics = {};
+        std::vector<float> weights = {};
+        float distributionScaleFactor = 1.0;
+        size_t targetDegree = 32;
+        size_t maxDegree = 32;
+        size_t efConstruction = 200;
+        size_t efSearch = 50;
+        size_t seed = 42;
+    };
+
 
     void addEntities(const std::vector<std::vector<float>>& entities) override;
 

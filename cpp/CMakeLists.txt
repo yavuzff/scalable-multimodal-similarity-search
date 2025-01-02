@@ -25,6 +25,7 @@ add_library(multi-index STATIC
         index/AbstractMultiIndex.cpp
         index/ExactMultiIndex.cpp
         index/MultiHNSW.cpp
+        index/MultiHNSWBuilder.cpp
 )
 set_target_properties(multi-index PROPERTIES POSITION_INDEPENDENT_CODE ON)
 

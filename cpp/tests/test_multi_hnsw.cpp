@@ -1,21 +1,23 @@
 #include <iostream>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/matchers/catch_matchers_range_equals.hpp>
 
 #include "../include/MultiHNSW.hpp"
 #include "../include/utils.hpp"
 #include "../include/common.hpp"
 
+using namespace std;
+
 class MultiHNSWTest {
 public:
     static MultiHNSW initaliseTest1() {
-        size_t numModalities = 2;
-        std::vector<size_t> dimensions = {3, 3};
-        std::vector<std::string> distanceMetrics = {"euclidean", "manhattan"};
-        std::vector<float> weights = {0.5f, 0.5f};
+        MultiHNSW multiHNSW = MultiHNSW::Builder(2, {3, 3})
+            .setDistanceMetrics({"euclidean", "manhattan"})
+            .setWeights({0.5f, 0.5f})
+            .build();
 
-        MultiHNSW hnsw(numModalities, dimensions, distanceMetrics, weights);
-        return hnsw;
+        return multiHNSW;
     }
 
     static void testAddToEntityStorage1(MultiHNSW& hnsw) {
@@ -66,12 +68,10 @@ public:
     }
 
     static void testGetEntityModality2() {
-        size_t numModalities = 3;
-        std::vector<size_t> dimensions = {1, 2, 3};
-        std::vector<std::string> distanceMetrics = {"euclidean", "manhattan", "cosine"};
-        std::vector<float> weights = {0.3f, 0.5f, 0.2f};
-
-        MultiHNSW hnsw(numModalities, dimensions, distanceMetrics, weights);
+        MultiHNSW hnsw = MultiHNSW::Builder(3, {1, 2, 3})
+            .setDistanceMetrics({"euclidean", "manhattan", "cosine"})
+            .setWeights({0.3f, 0.5f, 0.2f})
+            .build();
 
         std::vector<std::vector<float>> entities = {
             {1.0f,                  2.0f,                   3.0f},
@@ -97,14 +97,8 @@ public:
         REQUIRE(vector[1] == 8.0f);
     }
 
-    //test generateRandomLevel
     static void testGenerateRandomLevel() {
-        size_t numModalities = 2;
-        std::vector<size_t> dimensions = {3, 3};
-        std::vector<std::string> distanceMetrics = {"euclidean", "manhattan"};
-        std::vector<float> weights = {0.5f, 0.5f};
-
-        MultiHNSW hnsw(numModalities, dimensions, distanceMetrics, weights);
+        MultiHNSW hnsw = MultiHNSW::Builder(2, {3, 3}).build();
 
         int level = hnsw.generateRandomLevel();
         debug_printf("Random level: %d\n", level);
@@ -118,8 +112,97 @@ public:
         debug_printf("Random level: %d\n", level);
         REQUIRE(level >= 0);
     }
+
+    static void testSearchLayer() {
+        size_t numModalities = 1;
+        vector<size_t> dims = {1};
+
+        MultiHNSW multiHNSW = MultiHNSW::Builder(numModalities, dims)
+            .setEfConstruction(10)
+            .setEfSearch(10)
+            .setTargetDegree(2)
+            .setMaxDegree(3)
+            .setSeed(42)
+            .build();
+
+        // add 5 entities
+        std::vector<std::vector<float>> entities = {
+            {1.0f, 2.0f, 3.0f, 4.0f, 5.0f},
+        };
+        multiHNSW.addToEntityStorage(getSpanViewOfVectors(entities), 5);
+
+        // create 5 nodes with each node having 2 layers
+        multiHNSW.nodes.resize(5);
+        for (auto& node : multiHNSW.nodes) {
+            node.neighboursPerLayer.resize(2);
+        }
+
+        // create graph
+        multiHNSW.nodes[0].neighboursPerLayer[0] = {1, 2};
+        multiHNSW.nodes[1].neighboursPerLayer[0] = {0, 3};
+        multiHNSW.nodes[2].neighboursPerLayer[0] = {0, 4};
+        multiHNSW.nodes[3].neighboursPerLayer[0] = {1};
+        multiHNSW.nodes[4].neighboursPerLayer[0] = {2};
+
+        multiHNSW.nodes[0].neighboursPerLayer[1] = {1};
+        multiHNSW.nodes[1].neighboursPerLayer[1] = {0};
+
+        // specify query
+        vector<span<const float>> query = {span<const float>({5.0f})};
+        vector<float> weights = {1.0f};
+        size_t ef = 3;
+
+        SECTION("Test layer 1 search") {
+            vector<MultiHNSW::entity_id_t> entryPoints = {0};
+            auto resultLayer1 = multiHNSW.searchLayer(query, entryPoints, weights, ef, 1);
+
+            vector<MultiHNSW::entity_id_t> expectedResults1 = {0, 1}; // max heap is based on distance, so results are in reverse order
+            vector<MultiHNSW::entity_id_t> idsResultLayer1;
+
+            while (!resultLayer1.empty()) {
+                idsResultLayer1.push_back(resultLayer1.top().second);
+                resultLayer1.pop();
+            }
+
+            REQUIRE_THAT(idsResultLayer1, Catch::Matchers::RangeEquals(expectedResults1));
+        }
+
+        SECTION("Test layer 0 search") {
+            vector<MultiHNSW::entity_id_t> entryPoints = {3};  // start from a different entry point
+            auto resultLayer0 = multiHNSW.searchLayer(query, entryPoints, weights, ef, 0);
+
+            vector<MultiHNSW::entity_id_t> expectedResults0 = {2, 3, 4};
+            vector<MultiHNSW::entity_id_t> idsResultLayer0;
+
+            while (!resultLayer0.empty()) {
+                idsResultLayer0.push_back(resultLayer0.top().second);
+                resultLayer0.pop();
+            }
+            REQUIRE_THAT(idsResultLayer0, Catch::Matchers::RangeEquals(expectedResults0));
+        }
+    }
 };
 
+TEST_CASE("MultiHNSWBuilder builds", "[MultiHNSWBuilder]") {
+    SECTION("Test default build") {
+
+        MultiHNSW multiHNSW = MultiHNSW::Builder(2, {3,3})
+                              .setEfSearch(50)
+                              .build();
+
+        REQUIRE(multiHNSW.getNumModalities() == 2);
+        REQUIRE_THAT(multiHNSW.getDimensions(), Catch::Matchers::RangeEquals(std::vector<size_t> {3, 3}));;
+        REQUIRE_THAT(multiHNSW.getWeights(), Catch::Matchers::RangeEquals(std::vector<float> {0.5, 0.5}));;
+
+        REQUIRE(multiHNSW.getEfSearch() == 50);
+
+        REQUIRE(multiHNSW.getDistributionScaleFactor() == 1.0);
+        REQUIRE(multiHNSW.getTargetDegree() == 32);
+        REQUIRE(multiHNSW.getMaxDegree() == 32);
+        REQUIRE(multiHNSW.getEfConstruction() == 200);
+        REQUIRE(multiHNSW.getSeed() == 42);
+    }
+}
 
 TEST_CASE("MultiHNSW Basic Tests", "[MultiHNSW]") {
     MultiHNSW hnsw = MultiHNSWTest::initaliseTest1();
@@ -142,4 +225,8 @@ TEST_CASE("MultiHNSW Basic Tests", "[MultiHNSW]") {
     SECTION("Test generateRandomLevel") {
         MultiHNSWTest::testGenerateRandomLevel();
     }
+}
+
+TEST_CASE("MultiHNSW SearchLayer", "[SearchLayer]") {
+    MultiHNSWTest::testSearchLayer();
 }

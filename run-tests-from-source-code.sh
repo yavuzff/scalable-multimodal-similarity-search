@@ -16,7 +16,7 @@ esac
 
 # compile and set up bindings
 cd cpp
-cmake -S . -B cmake-build-debug
+cmake -S . -B cmake-build-debug -DCMAKE_BUILD_TYPE=Debug #or Release
 cmake --build cmake-build-debug -j 6 --target cppindex
 python3 pybinding/setup.py install
 
