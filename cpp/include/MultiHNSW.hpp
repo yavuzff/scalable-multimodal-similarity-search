@@ -2,6 +2,7 @@
 #define MULTIHNSW_HPP
 
 #include <queue>
+#include <random>
 
 #include "AbstractMultiIndex.hpp"
 
@@ -31,6 +32,8 @@ class MultiHNSW : public AbstractMultiIndex {
      * Node: adjacency list for each layer. Adjacency list: entity_id for each layer 0 to l, vector of vector of entity_id.
      *    -> potentially pre-allocate space for each vector of entity_id
      */
+
+    mutable std::mt19937 generator;
 
     // private methods
     void addToEntityStorage(const std::vector<std::span<const float>>& entities, size_t num_entities);

@@ -1,5 +1,6 @@
 #include "../include/ExactMultiIndex.hpp"
 #include "../include/utils.hpp"
+#include "../include/common.hpp"
 
 #include <iostream>
 #include <queue>
@@ -21,7 +22,7 @@ void ExactMultiIndex::addEntities(const std::vector<std::vector<float>> &entitie
 void ExactMultiIndex::addEntities(const std::vector<std::span<const float>>& entities) {
     const size_t numNewEntities = validateEntities(entities);
     numEntities += numNewEntities;
-    std::cout << "Adding " << numNewEntities << " entities!" << std::endl;
+    debug_printf("Adding %zu entities!\n", numNewEntities);
 
     // add each modality's data to the corresponding storedEntities modality vector
     // note that we copy the input into savedEntities

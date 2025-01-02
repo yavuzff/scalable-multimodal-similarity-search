@@ -4,48 +4,50 @@
 #include <iostream>
 #include <optional>
 
+#include "../include/common.hpp"
+
 // Constructor: take parameters in by value to gain ownership
 AbstractMultiIndex::AbstractMultiIndex(size_t theModalities,
         std::vector<size_t> dims,
         std::vector<std::string> distMetrics,
         std::vector<float> ws)
         : numModalities(theModalities), dimensions(std::move(dims)), strDistanceMetrics(distMetrics), indexWeights(std::move(ws)) {
-        if (numModalities == 0) {
-            throw std::invalid_argument("Number of modalities must be positive");
-        }
-        if (dimensions.size() != numModalities) {
-            throw std::invalid_argument("Number of dimensions must match number of modalities");
-        }
+    if (numModalities == 0) {
+        throw std::invalid_argument("Number of modalities must be positive");
+    }
+    if (dimensions.size() != numModalities) {
+        throw std::invalid_argument("Number of dimensions must match number of modalities");
+    }
 
-        // initialise distance metrics if not provided, otherwise validate and convert to enum
-        if (distMetrics.empty()) {
-            distanceMetrics.resize(numModalities, DistanceMetric::Euclidean);
-            strDistanceMetrics.resize(numModalities, "euclidean");
-        } else if (distMetrics.size() != numModalities) {
-            throw std::invalid_argument("Number of distance metrics must match number of modalities");
-        } else {
-            std::transform(distMetrics.begin(), distMetrics.end(), std::back_inserter(distanceMetrics), &stringToDistanceMetric);
-        }
+    // initialise distance metrics if not provided, otherwise validate and convert to enum
+    if (distMetrics.empty()) {
+        distanceMetrics.resize(numModalities, DistanceMetric::Euclidean);
+        strDistanceMetrics.resize(numModalities, "euclidean");
+    } else if (distMetrics.size() != numModalities) {
+        throw std::invalid_argument("Number of distance metrics must match number of modalities");
+    } else {
+        std::transform(distMetrics.begin(), distMetrics.end(), std::back_inserter(distanceMetrics), &stringToDistanceMetric);
+    }
 
-        // we will normalise vectors for cosine distance
-        for (size_t i = 0; i < numModalities; ++i) {
-            if (distanceMetrics[i] == DistanceMetric::Cosine) {
-                toNormalise.push_back(i);
-            }
+    // we will normalise vectors for cosine distance
+    for (size_t i = 0; i < numModalities; ++i) {
+        if (distanceMetrics[i] == DistanceMetric::Cosine) {
+            toNormalise.push_back(i);
         }
+    }
 
-        // initialise weights if not provided
-        if (indexWeights.empty()) {
-            indexWeights.resize(numModalities, 1.0f / numModalities);
-        } else {
-            validateAndNormaliseWeights(indexWeights, numModalities);
-        }
+    // initialise weights if not provided
+    if (indexWeights.empty()) {
+        indexWeights.resize(numModalities, 1.0f / numModalities);
+    } else {
+        validateAndNormaliseWeights(indexWeights, numModalities);
+    }
 
-        // print out what we just initialised:
-        std::cout << "Created MultiIndex with " << numModalities << " modalities" << std::endl;
-        for (size_t i = 0; i < numModalities; ++i) {
-            std::cout << "Modality " << i << " has dimension " << dimensions[i] << ", distance metric " << distanceMetricToString(distanceMetrics[i]) << " and weight " << indexWeights[i] << std::endl;
-        }
+    // print out what we just initialised:
+    debug_printf("Created MultiIndex with %zu modalities\n", numModalities);
+    for (size_t i = 0; i < numModalities; ++i) {
+        debug_printf("Modality %zu has dimension %zu, distance metric %s and weight %f\n", i, dimensions[i], distanceMetricToString(distanceMetrics[i]).c_str(), indexWeights[i]);
+    }
     }
 
 //private function to validate input entities and return the number of entities

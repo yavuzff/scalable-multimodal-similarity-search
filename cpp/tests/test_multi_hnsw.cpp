@@ -1,8 +1,10 @@
+#include <iostream>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "../include/MultiHNSW.hpp"
 #include "../include/utils.hpp"
+#include "../include/common.hpp"
 
 class MultiHNSWTest {
 public:
@@ -95,6 +97,27 @@ public:
         REQUIRE(vector[1] == 8.0f);
     }
 
+    //test generateRandomLevel
+    static void testGenerateRandomLevel() {
+        size_t numModalities = 2;
+        std::vector<size_t> dimensions = {3, 3};
+        std::vector<std::string> distanceMetrics = {"euclidean", "manhattan"};
+        std::vector<float> weights = {0.5f, 0.5f};
+
+        MultiHNSW hnsw(numModalities, dimensions, distanceMetrics, weights);
+
+        int level = hnsw.generateRandomLevel();
+        debug_printf("Random level: %d\n", level);
+        REQUIRE(level >= 0);
+
+        level = hnsw.generateRandomLevel();
+        debug_printf("Random level: %d\n", level);
+        REQUIRE(level >= 0);
+
+        level = hnsw.generateRandomLevel();
+        debug_printf("Random level: %d\n", level);
+        REQUIRE(level >= 0);
+    }
 };
 
 
@@ -116,4 +139,7 @@ TEST_CASE("MultiHNSW Basic Tests", "[MultiHNSW]") {
         MultiHNSWTest::testComputeDistanceBetweenEntities1(hnsw);
     }
 
+    SECTION("Test generateRandomLevel") {
+        MultiHNSWTest::testGenerateRandomLevel();
+    }
 }
