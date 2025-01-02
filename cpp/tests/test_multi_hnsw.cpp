@@ -136,6 +136,7 @@ public:
         for (auto& node : multiHNSW.nodes) {
             node.neighboursPerLayer.resize(2);
         }
+        multiHNSW.maxLayer = 1;
 
         // create graph
         multiHNSW.nodes[0].neighboursPerLayer[0] = {1, 2};

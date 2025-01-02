@@ -20,7 +20,7 @@ MultiHNSW::MultiHNSW(size_t numModalities,
                      size_t efSearch,
                      size_t seed): AbstractMultiIndex(numModalities, std::move(dims), std::move(distanceMetrics), std::move(weights)),
                                    distributionScaleFactor(distributionScaleFactor), targetDegree(targetDegree), maxDegree(maxDegree), efConstruction(efConstruction),
-                                    efSearch(efSearch), seed(seed), generator(seed){
+                                    efSearch(efSearch), seed(seed), generator(seed), maxLayer(0){
     validateParameters();
     // initialise storage
     entityStorage.resize(numModalities);
@@ -178,6 +178,8 @@ void MultiHNSW::addEntityToGraph(entity_id_t entityId) {
 //vector<entity_id_t> MultiHNSW::internalSearchGraph(const vector<float>& query, size_t k, const vector<float>& weights, size_t ef) const;
 
 [[nodiscard]] priority_queue<pair<float, entity_id_t>> MultiHNSW::searchLayer(const vector<span<const float>>& query, const vector<entity_id_t> &entryPoints, const vector<float>& weights, size_t ef, size_t layer) const {
+    assert(!entryPoints.empty());
+    assert(layer <= maxLayer);
     // set of visited elements initialised to entryPoints
     unordered_set<entity_id_t> visited(entryPoints.begin(), entryPoints.end());
     // min priority queue of candidates, stores negative dist
@@ -204,6 +206,7 @@ void MultiHNSW::addEntityToGraph(entity_id_t entityId) {
         }
 
         // process the unvisited neighbours of the best candidate
+        assert(nodes[bestCandidate].neighboursPerLayer.size() > layer); // candidate must be at least at this layer
         for (entity_id_t neighbour : nodes[bestCandidate].neighboursPerLayer[layer]) {
             if (!visited.contains(neighbour)) {
                 visited.insert(neighbour);
@@ -222,9 +225,49 @@ void MultiHNSW::addEntityToGraph(entity_id_t entityId) {
     return nearestNeighbours;
 }
 
-//vector<entity_id_t> selectNearestCandidates(const vector<float>& query, priority_queue<pair<float, entity_id_t>>& candidates, size_t M) const;
-//vector<entity_id_t> selectDiversifiedCandidates(const vector<float>& query, priority_queue<pair<float, entity_id_t>>& candidates, size_t M) const;
+priority_queue<pair<float, entity_id_t>> MultiHNSW::selectNearestCandidates(const vector<span<const float>>& query, priority_queue<pair<float, entity_id_t>> candidates, size_t M) const {
+    // precondition: candidates is a non-empty max heap
+    assert(!candidates.empty());
+    assert(candidates.top().first > 0);
+    assert(M <= candidates.size());
 
+    // pop from the heap until needed
+    while (candidates.size() > M) {
+        candidates.pop();
+    }
+
+    // // Note: selected elements are not in any particular order
+    // vector<entity_id_t> selectedCandidates;
+    // selectedCandidates.reserve(candidates.size());
+    // for (const auto& pair : candidates) {
+    //     selectedCandidates.push_back(pair.second);
+    // }
+    return candidates;
+}
+
+// computes and finds the M closest entities to the targetEntityId from the candidates
+priority_queue<pair<float, entity_id_t>> MultiHNSW::selectNearestCandidates(entity_id_t targetEntityId, const span<entity_id_t> candidates, size_t M, const std::vector<float>& weights) const {
+
+    // precondition: candidates is a non-empty array
+    assert(!candidates.empty());
+    assert(M <= candidates.size());
+    priority_queue<pair<float, entity_id_t>> maxHeap;
+    for (const entity_id_t candidate : candidates) {
+        assert(candidate != targetEntityId);
+        const float dist = computeDistanceBetweenEntities(targetEntityId, candidate, weights);
+        if (maxHeap.size() < M) {
+            maxHeap.emplace(dist, candidate);
+        } else if (dist < maxHeap.top().first) {
+            maxHeap.pop();
+            maxHeap.emplace(dist, candidate);
+        }
+    }
+    assert(!maxHeap.empty() && maxHeap.size() <= M);
+    return maxHeap;
+}
+
+
+// selectDiversifiedCandidates
 
 
 void MultiHNSW::save(const string& path) const {
