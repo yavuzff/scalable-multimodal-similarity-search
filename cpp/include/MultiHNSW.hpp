@@ -7,8 +7,10 @@
 #include "AbstractMultiIndex.hpp"
 
 class MultiHNSW : public AbstractMultiIndex {
-    using entity_id_t = int32_t;
+public:
+    using entity_id_t = u_int32_t;
 
+private:
     // parameters + inherited parameters
     float distributionScaleFactor;
     size_t targetDegree;
@@ -25,7 +27,8 @@ class MultiHNSW : public AbstractMultiIndex {
     std::vector<Node> nodes;
 
     entity_id_t entryPoint;
-    size_t maxLayer;
+    size_t maxLevel;
+    size_t maxDegreeLayer0;  //set to 2 * maxDegree
 
     mutable std::mt19937 generator;
 
@@ -37,13 +40,18 @@ class MultiHNSW : public AbstractMultiIndex {
     float computeDistanceToQuery(entity_id_t entityId, const std::vector<std::span<const float>>& query, const std::vector<float>& weights) const;
 
 
-    [[nodiscard]] int generateRandomLevel() const;
+    [[nodiscard]] size_t generateRandomLevel() const;
     void addEntityToGraph(entity_id_t entityId);
     std::vector<entity_id_t> internalSearchGraph(const std::vector<float>& query, size_t k, const std::vector<float>& weights, size_t ef) const;
+
     [[nodiscard]] std::priority_queue<std::pair<float, entity_id_t>> searchLayer(const std::vector<std::span<const float>>& query, const std::vector<entity_id_t> &entryPoints, const std::vector<float>& weights, size_t ef, size_t layer) const;
-    std::priority_queue<std::pair<float, entity_id_t>> selectNearestCandidates(const std::vector<std::span<const float>>& query, std::priority_queue<std::pair<float, entity_id_t>> candidates, size_t M) const;
+    [[nodiscard]] std::priority_queue<std::pair<float, entity_id_t>> searchLayer(entity_id_t entityId, const std::vector<entity_id_t> &entryPoints, const std::vector<float>& weights, size_t ef, size_t layer) const;
+
+    void selectNearestCandidates(std::priority_queue<std::pair<float, entity_id_t>> &candidates, size_t M) const;
     std::priority_queue<std::pair<float, entity_id_t>> selectNearestCandidates(entity_id_t targetEntityId, std::span<entity_id_t> candidates, size_t M, const std::vector<float>& weights) const;
-    std::priority_queue<std::pair<float, entity_id_t>> selectDiversifiedCandidates(const std::vector<float>& query, std::priority_queue<std::pair<float, entity_id_t>>& candidates, size_t M) const;
+    void selectDiversifiedCandidates(std::priority_queue<std::pair<float, entity_id_t>>& candidates, const std::vector<float>& weights, size_t M) const;
+
+    void addAndPruneEdgesForExistingNodes(entity_id_t newEntityId, std::vector<std::pair<float, entity_id_t>> &connectedNeighbours, size_t layer);
 
     friend class MultiHNSWTest;  // grant access to the test class
     // Stats: number of edges traversed, number of distances computed, number of nodes visited
@@ -73,7 +81,7 @@ public:
         Builder& setEfSearch(size_t val);
         Builder& setSeed(size_t val);
 
-        MultiHNSW build() const;
+        [[nodiscard]] MultiHNSW build() const;
 
     private:
         size_t numModalities;
@@ -113,6 +121,8 @@ public:
     [[nodiscard]] size_t getSeed() const;
 
     void setEfSearch(size_t efSearch);
+
+    void printGraph() const;
 };
 
 

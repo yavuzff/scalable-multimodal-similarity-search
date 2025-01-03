@@ -9,6 +9,10 @@
 
 using namespace std;
 
+float getRandomFloat() {
+    return static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+}
+
 class MultiHNSWTest {
 public:
     static MultiHNSW initaliseTest1() {
@@ -136,7 +140,7 @@ public:
         for (auto& node : multiHNSW.nodes) {
             node.neighboursPerLayer.resize(2);
         }
-        multiHNSW.maxLayer = 1;
+        multiHNSW.maxLevel = 1;
 
         // create graph
         multiHNSW.nodes[0].neighboursPerLayer[0] = {1, 2};
@@ -181,6 +185,69 @@ public:
             }
             REQUIRE_THAT(idsResultLayer0, Catch::Matchers::RangeEquals(expectedResults0));
         }
+    }
+
+    static void testAddManyRandomEntities() {
+        MultiHNSW index = MultiHNSW::Builder(2, {3, 3})
+            .setDistanceMetrics({"euclidean", "manhattan"})
+            .setWeights({0.5f, 0.5f})
+            .setTargetDegree(3)
+            .setMaxDegree(6)
+            .build();
+
+        //std::vector<std::vector<float>> entities = {
+        //    {3.0f, 1.0f, 5.0f,      1.99f, 3.0f, 4.0f},
+        //    {3.0f, 1.0f, 5.0f,      1.99f, 3.0f, 4.0f}
+        //};
+
+        size_t numEntities = 100;
+        std::vector<float> modality1;
+        std::vector<float> modality2;
+        for (size_t i = 0; i < numEntities; i++) {
+            // 3 dimensions per entity
+            for (size_t j = 0; j < 3; j++) {
+                modality1.push_back(getRandomFloat());
+                modality2.push_back(getRandomFloat());
+            }
+        }
+        std::vector<std::span<const float>> entities = {std::span(modality1), std::span(modality2)};
+
+        index.addEntities(entities);
+        index.printGraph();
+
+    }
+
+    static void testAddSingleEntities() {
+        MultiHNSW index = MultiHNSW::Builder(1, {1})
+            .setDistanceMetrics({ "manhattan"})
+            .setTargetDegree(3)
+            .setMaxDegree(6)
+            .build();
+
+        // create entities containing values from 0 to 100
+        std::vector<float> nums = {};
+        size_t numEntities = 100;
+        nums.reserve(numEntities);
+        for (size_t i = 0; i < numEntities; i++) {
+            nums.push_back(i);
+        }
+
+        // shuffle the numbers
+        std::random_device rd;  // Seed for random number generator
+        std::mt19937 gen(rd()); // Mersenne Twister engine
+        std::shuffle(nums.begin(), nums.end(), gen);
+
+        std::vector<std::span<const float>> entities = {std::span(nums)};
+
+        index.addEntities(entities);
+        index.printGraph();
+
+        // output index mappings
+        debug_printf("Printing (entity id, entity vector) for %lu entities\n", numEntities);
+        for (size_t i = 0; i < numEntities; i++) {
+            debug_printf("(%lu, %d) ", i, int(entities[0][i]));
+        }
+
     }
 };
 
@@ -230,4 +297,9 @@ TEST_CASE("MultiHNSW Basic Tests", "[MultiHNSW]") {
 
 TEST_CASE("MultiHNSW SearchLayer", "[SearchLayer]") {
     MultiHNSWTest::testSearchLayer();
+}
+
+TEST_CASE("MultiHNSW AddEntities", "[AddEntities]") {
+    MultiHNSWTest::testAddManyRandomEntities();
+    MultiHNSWTest::testAddSingleEntities();
 }
