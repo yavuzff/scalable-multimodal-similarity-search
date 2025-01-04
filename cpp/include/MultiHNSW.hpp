@@ -39,10 +39,9 @@ private:
     float computeDistanceBetweenEntities(entity_id_t entityId1, entity_id_t entityId2, const std::vector<float>& weights) const;
     float computeDistanceToQuery(entity_id_t entityId, const std::vector<std::span<const float>>& query, const std::vector<float>& weights) const;
 
-
     [[nodiscard]] size_t generateRandomLevel() const;
     void addEntityToGraph(entity_id_t entityId);
-    std::vector<entity_id_t> internalSearchGraph(const std::vector<float>& query, size_t k, const std::vector<float>& weights, size_t ef) const;
+    std::vector<entity_id_t> internalSearch(const std::vector<std::span<const float>>& userQuery, size_t k, const std::vector<float>& weights) const;
 
     [[nodiscard]] std::priority_queue<std::pair<float, entity_id_t>> searchLayer(const std::vector<std::span<const float>>& query, const std::vector<entity_id_t> &entryPoints, const std::vector<float>& weights, size_t ef, size_t layer) const;
     [[nodiscard]] std::priority_queue<std::pair<float, entity_id_t>> searchLayer(entity_id_t entityId, const std::vector<entity_id_t> &entryPoints, const std::vector<float>& weights, size_t ef, size_t layer) const;

@@ -112,10 +112,11 @@ float MultiHNSW::computeDistanceBetweenEntities(entity_id_t entityId1, entity_id
             default:
                 throw invalid_argument("Invalid distance metric. You should not be seeing this message.");
         }
-
+        assert(modalityDistance >= 0);
         // aggregate distance by summing modalityDistance*weight
         dist += weights[modality] * modalityDistance;
     }
+    assert (dist >= 0);
     return dist;
 }
 
@@ -143,24 +144,32 @@ float MultiHNSW::computeDistanceToQuery(entity_id_t entityId, const vector<span<
             default:
                 throw invalid_argument("Invalid distance metric. You should not be seeing this message.");
         }
+        assert(modalityDistance >= 0);
 
         // aggregate distance by summing modalityDistance*weight
         dist += weights[modality] * modalityDistance;
     }
+    assert(dist >= 0);
     return dist;
 }
 
 
 vector<size_t> MultiHNSW::search(const vector<span<const float>>& query, size_t k, const vector<float>& queryWeights) {
     validateQuery(query, k);
-    cout << "Searching MultiHNSW with query weights!" << endl;
-    return vector<size_t>();
+    debug_printf("Searching MultiHNSW with query weights with k=%lu\n", k);
+    // copy weights as we will normalise them
+    auto normalisedQueryWeights = std::vector(queryWeights);
+    validateAndNormaliseWeights(normalisedQueryWeights, numModalities);
+
+    vector<entity_id_t> result = internalSearch(query, k, normalisedQueryWeights);
+    return {result.begin(), result.end()};
 }
 
 vector<size_t> MultiHNSW::search(const vector<span<const float>>& query, size_t k) {
     validateQuery(query, k);
-    cout << "Searching MultiHNSW without query weights!" << endl;
-    return vector<size_t>();
+    debug_printf("Searching MultiHNSW without query weights with k=%lu\n", k);
+    vector<entity_id_t> result = internalSearch(query, k, indexWeights);
+    return {result.begin(), result.end()};
 }
 
 vector<size_t> MultiHNSW::search(const vector<vector<float>>& query, size_t k, const vector<float>& queryWeights) {
@@ -173,7 +182,6 @@ vector<size_t> MultiHNSW::search(const vector<vector<float>>& query, size_t k) {
 
 void MultiHNSW::addEntityToGraph(entity_id_t entityId) {
     debug_printf("Inserting entity %d \n", entityId);
-    debug_printf("Nodes.size() is %lu \n", nodes.size());
 
     assert (entityId < nodes.size());
     const size_t targetLevel = generateRandomLevel();
@@ -306,7 +314,54 @@ void MultiHNSW::addAndPruneEdgesForExistingNodes(entity_id_t newEntityId, vector
 }
 
 
-//vector<entity_id_t> MultiHNSW::internalSearchGraph(const vector<float>& query, size_t k, const vector<float>& weights, size_t ef) const;
+vector<entity_id_t> MultiHNSW::internalSearch(const vector<span<const float>>& userQuery, size_t k, const vector<float>& weights) const {
+    if (numEntities == 0) {
+        return {};
+    }
+
+    // normalise query vectors if using cosine distance
+    std::vector<std::span<const float>> query = userQuery;
+    // storage for normalized query vectors to ensure valid spans
+    // this storage must be defined outside the if block to ensure the data is in scope throughout the search
+    std::vector<std::vector<float>> normalisedVectors;
+    if (!toNormalise.empty()) {
+        std::vector<std::span<const float>> normalisedQuery;
+        for (size_t i = 0; i < numModalities; ++i) {
+            if (distanceMetrics[i] == DistanceMetric::Cosine) {
+                std::cout << "Normalising query for modality " << i << " to efficiently compute cosine distance" << std::endl;
+                // copy and normalize vector
+                normalisedVectors.emplace_back(query[i].begin(), query[i].end());
+                l2NormalizeVector(std::span(normalisedVectors.back()));
+                normalisedQuery.emplace_back(std::span(normalisedVectors.back()));
+            } else {
+                normalisedQuery.push_back(query[i]);
+            }
+        }
+        query = std::move(normalisedQuery);
+    }
+
+    // start searching the graph
+    priority_queue<pair<float, entity_id_t>> candidateNearestNeighbours;
+    entity_id_t currentEntryPoint = entryPoint;
+    for (size_t layer = maxLevel; layer > 0; --layer) {
+        candidateNearestNeighbours = searchLayer(query, {currentEntryPoint}, weights, 1, layer);
+        assert(candidateNearestNeighbours.size() == 1);
+        currentEntryPoint = candidateNearestNeighbours.top().second;
+    }
+    // search layer 0
+    candidateNearestNeighbours = searchLayer(query, {currentEntryPoint}, weights, max(efSearch, k), 0);
+
+    // select the k nearest neighbours
+    selectNearestCandidates(candidateNearestNeighbours, k);
+    size_t numResults = candidateNearestNeighbours.size();
+    vector<entity_id_t> result;
+    result.resize(numResults);
+    for (size_t i = 0; i < numResults; i++) {
+        result[numResults - i - 1] = candidateNearestNeighbours.top().second;
+        candidateNearestNeighbours.pop();
+    }
+    return result;
+}
 
 [[nodiscard]] priority_queue<pair<float, entity_id_t>> MultiHNSW::searchLayer(const vector<span<const float>>& query, const vector<entity_id_t> &entryPoints, const vector<float>& weights, size_t ef, size_t layer) const {
     assert(!entryPoints.empty());
@@ -411,7 +466,7 @@ void MultiHNSW::addAndPruneEdgesForExistingNodes(entity_id_t newEntityId, vector
 void MultiHNSW::selectNearestCandidates(priority_queue<pair<float, entity_id_t>> &candidates, size_t M) const {
     // precondition: candidates is a non-empty max heap
     assert(!candidates.empty());
-    assert(candidates.top().first > 0);
+    assert(candidates.top().first >= 0);
 
     // pop from the heap until needed
     while (candidates.size() > M) {
@@ -472,7 +527,6 @@ void MultiHNSW::printGraph() const {
 
     }
 }
-
 
 void MultiHNSW::save(const string& path) const {
     cout << "Saving MultiHNSW to " << path << endl;

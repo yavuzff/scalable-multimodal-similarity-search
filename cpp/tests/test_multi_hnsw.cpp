@@ -247,7 +247,96 @@ public:
         for (size_t i = 0; i < numEntities; i++) {
             debug_printf("(%lu, %d) ", i, int(entities[0][i]));
         }
+    }
 
+    static void testAddAndSearch1() {
+        MultiHNSW index = MultiHNSW::Builder(2, {3, 3})
+            .setDistanceMetrics({"euclidean", "manhattan"})
+            .setWeights({0.5f, 0.5f})
+            .setTargetDegree(3)
+            .setMaxDegree(6)
+            .setEfConstruction(1)
+            .setEfSearch(1)
+            .build();
+
+        std::vector<std::vector<float>> entities = {
+            {3.0f, 1.0f, 5.0f,      1.99f, 3.0f, 4.0f},
+            {3.0f, 1.0f, 5.0f,      1.99f, 3.0f, 4.0f}
+        };
+        index.addEntities(entities);
+
+        SECTION("Add items") {
+            std::vector<std::vector<float>> query = {
+                {3.0f, 2.0f, 3.0f}, {3.0f, 2.0f, 3.0f}
+            };
+
+            std::vector<float> weights1 = {1.0f, 0.0f};
+            auto result = index.search(query, 1, weights1);
+            REQUIRE(result == std::vector<size_t>{1});
+
+            // weights 0.5f, 0.5f
+            result = index.search(query, 1);
+            REQUIRE(result == std::vector<size_t>{1});
+
+            std::vector<float> weights2 = {0.05f, 0.995f};
+            result = index.search(query, 1, weights2);
+            REQUIRE(result == std::vector<size_t>{1});
+
+            std::vector<float> weights3 = {0.02f, 0.98f};
+            result = index.search(query, 1, weights3);
+            REQUIRE(result == std::vector<size_t>{1});
+
+            std::vector<float> weights4 = {0.019f, 0.981f};
+            result = index.search(query, 1, weights4);
+            REQUIRE(result == std::vector<size_t>{0});
+
+            std::vector<float> weights5 = {0.0f, 1.0f};
+            result = index.search(query, 1, weights5);
+            REQUIRE(result == std::vector<size_t>{0});
+        }
+    }
+
+    static void testAddAndSearch2() {
+        MultiHNSW index = MultiHNSW::Builder(2, {3, 3})
+            .setDistanceMetrics({"cosine", "manhattan"})
+            .setWeights({0.5f, 0.5f})
+            .setTargetDegree(3)
+            .setMaxDegree(6)
+            .setEfConstruction(1)
+            .setEfSearch(1)
+            .build();
+
+        std::vector<std::vector<float>> entities = {
+            {3.0f, 1.0f, 5.0f, 1.99f, 3.0f, 4.0f}, // Modality 1: 2 entities, dimension 3
+            {3.0f, 1.0f, 5.0f, 1.99f, 3.0f, 4.0f}  // Modality 2: 2 entities, dimension 3
+        };
+
+        index.addEntities(entities);
+        index.printGraph();
+        std::vector<std::vector<float>> query = {
+            {3.0f, 2.0f, 3.0f}, {3.0f, 2.0f, 3.0f} // Query for both modalities
+        };
+
+        SECTION("Search with cosine and manhattan metrics") {
+            std::vector<float> weights1 = {1.0f, 0.0f};
+            auto result = index.search(query, 1, weights1);
+            REQUIRE(result == std::vector<size_t>{1}); // (0.063025, 0.050365)
+
+            result = index.search(query, 1);
+            REQUIRE(result == std::vector<size_t>{1}); // Even weights (1.5315125, 1.530182)
+
+            std::vector<float> weights2 = {0.45f, 0.55f};
+            result = index.search(query, 1, weights2);
+            REQUIRE(result == std::vector<size_t>{1}); // (1.67836125, 1.6781638)
+
+            std::vector<float> weights3 = {0.44f, 0.56f};
+            result = index.search(query, 1, weights3);
+            REQUIRE(result == std::vector<size_t>{0}); // (1.707731, 1.707760)
+
+            std::vector<float> weights4 = {0.0f, 1.0f};
+            result = index.search(query, 1, weights4);
+            REQUIRE(result == std::vector<size_t>{0}); // (3, 3.01)
+        }
     }
 };
 
@@ -302,4 +391,9 @@ TEST_CASE("MultiHNSW SearchLayer", "[SearchLayer]") {
 TEST_CASE("MultiHNSW AddEntities", "[AddEntities]") {
     MultiHNSWTest::testAddManyRandomEntities();
     MultiHNSWTest::testAddSingleEntities();
+}
+
+TEST_CASE("MultiHNSW Search", "[Search]") {
+    MultiHNSWTest::testAddAndSearch1();
+    MultiHNSWTest::testAddAndSearch2();
 }
