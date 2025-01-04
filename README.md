@@ -30,8 +30,7 @@ docker run -it --rm \
 e.g. to edit cpp source code in IDE:
 ```
 docker run -it --rm \
-    -v /Users/yavuz/data/:/Users/yavuz/data -v ./cpp/include/:/scalable-multimodal-similarity-search/cpp/include/ -v ./cpp/index/:/scalable-multimodal-s
-imilarity-search/cpp/index/ -v ./cpp/tests/:/scalable-multimodal-similarity-search/cpp/tests/ \
+    -v /Users/yavuz/data/:/Users/yavuz/data -v ./cpp/include/:/scalable-multimodal-similarity-search/cpp/include/ -v ./cpp/index/:/scalable-multimodal-similarity-search/cpp/index/ -v ./cpp/tests/:/scalable-multimodal-similarity-search/cpp/tests/ \
     scalable-multimodal-similarity-search
 ```
 
@@ -185,3 +184,10 @@ cmake --build cmake-build-debug -j 6 --target tests
 ```
 ./cmake-build-debug/tests
 ```
+
+Using Valgrind in the Docker container:
+```
+G_SLICE=always-malloc G_DEBUG=gc-friendly  valgrind -v --tool=memcheck --leak-check=full --num-callers=40 --log-file=valgrind.log $(which <program>) <arguments>
+```
+
+We can also use MSan and USan for memory and undefined behaviour checks - enable these in CMakeLists.txt.

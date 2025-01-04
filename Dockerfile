@@ -67,6 +67,23 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 
+# Install Valgrind for memory leak detection - for development
+# Also install zlib1g-dev, to be used by cnpy for reading npy files
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+      valgrind \
+      zlib1g-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+# install cnpy for reading npy files
+RUN git clone https://github.com/rogersce/cnpy.git \
+    && cd cnpy \
+    && cmake .\
+    && make \
+    && make install \
+    && cd .. \
+    && rm -rf cnpy
+
 # Copy the rest of the application code
 COPY . .
 

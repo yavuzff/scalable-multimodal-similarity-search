@@ -21,7 +21,7 @@ def main():
     text_vectors_all, image_vectors_all = load_dataset()
 
     # define subset for indexing and querying
-    NUM_INDEXED_ENTITIES = 1000
+    NUM_INDEXED_ENTITIES = 100
     NUM_QUERY_ENTITIES = 100
     index_text_vectors = text_vectors_all[:NUM_INDEXED_ENTITIES]
     index_image_vectors = image_vectors_all[:NUM_INDEXED_ENTITIES]

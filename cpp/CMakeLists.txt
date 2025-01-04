@@ -4,12 +4,13 @@ project(scalable-multimodal-similarity-search)
 set(CMAKE_CXX_STANDARD 20)
 
 # Release adds -O3 and -DNDEBUG, Debug adds -g
-# set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE Debug)
 
 # Set all warning flags for the compiler.
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
 # Add ASan, UBSan (not MSan: -fsanitize=memory not supported for mac clang and ubuntu(docker) compiler?) Do not add these when looking for runtime performance.
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize=undefined")
+
 # can use LeakSanitiser as well if using ubuntu through docker:
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=leak")
 
@@ -39,6 +40,11 @@ add_executable(tests tests/test_metrics.cpp
         tests/test_exact.cpp
         tests/test_multi_hnsw.cpp)
 target_link_libraries(tests PRIVATE Catch2::Catch2WithMain multi-index)
+
+# performance testing - uses cnpy and z libraries
+set(CNPY_PATH /usr/local/lib/libcnpy.a) # this is the default location for macos and ubuntu
+add_executable(performance tests/test_performance.cpp)
+target_link_libraries(performance PRIVATE Catch2::Catch2WithMain multi-index ${CNPY_PATH} z)
 
 # create executable with target main and link to library:
 add_executable(main main.cpp)
