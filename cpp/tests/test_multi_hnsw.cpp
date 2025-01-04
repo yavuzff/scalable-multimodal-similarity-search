@@ -152,8 +152,9 @@ public:
         multiHNSW.nodes[0].neighboursPerLayer[1] = {1};
         multiHNSW.nodes[1].neighboursPerLayer[1] = {0};
 
-        // specify query
-        vector<span<const float>> query = {span<const float>({5.0f})};
+        // explicitly allocate memory for the query, so that the span refers to persistent data (not temporary data)
+        std::vector<float> queryData = {5.0f};
+        vector<span<const float>> query = {span<const float>(queryData)};
         vector<float> weights = {1.0f};
         size_t ef = 3;
 

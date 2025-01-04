@@ -8,8 +8,10 @@ set(CMAKE_CXX_STANDARD 20)
 
 # Set all warning flags for the compiler.
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
-# Add ASan, UBSan (not MSan: -fsanitize=memory not supported for mac?) Do not add these when looking for runtime performance.
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize=undefined")
+# Add ASan, UBSan (not MSan: -fsanitize=memory not supported for mac clang and ubuntu(docker) compiler?) Do not add these when looking for runtime performance.
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize=undefined")
+# can use LeakSanitiser as well if using ubuntu through docker:
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=leak")
 
 # library for simple exact knn search
 add_library(simple-exact STATIC
@@ -44,5 +46,5 @@ target_link_libraries(main PRIVATE simple-exact multi-index)
 
 # Find pybind11 installed with conda
 find_package(pybind11 REQUIRED)
-pybind11_add_module(cppindex pybinding/binder.cpp)
-target_link_libraries(cppindex PRIVATE multi-index)
+pybind11_add_module(multimodal_index pybinding/binder.cpp)
+target_link_libraries(multimodal_index PRIVATE multi-index)

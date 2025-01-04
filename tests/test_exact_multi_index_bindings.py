@@ -1,17 +1,17 @@
 import pytest
 import numpy as np
-import cppindex
+from multimodal_index import ExactMultiIndex
 
 def test_valid_exact_multi_index_initialisation_with_arguments():
     # should succeed with np.array and normal lists
-    index1 = cppindex.ExactMultiIndex(2, dimensions=np.array([1, 2]), distance_metrics=["euclidean", "euclidean"], weights=[0.3, 0.7])
+    index1 = ExactMultiIndex(2, dimensions=np.array([1, 2]), distance_metrics=["euclidean", "euclidean"], weights=[0.3, 0.7])
 
     assert index1.num_modalities == 2
     assert index1.dimensions == [1,2]
     assert index1.distance_metrics == ["euclidean", "euclidean"]
     assert np.allclose(index1.weights,[0.3, 0.7])
 
-    index2 = cppindex.ExactMultiIndex(1, dimensions=np.array([1]), distance_metrics=["euclidean"], weights=[0.3])
+    index2 = ExactMultiIndex(1, dimensions=np.array([1]), distance_metrics=["euclidean"], weights=[0.3])
 
     assert index2.num_modalities == 1
     assert index2.dimensions == [1]
@@ -19,7 +19,7 @@ def test_valid_exact_multi_index_initialisation_with_arguments():
     assert np.allclose(index2.weights,[1]) # normalised so should be 1
 
     # should succeed with different orders
-    index3 = cppindex.ExactMultiIndex(weights=[0.3, 0.7], num_modalities=2, dimensions=np.array([1, 2]), distance_metrics=["euclidean", "euclidean"])
+    index3 = ExactMultiIndex(weights=[0.3, 0.7], num_modalities=2, dimensions=np.array([1, 2]), distance_metrics=["euclidean", "euclidean"])
 
     assert index3.num_modalities == 2
     assert index3.dimensions == [1,2]
@@ -27,7 +27,7 @@ def test_valid_exact_multi_index_initialisation_with_arguments():
     assert np.allclose(index3.weights,[0.3, 0.7])
 
     # should succeed without passing in weights
-    index4 = cppindex.ExactMultiIndex(2, dimensions=np.array([1, 2]), distance_metrics=["euclidean", "euclidean"])
+    index4 = ExactMultiIndex(2, dimensions=np.array([1, 2]), distance_metrics=["euclidean", "euclidean"])
 
     assert index4.num_modalities == 2
     assert index4.dimensions == [1,2]
@@ -35,7 +35,7 @@ def test_valid_exact_multi_index_initialisation_with_arguments():
     assert np.allclose(index4.weights,[0.5, 0.5])
 
 
-    index5 = cppindex.ExactMultiIndex(2, dimensions=np.array([1, 2]), distance_metrics=["euclidean", "euclidean"], weights=[])
+    index5 = ExactMultiIndex(2, dimensions=np.array([1, 2]), distance_metrics=["euclidean", "euclidean"], weights=[])
 
     assert index5.num_modalities == 2
     assert index5.dimensions == [1,2]
@@ -44,27 +44,27 @@ def test_valid_exact_multi_index_initialisation_with_arguments():
 
 
     # check normalisation of weights
-    index6 = cppindex.ExactMultiIndex(4, dimensions=np.array([1, 2,3,4]), distance_metrics=["euclidean"]*4, weights = [1,2,3,4])
+    index6 = ExactMultiIndex(4, dimensions=np.array([1, 2,3,4]), distance_metrics=["euclidean"]*4, weights = [1,2,3,4])
 
     assert np.allclose(index6.weights,np.array([.1,.2,.3,.4]))
 
     # check normalisation of weights
-    index7 = cppindex.ExactMultiIndex(4, dimensions=np.array([1, 2,3,4]), distance_metrics=["euclidean"]*4, weights = [0,0,0,100])
+    index7 = ExactMultiIndex(4, dimensions=np.array([1, 2,3,4]), distance_metrics=["euclidean"]*4, weights = [0,0,0,100])
 
     assert np.allclose(index7.weights,np.array([0,0,0,1]))
 
     # check distance metrics
 
     # default distance metric is euclidean
-    index8 = cppindex.ExactMultiIndex(4, dimensions=np.array([1,2,3,4]))
+    index8 = ExactMultiIndex(4, dimensions=np.array([1,2,3,4]))
     assert index8.distance_metrics == ["euclidean"]*4
 
     # passing in distance metrics
-    index9 = cppindex.ExactMultiIndex(4, dimensions=np.array([1,2,3,4]), distance_metrics=["manhattan", "euclidean", "manhattan", "cosine"])
+    index9 = ExactMultiIndex(4, dimensions=np.array([1,2,3,4]), distance_metrics=["manhattan", "euclidean", "manhattan", "cosine"])
     assert index9.distance_metrics == ["manhattan", "euclidean", "manhattan", "cosine"]
 
 def test_immutable_exact_multi_index_attributes():
-    index = cppindex.ExactMultiIndex(2, dimensions=np.array([1, 2]), distance_metrics=["euclidean", "euclidean"], weights=[0.3, 0.7])
+    index = ExactMultiIndex(2, dimensions=np.array([1, 2]), distance_metrics=["euclidean", "euclidean"], weights=[0.3, 0.7])
 
     with pytest.raises(AttributeError):
         index.num_modalities = 3
@@ -81,7 +81,7 @@ def test_immutable_exact_multi_index_attributes():
 def test_invalid_exact_multi_index_initialization():
 
     with pytest.raises(TypeError):
-        cppindex.ExactMultiIndex(
+        ExactMultiIndex(
             2,
             weights=np.array([1, 2]),
             distance_metrics=["euclidean", "euclidean"],
@@ -89,7 +89,7 @@ def test_invalid_exact_multi_index_initialization():
         )
 
     with pytest.raises(TypeError):
-        cppindex.ExactMultiIndex(
+        ExactMultiIndex(
             num_modalities = 2,
             dimensions=np.array([0.7, 1.2]), # incorrect type, expected to be list of ints
             distance_metrics=["euclidean", "euclidean"],
@@ -97,7 +97,7 @@ def test_invalid_exact_multi_index_initialization():
         )
 
     with pytest.raises(ValueError, match="Weights must be non-negative"):
-            cppindex.ExactMultiIndex(
+            ExactMultiIndex(
                 num_modalities = 2,
                 dimensions=np.array([1, 2]),
                 distance_metrics=["euclidean", "euclidean"],
@@ -105,7 +105,7 @@ def test_invalid_exact_multi_index_initialization():
             )
 
     with pytest.raises(ValueError, match="Weights must not be all zero"):
-        cppindex.ExactMultiIndex(
+        ExactMultiIndex(
             num_modalities = 2,
             dimensions=np.array([1, 2]),
             distance_metrics=["euclidean", "euclidean"],
@@ -113,7 +113,7 @@ def test_invalid_exact_multi_index_initialization():
         )
 
     with pytest.raises(ValueError, match="Invalid distance metric: MY MEASURE. Must be one of 'euclidean', 'manhattan' or 'cosine'"):
-        cppindex.ExactMultiIndex(
+        ExactMultiIndex(
             num_modalities = 2,
             dimensions=np.array([1, 2]),
             distance_metrics=["euclidean", "MY MEASURE"],
@@ -121,7 +121,7 @@ def test_invalid_exact_multi_index_initialization():
         )
 
     with pytest.raises(ValueError, match="Number of distance metrics must match number of modalities"):
-        cppindex.ExactMultiIndex(
+        ExactMultiIndex(
             num_modalities = 2,
             dimensions=np.array([1, 2]),
             distance_metrics=["euclidean"],
@@ -129,20 +129,20 @@ def test_invalid_exact_multi_index_initialization():
         )
 
     with pytest.raises(ValueError, match="Number of weights must match number of modalities"):
-        cppindex.ExactMultiIndex(
+        ExactMultiIndex(
             num_modalities = 2,
             dimensions=np.array([1, 2]),
             weights=[0, 0, 0]
         )
 
     with pytest.raises(ValueError, match="Number of dimensions must match number of modalities"):
-        cppindex.ExactMultiIndex(
+        ExactMultiIndex(
             num_modalities = 2,
             dimensions=[1],
         )
 
 def test_invalid_item_type_added_to_exact_index():
-    index = cppindex.ExactMultiIndex(2, dimensions=np.array([1, 2]), distance_metrics=["euclidean", "euclidean"], weights=[0.3, 0.7])
+    index = ExactMultiIndex(2, dimensions=np.array([1, 2]), distance_metrics=["euclidean", "euclidean"], weights=[0.3, 0.7])
 
     with pytest.raises(RuntimeError, match="Input must be a list or tuple of numpy arrays"):
         index.add_entities(np.array([1,2]))
@@ -156,7 +156,7 @@ def test_invalid_item_type_added_to_exact_index():
 
 
     # test adding incorrect shape
-    index = cppindex.ExactMultiIndex(1, dimensions=np.array([3]), distance_metrics=["euclidean"], weights=[1])
+    index = ExactMultiIndex(1, dimensions=np.array([3]), distance_metrics=["euclidean"], weights=[1])
     with pytest.raises(RuntimeError, match="Modality 0 has incorrect data size: 4 is not equal to the expected dimension 3"):
         # adding 3 entities with 4 dimensions (rather than 4 entities with 3 dimensions)
         index.add_entities([[  #single modality so we have 1 outer array
@@ -164,7 +164,7 @@ def test_invalid_item_type_added_to_exact_index():
         ]])
 
 def test_adding_items_to_index():
-    index = cppindex.ExactMultiIndex(2, dimensions=np.array([1, 2]), distance_metrics=["euclidean", "euclidean"], weights=[0.3, 0.7])
+    index = ExactMultiIndex(2, dimensions=np.array([1, 2]), distance_metrics=["euclidean", "euclidean"], weights=[0.3, 0.7])
 
     # add single entity as list of items
     index.add_entities([[1],[1,2]])
@@ -199,7 +199,7 @@ def eq(array1,array2):
 def test_searching_exact_multi_index_single_dim_single_modality():
 
     # test single modality, single vector
-    index = cppindex.ExactMultiIndex(1, dimensions=np.array([1]), distance_metrics=["euclidean"], weights=[1])
+    index = ExactMultiIndex(1, dimensions=np.array([1]), distance_metrics=["euclidean"], weights=[1])
 
     # add 1 modality, 8 vectors each of 1 dimension
     index.add_entities([[[-2],[-1],[0],[1],[2],[3],[4],[5]]])
@@ -219,7 +219,7 @@ def test_searching_exact_multi_index_single_dim_single_modality():
     assert eq(index.search(query3, 3), [1,0,2])
 
 def test_searching_exact_multi_index_single_modality_multiple_dim():
-    index = cppindex.ExactMultiIndex(1, dimensions=np.array([3]), distance_metrics=["euclidean"], weights=[1])
+    index = ExactMultiIndex(1, dimensions=np.array([3]), distance_metrics=["euclidean"], weights=[1])
 
 
     # adding with 1 modality, 4 entities with 3 dimensions for the modality
@@ -244,7 +244,7 @@ def test_searching_exact_multi_index_single_modality_multiple_dim():
 
 
 def test_searching_exact_multi_index_multiple_modalities_multiple_dim():
-    index = cppindex.ExactMultiIndex(2, dimensions=np.array([2, 3]), distance_metrics=["euclidean", "euclidean"], weights=[0.5,0.5])
+    index = ExactMultiIndex(2, dimensions=np.array([2, 3]), distance_metrics=["euclidean", "euclidean"], weights=[0.5,0.5])
 
     # add 2 modality, 4 entities with dimensions 2, 3 for the modalities
 
@@ -288,7 +288,7 @@ def test_searching_exact_multi_index_multiple_modalities_multiple_dim():
     assert eq(index.search(query4, 10000, [1.2, 1.8]), [2,1,3,0])
 
 def test_invalid_multi_exact_index_searches():
-    index = cppindex.ExactMultiIndex(2, dimensions=np.array([2, 3]), distance_metrics=["euclidean", "euclidean"], weights=[0.5,0.5])
+    index = ExactMultiIndex(2, dimensions=np.array([2, 3]), distance_metrics=["euclidean", "euclidean"], weights=[0.5,0.5])
 
     # add 2 modality, 4 entities with dimensions 2, 3 for the modalities
     index.add_entities([
@@ -348,9 +348,9 @@ def test_invalid_multi_exact_index_searches():
 
 def test_distance_metrics_single_modality():
 
-    euclidean_index = cppindex.ExactMultiIndex(1, dimensions=np.array([3]), distance_metrics=["euclidean"])
-    manhattan_index = cppindex.ExactMultiIndex(1, dimensions=np.array([3]), distance_metrics=["manhattan"])
-    cosine_index = cppindex.ExactMultiIndex(1, dimensions=np.array([3]), distance_metrics=["cosine"])
+    euclidean_index = ExactMultiIndex(1, dimensions=np.array([3]), distance_metrics=["euclidean"])
+    manhattan_index = ExactMultiIndex(1, dimensions=np.array([3]), distance_metrics=["manhattan"])
+    cosine_index = ExactMultiIndex(1, dimensions=np.array([3]), distance_metrics=["cosine"])
 
     # adding with 1 modality, 3 entities with 3 dimensions for the modality
     entities = [[  #single modality so we have 1 outer array
@@ -370,9 +370,9 @@ def test_distance_metrics_single_modality():
     assert eq(cosine_index.search(query1, 3), [0,1,2])
 
 
-    euclidean_index = cppindex.ExactMultiIndex(1, dimensions=np.array([3]), distance_metrics=["euclidean"])
-    manhattan_index = cppindex.ExactMultiIndex(1, dimensions=np.array([3]), distance_metrics=["manhattan"])
-    cosine_index = cppindex.ExactMultiIndex(1, dimensions=np.array([3]), distance_metrics=["cosine"])
+    euclidean_index = ExactMultiIndex(1, dimensions=np.array([3]), distance_metrics=["euclidean"])
+    manhattan_index = ExactMultiIndex(1, dimensions=np.array([3]), distance_metrics=["manhattan"])
+    cosine_index = ExactMultiIndex(1, dimensions=np.array([3]), distance_metrics=["cosine"])
 
     # adding with 1 modality, 3 entities with 3 dimensions for the modality
     entities = [[  #single modality so we have 1 outer array
@@ -393,7 +393,7 @@ def test_distance_metrics_single_modality():
     assert eq(cosine_index.search(query2, 3), [1,0,2])
 
 def test_combined_metric_exact_multi_search():
-    index = cppindex.ExactMultiIndex(2, dimensions=np.array([3, 3]), distance_metrics=["euclidean", "manhattan"], weights=[0.5,0.5])
+    index = ExactMultiIndex(2, dimensions=np.array([3, 3]), distance_metrics=["euclidean", "manhattan"], weights=[0.5,0.5])
 
     # add 2 modality, 2 entities with dimensions 3, 3 for the modalities
     entities = [
@@ -419,7 +419,7 @@ def test_combined_metric_exact_multi_search():
     assert eq(index.search(query1, 1, [0,1]), [0]) # (3,3.01)
 
 def test_manhattan_cosine_exact_multi_search():
-    index = cppindex.ExactMultiIndex(2, dimensions=np.array([3, 3]), distance_metrics=["cosine", "manhattan"], weights=[0.5,0.5])
+    index = ExactMultiIndex(2, dimensions=np.array([3, 3]), distance_metrics=["cosine", "manhattan"], weights=[0.5,0.5])
 
     # add 2 modality, 2 entities with dimensions 3, 3 for the modalities
     entities = [

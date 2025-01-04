@@ -38,7 +38,6 @@ void ExactMultiIndex::addEntities(const std::vector<std::span<const float>>& ent
             }
         }
     }
-    outputEntities();
 }
 
 std::vector<size_t> ExactMultiIndex::search(const std::vector<std::span<const float>>& query, const size_t k,

@@ -1,5 +1,5 @@
 import time
-from cppindex import ExactMultiIndex
+from multimodal_index import ExactMultiIndex
 import numpy as np
 import psutil
 import os
@@ -35,8 +35,11 @@ class IndexEvaluator:
 
         # also add it to exact index
         mem_before = self.process.memory_info().rss
+        exact_index_start_time = time.time()
         self.exact_index.add_entities(entities)
+        exact_index_total_time = time.time() - exact_index_start_time
         mem_after = self.process.memory_info().rss
+        print(f"Exact index insertion time: {exact_index_total_time:.3f} seconds.")
         print(f"Exact index memory consumption: {(mem_after - mem_before)/1024/1024} MiB.")
 
         return total_time, mem_usage

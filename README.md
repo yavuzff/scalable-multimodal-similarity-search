@@ -27,6 +27,14 @@ docker run -it --rm \
     scalable-multimodal-similarity-search
 ```
 
+e.g. to edit cpp source code in IDE:
+```
+docker run -it --rm \
+    -v /Users/yavuz/data/:/Users/yavuz/data -v ./cpp/include/:/scalable-multimodal-similarity-search/cpp/include/ -v ./cpp/index/:/scalable-multimodal-s
+imilarity-search/cpp/index/ -v ./cpp/tests/:/scalable-multimodal-similarity-search/cpp/tests/ \
+    scalable-multimodal-similarity-search
+```
+
 #### Local:
 
 Follow these steps to set up the environment locally (involving venv, Cmake, conda, pybind):
@@ -71,7 +79,7 @@ cd cpp
 2. Build the project using CMake:
 ```
 cmake -S . -B cmake-build-debug
-cmake --build cmake-build-debug -j 6 --target cppindex
+cmake --build cmake-build-debug -j 6 --target multimodal_index
 ```
 3. Install the Python bindings:
 ```
@@ -85,7 +93,7 @@ The C++ index can be imported and used within Python scripts.
 1. Import the index:
 
 ```
-from cppindex import ExactMultiIndex
+from multimodal_index import ExactMultiIndex
 ```
 
 2. Initialise the index, e.g.:
