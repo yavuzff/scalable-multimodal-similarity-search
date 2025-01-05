@@ -77,7 +77,7 @@ cd cpp
 
 2. Build the project using CMake:
 ```
-cmake -S . -B cmake-build-debug
+cmake -S . -B cmake-build-debug -DCMAKE_BUILD_TYPE=Release
 cmake --build cmake-build-debug -j 6 --target multimodal_index
 ```
 3. Install the Python bindings:
@@ -145,7 +145,7 @@ To develop and test the C++ code:
 
 1. Build and run the C++ executable:
 ```
-cmake -S . -B cmake-build-debug
+cmake -S . -B cmake-build-debug -DCMAKE_BUILD_TYPE=Debug
 cmake --build cmake-build-debug -j 6 --target main
 ./cmake-build-debug/main
 ```
@@ -177,7 +177,7 @@ cd cpp
 
 2. Build the CMake tests target:
 ```
-cmake -S . -B cmake-build-debug
+cmake -S . -B cmake-build-debug -DCMAKE_BUILD_TYPE=Debug
 cmake --build cmake-build-debug -j 6 --target tests
 ```
 3. Run the `tests` executable:

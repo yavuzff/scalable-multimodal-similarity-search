@@ -89,8 +89,8 @@ COPY . .
 
 # Compile the Cpp code and setup the bindings
 #RUN cd cpp && \
-#    cmake -S . -B cmake-build-debug && \
-#    cmake --build cmake-build-debug -j 6 --target cppindex && \
+#    cmake -S . -B cmake-build-debug -DCMAKE_BUILD_TYPE=Release && \
+#    cmake --build cmake-build-debug -j 6 --target multimodal_index && \
 #    python3 pybinding/setup.py install
 
 # Default to bash

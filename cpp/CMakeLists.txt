@@ -4,12 +4,13 @@ project(scalable-multimodal-similarity-search)
 set(CMAKE_CXX_STANDARD 20)
 
 # Release adds -O3 and -DNDEBUG, Debug adds -g
-set(CMAKE_BUILD_TYPE Debug)
+# set(CMAKE_BUILD_TYPE Debug)
+# set(CMAKE_BUILD_TYPE Release)
 
 # Set all warning flags for the compiler.
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
 # Add ASan, UBSan (not MSan: -fsanitize=memory not supported for mac clang and ubuntu(docker) compiler?) Do not add these when looking for runtime performance.
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize=undefined")
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize=undefined")
 
 # can use LeakSanitiser as well if using ubuntu through docker:
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=leak")
