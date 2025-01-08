@@ -9,9 +9,20 @@ def load_dataset():
     Load the dataset from the prepared paths.
     """
     text_vectors = np.load(TEXT_VECTORS_PATH)
-    image_vectors = np.load(IMAGE_VECTORS_PATH)
-    # cast image_vectors to float32 - for easier tracking of memory usage
-    image_vectors = image_vectors.astype(np.float32)
+    image_vectors = np.load(IMAGE_VECTORS32_PATH)
+
+    #check type stored, should be float32
+    if text_vectors.dtype != np.float32:
+        # raise exception
+        raise ValueError(f"Text vectors are not float32. They are {text_vectors.dtype}.")
+
+    if image_vectors.dtype != np.float32:
+        # raise exception
+        # cast to float 32 and raise exception
+        # image_vectors = image_vectors.astype(np.float32)
+        # np.save(IMAGE_VECTORS32_PATH, image_vectors)
+        raise ValueError(f"Image vectors are not float32. They are {image_vectors.dtype}.")
+
     print(f"Loaded 32-bit vectors. Text vectors shape: {text_vectors.shape}. Image vectors shape: {image_vectors.shape}.")
     return text_vectors, image_vectors
 
@@ -21,7 +32,7 @@ def main():
     text_vectors_all, image_vectors_all = load_dataset()
 
     # define subset for indexing and querying
-    NUM_INDEXED_ENTITIES = 100
+    NUM_INDEXED_ENTITIES = 1000
     NUM_QUERY_ENTITIES = 100
     index_text_vectors = text_vectors_all[:NUM_INDEXED_ENTITIES]
     index_image_vectors = image_vectors_all[:NUM_INDEXED_ENTITIES]
@@ -31,7 +42,7 @@ def main():
     # define and build index that we will evaluate
     MODALITIES = 2
     DIMENSIONS = [text_vectors_all.shape[1], image_vectors_all.shape[1]]
-    DISTANCE_METRICS = ["euclidean", "euclidean"]
+    DISTANCE_METRICS = ["manhattan", "manhattan"]
     my_index = MultiHNSW(MODALITIES, dimensions=DIMENSIONS, distance_metrics=DISTANCE_METRICS)
 
     # search parameters
@@ -42,6 +53,7 @@ def main():
 
     # evaluate inserting to the index
     entities = [index_text_vectors, index_image_vectors]
+    print(f"Inserting {NUM_INDEXED_ENTITIES} entities to the index.")
     insertion_time, memory_consumption = index_evaluator.evaluate_add_entities(entities)
     print(f"Insertion Time: {insertion_time:.3f} seconds.")
     print(f"Insertion Memory: {memory_consumption/1024/1024} MiB.")

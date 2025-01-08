@@ -9,5 +9,6 @@ METADATA_PATH = PREP_DATASET_PATH + "metadata.parquet"
 IMAGES_PATH = PREP_DATASET_PATH + "images"
 
 IMAGE_VECTORS_PATH = PREP_DATASET_PATH + "vectors/image_vectors.npy"
+IMAGE_VECTORS32_PATH = PREP_DATASET_PATH + "vectors/image_vectors32.npy"
 TEXT_VECTORS_PATH = PREP_DATASET_PATH + "vectors/text_vectors.npy"
 

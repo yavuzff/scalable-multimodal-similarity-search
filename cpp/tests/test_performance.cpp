@@ -10,7 +10,10 @@
 std::string DATASET_ENTITY_COUNT = "20000";
 std::string PREP_DATASET_PATH = "/Users/yavuz/data/LAION-" + DATASET_ENTITY_COUNT + "/";
 std::string IMAGE_VECTORS_PATH = PREP_DATASET_PATH + "vectors/image_vectors.npy";
+std::string IMAGE_VECTORS32_PATH = PREP_DATASET_PATH + "vectors/image_vectors32.npy";
 std::string TEXT_VECTORS_PATH = PREP_DATASET_PATH + "vectors/text_vectors.npy";
+
+int NUM_INDEX_ENTITIES = 1000;
 
 int main() {
     // load text vectors
@@ -36,8 +39,11 @@ int main() {
     } else {
         throw std::runtime_error("Unsupported word size for vectors: " + std::to_string(arrTexts.word_size));
     }
-    assert(textVectors.size() == textsShape[0] * textsShape[1]);
+    assert(textVectors.size() == textsShape[0] * textsShape[1]); // e.g. (6426, 768)
 
+    if (NUM_INDEX_ENTITIES != 0) {
+        textVectors = textVectors.subspan(0, NUM_INDEX_ENTITIES * textsShape[1]);
+    }
 
     // load image vectors
     cnpy::NpyArray arrImages = cnpy::npy_load(IMAGE_VECTORS_PATH);
@@ -54,10 +60,12 @@ int main() {
     // print word size - 4 bytes for float, 8 bytes for double
     std::cout << "Images Word size: " << arrImages.word_size << std::endl;
 
+    // define float data outside the for loop to ensure the data is in scope throughout the whole function
     std::vector<float> floatData;
+    std::span<const float> imageVectors;
     if (arrImages.word_size == 4) {
-        //imageVectors = std::span<const float>(arrImages.data<float>(), arrImages.data<float>() + arrImages.num_vals);
-        throw std::runtime_error("Image vectors were not expected to be 4 bytes: " + std::to_string(arrImages.word_size));
+        imageVectors = std::span<const float>(arrImages.data<float>(), arrImages.data<float>() + arrImages.num_vals);
+        //throw std::runtime_error("Image vectors were not expected to be 4 bytes: " + std::to_string(arrImages.word_size));
     } else if (arrImages.word_size == 8) {
         std::cout << "Converting double array to float array by allocating new memory" << std::endl;
         // gain access to the double data
@@ -72,19 +80,22 @@ int main() {
         throw std::runtime_error("Unsupported word size for vectors: " + std::to_string(arrImages.word_size));
     }
     // now, create a span for the float data
-    auto imageVectors = std::span<const float>(floatData.data(), floatData.size());
+    imageVectors = std::span<const float>(floatData.data(), floatData.size());
     assert(imageVectors.size() == imagesShape[0] * imagesShape[1]);
-
+    if (NUM_INDEX_ENTITIES != 0) {
+        imageVectors = imageVectors.subspan(0, NUM_INDEX_ENTITIES * imagesShape[1]);
+    }
 
     std::vector<std::span<const float>> entities = {textVectors, imageVectors};
+    std::vector<std::string> distanceMetrics = {"cosine", "cosine"};
 
-    MultiHNSW index = MultiHNSW::Builder(2, {textsShape[1], imagesShape[1]}).build();
+    MultiHNSW index = MultiHNSW::Builder(2, {textsShape[1], imagesShape[1]}).setDistanceMetrics(distanceMetrics).build();
     auto start = std::chrono::high_resolution_clock::now();
     index.addEntities(entities);
     auto end = std::chrono::high_resolution_clock::now();
     std::cout << "Adding entities took: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl;
 
-    ExactMultiIndex exactIndex = ExactMultiIndex(2, {textsShape[1], imagesShape[1]});
+    ExactMultiIndex exactIndex = ExactMultiIndex(2, {textsShape[1], imagesShape[1]}, distanceMetrics);
     exactIndex.addEntities(entities);
 
     int id = 60;

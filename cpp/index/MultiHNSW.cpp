@@ -52,7 +52,8 @@ void MultiHNSW::addEntities(const vector<vector<float>>& entities) {
 void MultiHNSW::addEntities(const vector<span<const float>>& entities) {
     const size_t numNewEntities = validateEntities(entities);
 
-    debug_printf("Adding %zu entities to MultiHNSW!\n", numNewEntities);
+    std::cout << "Adding " << numNewEntities << " entities to MultiHNSW" << std::endl;
+    //debug_printf("Adding %zu entities to MultiHNSW!\n", numNewEntities);
     addToEntityStorage(entities, numNewEntities);
 
     // allocate memory for the new nodes

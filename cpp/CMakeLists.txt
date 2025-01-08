@@ -8,12 +8,20 @@ set(CMAKE_CXX_STANDARD 20)
 # set(CMAKE_BUILD_TYPE Release)
 
 # Set all warning flags for the compiler.
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
 # Add ASan, UBSan (not MSan: -fsanitize=memory not supported for mac clang and ubuntu(docker) compiler?) Do not add these when looking for runtime performance.
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize=undefined")
-
+# set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize=undefined")
 # can use LeakSanitiser as well if using ubuntu through docker:
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=leak")
+# set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -fsanitize=leak")
+
+# release flags
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -O3 -DNDEBUG")
+#set(CMAKE_CXX_FLAGS_RELEASE  "${CMAKE_CXX_FLAGS} -flto -fomit-frame-pointer -march=native")
+#set(CMAKE_CXX_FLAGS_RELEASE  "${CMAKE_CXX_FLAGS} -flto")
+# compiler warnings
+#set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
+# -pg flag for gprof profiling, -DNDEBUG for disabling assertions (which get enabled by -pg?)
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -pg -DNDEBUG")
 
 # library for simple exact knn search
 add_library(simple-exact STATIC
