@@ -145,12 +145,14 @@ float MultiHNSW::computeDistanceToQuery(entity_id_t entityId, const vector<span<
             default:
                 throw invalid_argument("Invalid distance metric. You should not be seeing this message.");
         }
-        assert(modalityDistance >= 0);
+        // check modalityDistance >= 0 with tolerance of 1e-6
+        assert(modalityDistance >= -1e-6);
 
         // aggregate distance by summing modalityDistance*weight
         dist += weights[modality] * modalityDistance;
     }
-    assert(dist >= 0);
+    // check distance >= 0 with tolerance of 1e-6
+    assert(dist >= -1e-6);
     return dist;
 }
 

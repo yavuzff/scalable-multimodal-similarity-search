@@ -185,18 +185,18 @@ cmake --build cmake-build-debug -j 6 --target tests
 ./cmake-build-debug/tests
 ```
 
-Using Valgrind in the Docker container:
+**Using Valgrind in the Docker container:**
 ```
 G_SLICE=always-malloc G_DEBUG=gc-friendly  valgrind -v --tool=memcheck --leak-check=full --num-callers=40 --log-file=valgrind.log $(which <program>) <arguments>
 ```
 
 We can also use MSan and USan for memory and undefined behaviour checks - enable these in CMakeLists.txt.
 
-Profiling with `gprof`:
+**Profiling with `gprof`:**
 
 1. Compile the code with -pg flag, set through `CMakeLists.txt`.
 2. Run the executable.
 3. Run `gprof` on the executable:
-```
-gprof ./cmake-build-debug/performance gmon.out > analysis.txt
-```
+   ```
+   gprof ./cmake-build-debug/performance gmon.out > analysis.txt
+   ```

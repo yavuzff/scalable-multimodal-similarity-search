@@ -76,11 +76,11 @@ int main() {
         floatData.resize(doubleData.size());
         std::transform(doubleData.begin(), doubleData.end(), floatData.begin(),
                        [](double val) { return static_cast<float>(val); });
+        // now, create a span for the float data
+        imageVectors = std::span<const float>(floatData.data(), floatData.size());
     } else {
         throw std::runtime_error("Unsupported word size for vectors: " + std::to_string(arrImages.word_size));
     }
-    // now, create a span for the float data
-    imageVectors = std::span<const float>(floatData.data(), floatData.size());
     assert(imageVectors.size() == imagesShape[0] * imagesShape[1]);
     if (NUM_INDEX_ENTITIES != 0) {
         imageVectors = imageVectors.subspan(0, NUM_INDEX_ENTITIES * imagesShape[1]);
