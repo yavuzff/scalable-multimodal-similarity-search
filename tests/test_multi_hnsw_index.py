@@ -10,7 +10,7 @@ def eq2(array1, array2):
 
 def test_multi_hnsw_index_initialisation():
     index = MultiHNSW(2, dimensions=[1, 2], distance_metrics=["euclidean", "euclidean"], weights=[0.3, 0.7],
-                      ef_construction=100)
+                      ef_construction=100, distribution_scale_factor=1.0)
 
     assert index.num_modalities == 2
     assert index.dimensions == [1, 2]

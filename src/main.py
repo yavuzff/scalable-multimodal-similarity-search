@@ -32,7 +32,7 @@ def main():
     text_vectors_all, image_vectors_all = load_dataset()
 
     # define subset for indexing and querying
-    NUM_INDEXED_ENTITIES = 1000
+    NUM_INDEXED_ENTITIES = 10000
     NUM_QUERY_ENTITIES = 100
     index_text_vectors = text_vectors_all[:NUM_INDEXED_ENTITIES]
     index_image_vectors = image_vectors_all[:NUM_INDEXED_ENTITIES]
@@ -42,7 +42,7 @@ def main():
     # define and build index that we will evaluate
     MODALITIES = 2
     DIMENSIONS = [text_vectors_all.shape[1], image_vectors_all.shape[1]]
-    DISTANCE_METRICS = ["manhattan", "manhattan"]
+    DISTANCE_METRICS = ["cosine", "cosine"]
     my_index = MultiHNSW(MODALITIES, dimensions=DIMENSIONS, distance_metrics=DISTANCE_METRICS)
 
     # search parameters

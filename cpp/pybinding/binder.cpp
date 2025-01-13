@@ -277,7 +277,7 @@ PYBIND11_MODULE(multimodal_index, m) {
     py::class_<MultiHNSWPyWrapper>(m, "MultiHNSW")
        // note that pybind11/stl.h automatic conversions occur here, which copy these vectors - this is fine for initialisation
         .def(py::init<size_t, const std::vector<size_t>&, const std::vector<std::string>&, const std::vector<float>&, float, size_t, size_t, size_t, size_t, size_t>(), py::arg("num_modalities"), py::arg("dimensions"), py::arg("distance_metrics")=std::vector<std::string>(), py::arg("weights")=std::vector<float>(),
-            py::arg("distribution_scale_factor") = 1.0f, py::arg("target_degree") = 32, py::arg("max_degree") = 32, py::arg("ef_construction") = 200, py::arg("ef_search") = 50, py::arg("seed") = 42)
+            py::arg("distribution_scale_factor") = 0.0f, py::arg("target_degree") = 32, py::arg("max_degree") = 32, py::arg("ef_construction") = 200, py::arg("ef_search") = 50, py::arg("seed") = 42)
 
         .def("add_entities", &MultiHNSWPyWrapper::addEntities, "Adds multiple entities to the index. To add `n` entities with `k` modalities, provide a list of length `k`, where each element is a 2D numpy array of shape `(n, dimensions_of_modality)`. Each array corresponds to one modality.",
            py::arg("entities"))

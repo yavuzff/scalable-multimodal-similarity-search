@@ -22,12 +22,17 @@ MultiHNSW::MultiHNSW(size_t numModalities,
                                    distributionScaleFactor(distributionScaleFactor), targetDegree(targetDegree), maxDegree(maxDegree), efConstruction(efConstruction),
                                     efSearch(efSearch), seed(seed), maxLevel(0), maxDegreeLayer0(maxDegree*2), generator(seed) {
     validateParameters();
+
+    // set distributionScaleFactor to good heuristic value if the default value (0) is being used
+    if (distributionScaleFactor == 0.f) {
+        this->distributionScaleFactor = 1.0f / log(targetDegree);
+    }
     // initialise storage
     entityStorage.resize(numModalities);
 }
 
 void MultiHNSW::validateParameters() const {
-    if (distributionScaleFactor <= 0) {
+    if (distributionScaleFactor < 0) {
         throw invalid_argument("Distribution scale factor must be positive");
     }
     // check that targetDegree is at least 1

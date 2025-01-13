@@ -353,10 +353,9 @@ TEST_CASE("MultiHNSWBuilder builds", "[MultiHNSWBuilder]") {
         REQUIRE_THAT(multiHNSW.getWeights(), Catch::Matchers::RangeEquals(std::vector<float> {0.5, 0.5}));;
 
         REQUIRE(multiHNSW.getEfSearch() == 50);
-
-        REQUIRE(multiHNSW.getDistributionScaleFactor() == 1.0);
         REQUIRE(multiHNSW.getTargetDegree() == 32);
         REQUIRE(multiHNSW.getMaxDegree() == 32);
+        REQUIRE_THAT(multiHNSW.getDistributionScaleFactor() , Catch::Matchers::WithinAbs(1/log(multiHNSW.getTargetDegree()), 0.0001));
         REQUIRE(multiHNSW.getEfConstruction() == 200);
         REQUIRE(multiHNSW.getSeed() == 42);
     }

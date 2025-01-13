@@ -60,7 +60,7 @@ public:
                     std::vector<size_t> dims,
                     std::vector<std::string> distanceMetrics = {},
                     std::vector<float> weights = {},
-                    float distributionScaleFactor = 1.0f,
+                    float distributionScaleFactor = 0.0f,
                     size_t targetDegree = 32,
                     size_t maxDegree = 32,
                     size_t efConstruction = 200,
@@ -87,7 +87,7 @@ public:
         std::vector<size_t> dims;
         std::vector<std::string> distanceMetrics = {};
         std::vector<float> weights = {};
-        float distributionScaleFactor = 1.0;
+        float distributionScaleFactor = 0.0f;
         size_t targetDegree = 32;
         size_t maxDegree = 32;
         size_t efConstruction = 200;

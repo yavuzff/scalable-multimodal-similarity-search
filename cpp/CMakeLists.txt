@@ -20,8 +20,9 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -O3 -DNDEBUG")
 #set(CMAKE_CXX_FLAGS_RELEASE  "${CMAKE_CXX_FLAGS} -flto")
 # compiler warnings
 #set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
+
 # -pg flag for gprof profiling, -DNDEBUG for disabling assertions (which get enabled by -pg?)
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -pg -DNDEBUG")
+#set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -pg -DNDEBUG")
 
 # library for simple exact knn search
 add_library(simple-exact STATIC
