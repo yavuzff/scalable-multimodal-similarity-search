@@ -9,6 +9,7 @@ import torch
 import os
 from transformers import pipeline
 from PIL import Image
+from tqdm import tqdm
 
 
 class ImageEmbeddingGenerator(ABC):
@@ -17,16 +18,16 @@ class ImageEmbeddingGenerator(ABC):
     """
 
     @abstractmethod
-    def generate_image_embeddings(self, image_paths: list[str], normalize_embeddings: bool) -> np.ndarray:
+    def generate_image_embeddings(self, image_paths: list[str], normalize_embeddings: bool = False) -> np.ndarray:
         """
         Generate embeddings given a list of paths for images - up to 1024 images
         """
         pass
 
     @abstractmethod
-    def batch_generate_image_embeddings(self, image_paths: list[str], normalize_embeddings: bool) -> np.ndarray:
+    def batch_generate_image_embeddings(self, image_paths: list[str], normalize_embeddings: bool = False, batch_size: int = 128) -> np.ndarray:
         """
-        Generate embeddings given a list of paths for images - batch process by 1024 images at a time
+        Generate embeddings given a list of paths for images - batch process by batch_size images at a time
         """
         pass
 
@@ -57,40 +58,44 @@ class HFImageEmbeddingGenerator(ImageEmbeddingGenerator):
         self.DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.logger.info(f"Loading image-feature-extraction pipeline for {model_name}...")
         self.pipe = pipeline(task="image-feature-extraction", model=model_name,
-                             device=self.DEVICE, pool=True)
+                             device=self.DEVICE, pool=True, torch_dtype=torch.float32)
         self.logger.info(f"Loaded {model_name}")
 
-    def generate_image_embeddings(self, image_paths: list[str], normalize_embeddings: bool) -> np.ndarray:
+    def generate_image_embeddings(self, image_paths: list[str], normalize_embeddings: bool = False) -> np.ndarray:
         self.verify_images_exist(image_paths)
         images = [Image.open(image_path) for image_path in image_paths]
+
+        self.logger.info(f"Generating {len(images)} embeddings...")
         embeddings = self.__generate_image_embeddings(images)
+        self.logger.info(f"Generated {len(images)} embeddings!")
 
         if normalize_embeddings:
+            self.logger.info("Normalizing embeddings...")
             embeddings = self.normalize_embeddings(embeddings)
 
         return embeddings
 
-    def __generate_image_embeddings(self, images: list) -> np.ndarray:
-        self.logger.info(f"Generating {len(images)} embeddings...")
-        outputs = self.pipe(images)
-        embeddings = np.squeeze(outputs, axis=1)
-        self.logger.info(f"Generated {len(images)} embeddings!")
-        return embeddings
-
-    def batch_generate_image_embeddings(self, image_paths: list[str], normalize_embeddings: bool) -> np.ndarray:
+    def batch_generate_image_embeddings(self, image_paths: list[str], normalize_embeddings: bool = False, batch_size: int = 128) -> np.ndarray:
         self.verify_images_exist(image_paths)
-        self.logger.info(f"Generating {len(image_paths)} embeddings with batches...")
-        embeddings: list[list[float]] = []
-        batch_size = 1000
-        for i in range(0, len(image_paths), batch_size):
-            batch_image_paths = image_paths[i:i + batch_size]
-            batch_embeddings = self.__generate_image_embeddings(batch_image_paths)
-            embeddings.extend(batch_embeddings)
+        self.logger.info(f"Generating {len(image_paths)} embeddings with batches of size {batch_size}...")
 
-        np_embeddings = np.array(embeddings)
+        np_embeddings = np.array([
+            embedding
+            for i in tqdm(range(0, len(image_paths), batch_size))
+            for embedding in self.__generate_image_embeddings(image_paths[i:i + batch_size])
+        ])
+
         if normalize_embeddings:
+            self.logger.info("Normalizing embeddings...")
             np_embeddings = self.normalize_embeddings(np_embeddings)
 
-        self.logger.info(f"Finished generation of {len(image_paths)} embeddings through batches!")
+        self.logger.info(f"Finished generation of {len(image_paths)} embeddings through batches of size {batch_size}!")
 
         return np_embeddings
+
+    def __generate_image_embeddings(self, images: list) -> np.ndarray:
+        outputs = self.pipe(images)
+        embeddings = np.squeeze(outputs, axis=1)
+        # cast embeddings to float32
+        embeddings = embeddings.astype(np.float32)
+        return embeddings
