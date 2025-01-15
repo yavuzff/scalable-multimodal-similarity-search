@@ -106,14 +106,14 @@ float MultiHNSW::computeDistanceBetweenEntities(entity_id_t entityId1, entity_id
         float modalityDistance;
         switch(distanceMetrics[modality]){
             case DistanceMetric::Euclidean:
-                modalityDistance = computeEuclideanDistance(vector1, vector2);
+                modalityDistance = euclidean(vector1, vector2);
                 break;
             case DistanceMetric::Manhattan:
-                modalityDistance = computeManhattanDistance(vector1, vector2);
+                modalityDistance = manhattan(vector1, vector2);
                 break;
             case DistanceMetric::Cosine:
                 // vectors are already normalised
-                modalityDistance = computeCosineDistance(vector1, vector2, true);
+                modalityDistance = cosine(vector1, vector2);
                 break;
             default:
                 throw invalid_argument("Invalid distance metric. You should not be seeing this message.");
@@ -138,14 +138,14 @@ float MultiHNSW::computeDistanceToQuery(entity_id_t entityId, const vector<span<
         float modalityDistance;
         switch(distanceMetrics[modality]){
             case DistanceMetric::Euclidean:
-                modalityDistance = computeEuclideanDistance(vector1, vector2);
+                modalityDistance = euclidean(vector1, vector2);
             break;
             case DistanceMetric::Manhattan:
-                modalityDistance = computeManhattanDistance(vector1, vector2);
+                modalityDistance = manhattan(vector1, vector2);
             break;
             case DistanceMetric::Cosine:
                 // vectors are already normalised
-                modalityDistance = computeCosineDistance(vector1, vector2, true);
+                modalityDistance = cosine(vector1, vector2);
             break;
             default:
                 throw invalid_argument("Invalid distance metric. You should not be seeing this message.");

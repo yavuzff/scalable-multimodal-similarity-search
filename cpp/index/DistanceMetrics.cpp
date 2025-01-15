@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <cmath>
 #include <span>
+#include <Eigen/Dense>
 
 DistanceMetric stringToDistanceMetric(const std::string& str) {
     // take lowercase of the string
@@ -36,22 +37,51 @@ std::string distanceMetricToString(DistanceMetric metric) {
     throw std::invalid_argument("Invalid distance metric");
 }
 
-// method operating on vectors
-float euclideanDistance(const std::vector<float>& a, const std::vector<float>& b) {
+
+float computeEuclideanPureEigen(const Eigen::VectorXf& vector1, const Eigen::VectorXf& vector2) {
+    assert(vector1.size() == vector2.size());
+    return (vector1 - vector2).norm();
+}
+
+float computeEuclideanEigenMap(const std::span<const float> &vector1, const std::span<const float> &vector2) {
+    assert(vector1.size() == vector2.size());
+    Eigen::Map<const Eigen::VectorXf> v1(vector1.data(), vector1.size());
+    Eigen::Map<const Eigen::VectorXf> v2(vector2.data(), vector2.size());
+    return (v1 - v2).norm();
+}
+
+
+#include <cstddef>
+float computeEuclideanDistancePragma(const std::span<const float> &vectorSlice1, const std::span<const float> &vectorSlice2) {
+    assert(vectorSlice1.size() == vectorSlice2.size());
     float sum = 0.0f;
-    for (size_t i = 0; i < a.size(); i++) {
-        float diff = a[i] - b[i];
+    // OpenMP SIMD pragma for vectorization
+    #pragma omp simd reduction(+:sum)
+    for (size_t i = 0; i < vectorSlice1.size(); ++i) {
+        const float diff = vectorSlice1[i] - vectorSlice2[i];
         sum += diff * diff;
     }
     return std::sqrt(sum);
 }
 
-float dotProduct(const std::vector<float>& a, const std::vector<float>& b) {
-    float sum = 0.0f;
-    for (size_t i = 0; i<a.size(); i++) {
-        sum += a[i] * b[i];
-    }
-    return sum;
+
+#include <execution>
+#include <numeric>
+float computeEuclideanDistanceParUnseq(const std::span<const float>& vectorSlice1, const std::span<const float> &vectorSlice2) {
+    assert(vectorSlice1.size() == vectorSlice2.size());
+
+    // compute sum of squared differences in parallel
+    float squaredSum = std::transform_reduce(
+        //std::execution::par_unseq,
+        vectorSlice1.begin(), vectorSlice1.end(),
+        vectorSlice2.begin(),
+        0.0f,                         // initial value for the reduction
+        std::plus<>(),
+        [](float a, float b) {
+            return (a - b) * (a - b);
+        }
+    );
+    return std::sqrt(squaredSum);
 }
 
 // compute the Euclidean distance from slices of two vectors
@@ -103,6 +133,25 @@ float computeManhattanDistance(const std::span<const float>& vectorSlice1, const
     float sum = 0.0f;
     for (size_t i = 0; i< vectorSlice1.size(); i++) {
         sum += std::abs(vectorSlice1[i] - vectorSlice2[i]);
+    }
+    return sum;
+}
+
+// methods operating on std::vector
+
+float euclideanDistance(const std::vector<float>& a, const std::vector<float>& b) {
+    float sum = 0.0f;
+    for (size_t i = 0; i < a.size(); i++) {
+        float diff = a[i] - b[i];
+        sum += diff * diff;
+    }
+    return std::sqrt(sum);
+}
+
+float dotProduct(const std::vector<float>& a, const std::vector<float>& b) {
+    float sum = 0.0f;
+    for (size_t i = 0; i<a.size(); i++) {
+        sum += a[i] * b[i];
     }
     return sum;
 }

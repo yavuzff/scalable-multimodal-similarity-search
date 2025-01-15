@@ -24,12 +24,25 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -O3 -DNDEBUG")
 # -pg flag for gprof profiling, -DNDEBUG for disabling assertions (which get enabled by -pg?)
 #set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -pg -DNDEBUG")
 
+# for std::execution::par_unseq in macos
+# set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fexperimental-library")
+
+# for openmp #pragma
+#set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fopenmp")
+
+# for compilation to target the native architecture
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -march=native")
+
+# path for the eigen library
+set(EIGEN_PATH /usr/local/include/eigen3)
+
 # library for simple exact knn search
 add_library(simple-exact STATIC
         index/simple-knn/ExactKNNIndex.cpp
         index/DistanceMetrics.cpp
 )
 set_target_properties(simple-exact PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_include_directories(simple-exact PRIVATE ${EIGEN_PATH})
 
 # library for multi exact search
 add_library(multi-index STATIC
@@ -41,6 +54,7 @@ add_library(multi-index STATIC
         index/MultiHNSWBuilder.cpp
 )
 set_target_properties(multi-index PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_include_directories(multi-index PUBLIC ${EIGEN_PATH})
 
 # unit testing with Catch2
 find_package(Catch2 3 REQUIRED)
@@ -55,6 +69,14 @@ target_link_libraries(tests PRIVATE Catch2::Catch2WithMain multi-index)
 set(CNPY_PATH /usr/local/lib/libcnpy.a) # this is the default location for macos and ubuntu
 add_executable(performance tests/test_performance.cpp)
 target_link_libraries(performance PRIVATE Catch2::Catch2WithMain multi-index ${CNPY_PATH} z)
+
+# benchmarking different distance calculation vectorisation implementations
+set(CNPY_PATH /usr/local/lib/libcnpy.a) # this is the default location for macos and ubuntu
+add_executable(compare-dist tests/benchmark_dist_calculations.cpp)
+# add compiled libraries to link against
+target_link_libraries(compare-dist PRIVATE Catch2::Catch2WithMain multi-index ${CNPY_PATH} z )
+# include Eigen headers
+target_include_directories(compare-dist PRIVATE ${EIGEN_PATH})
 
 # create executable with target main and link to library:
 add_executable(main main.cpp)

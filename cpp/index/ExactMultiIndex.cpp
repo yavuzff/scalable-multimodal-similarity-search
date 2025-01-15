@@ -104,14 +104,14 @@ std::vector<size_t> ExactMultiIndex::internalSearch(const std::vector<std::span<
             // distance is computed between storedEntities[modality][vectorStart:vectorEnd] and query[modality]
             switch(distanceMetrics[modality]){
                 case DistanceMetric::Euclidean:
-                    modalityDistance = computeEuclideanDistance(storedEntitySlice, querySlice);
+                    modalityDistance = euclidean(storedEntitySlice, querySlice);
                     break;
                 case DistanceMetric::Manhattan:
-                    modalityDistance = computeManhattanDistance(storedEntitySlice, querySlice);
+                    modalityDistance = manhattan(storedEntitySlice, querySlice);
                     break;
                 case DistanceMetric::Cosine:
                     // vectors are already normalised
-                    modalityDistance = computeCosineDistance(storedEntitySlice, querySlice, true);
+                    modalityDistance = cosine(storedEntitySlice, querySlice);
                     break;
                 default:
                     throw std::invalid_argument("Invalid distance metric. You should not be seeing this message.");

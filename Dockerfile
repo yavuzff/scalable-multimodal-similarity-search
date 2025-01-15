@@ -84,6 +84,16 @@ RUN git clone https://github.com/rogersce/cnpy.git \
     && cd .. \
     && rm -rf cnpy
 
+# install eigen for vector operations (about 5 mins to install))
+RUN git clone https://gitlab.com/libeigen/eigen.git \
+    && mkdir eigen-build \
+    && cd eigen-build \
+    && cmake ../eigen\
+    && make install \
+    && cd .. \
+    && rm -rf eigen-build\
+    && rm -rf eigen
+
 # Copy the rest of the application code
 COPY . .
 

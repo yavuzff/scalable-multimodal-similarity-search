@@ -19,6 +19,10 @@ TEST_CASE("computeEuclideanDistanceFromSlice calculates correct distance", "[euc
 
         float result = computeEuclideanDistance(std::span(storedEntity), std::span(queryEntity));
         REQUIRE_THAT(result, Catch::Matchers::WithinAbs(1.0f, 0.0001));
+
+        // test the euclidean function
+        float result2 = euclidean(std::span(storedEntity), std::span(queryEntity));
+        REQUIRE_THAT(result2, Catch::Matchers::WithinAbs(1.0f, 0.0001));
     }
 
     SECTION("Partial slice comparison") {
@@ -29,6 +33,11 @@ TEST_CASE("computeEuclideanDistanceFromSlice calculates correct distance", "[euc
             std::span(storedEntity).subspan(1, 2),
             std::span(queryEntity).subspan(1, 2));
         REQUIRE_THAT(result, Catch::Matchers::WithinAbs(std::sqrt(2.0f), 0.0001));
+
+        float result2 = euclidean(
+            std::span(storedEntity).subspan(1, 2),
+            std::span(queryEntity).subspan(1, 2));
+        REQUIRE_THAT(result2, Catch::Matchers::WithinAbs(std::sqrt(2.0f), 0.0001));
     }
 
     SECTION("Zero distance when vectors are identical") {
@@ -37,6 +46,9 @@ TEST_CASE("computeEuclideanDistanceFromSlice calculates correct distance", "[euc
 
         float result = computeEuclideanDistance(std::span(storedEntity), std::span(queryEntity));
         REQUIRE_THAT(result, Catch::Matchers::WithinAbs(std::sqrt(0.0f), 0.0001));
+
+        float result2 = euclidean(std::span(storedEntity), std::span(queryEntity));
+        REQUIRE_THAT(result2, Catch::Matchers::WithinAbs(std::sqrt(0.0f), 0.0001));
     }
 
     SECTION("Different start and end indices for query and storedEntity") {
@@ -47,6 +59,11 @@ TEST_CASE("computeEuclideanDistanceFromSlice calculates correct distance", "[euc
             std::span(storedEntity).subspan(1,3),
             std::span(queryEntity).subspan(2,3));
         REQUIRE_THAT(result, Catch::Matchers::WithinAbs(std::sqrt(3.0f), 0.0001));
+
+        float result2 = euclidean(
+            std::span(storedEntity).subspan(1,3),
+            std::span(queryEntity).subspan(2,3));
+        REQUIRE_THAT(result2, Catch::Matchers::WithinAbs(std::sqrt(3.0f), 0.0001));
     }
 
     SECTION("Negative numbers in vectors") {
@@ -55,6 +72,9 @@ TEST_CASE("computeEuclideanDistanceFromSlice calculates correct distance", "[euc
 
         float result = computeEuclideanDistance(std::span(storedEntity), std::span(queryEntity));
         REQUIRE_THAT(result, Catch::Matchers::WithinAbs(std::sqrt(8.0f), 0.0001));
+
+        float result2 = euclidean(std::span(storedEntity), std::span(queryEntity));
+        REQUIRE_THAT(result2, Catch::Matchers::WithinAbs(std::sqrt(8.0f), 0.0001));
     }
 }
 
@@ -75,6 +95,9 @@ TEST_CASE("computeManhattanDistance calculates correct Manhattan distance", "[ma
 
         float result = computeManhattanDistance(std::span(vector1).subspan(1,2), std::span(vector2).subspan(2,2));
         REQUIRE(result == 8.0f);
+
+        float result2 = manhattan(std::span(vector1).subspan(1,2), std::span(vector2).subspan(2,2));
+        REQUIRE(result2 == 8.0f);
     }
 }
 
@@ -87,6 +110,9 @@ TEST_CASE("computeCosineDistance calculates correct cosine distance", "[cosine_d
 
         float result = computeCosineDistance(std::span(vector1), std::span(vector2), true);
         REQUIRE_THAT(result, Catch::Matchers::WithinAbs(0, 0.0001));
+
+        float result2 = cosine(std::span(vector1), std::span(vector2));
+        REQUIRE_THAT(result2, Catch::Matchers::WithinAbs(0, 0.0001));
     }
 
     SECTION("Normalised opposite vectors span") {
@@ -99,6 +125,11 @@ TEST_CASE("computeCosineDistance calculates correct cosine distance", "[cosine_d
             std::span(vector2).subspan(1, 2),
             true);
         REQUIRE_THAT(result, Catch::Matchers::WithinAbs(2, 0.0001));
+
+        float result2 = cosine(
+            std::span(vector1).subspan(2, 2),
+            std::span(vector2).subspan(1, 2));
+        REQUIRE_THAT(result2, Catch::Matchers::WithinAbs(2, 0.0001));
     }
 
     SECTION("Normalised orthogonal vectors") {
@@ -107,6 +138,9 @@ TEST_CASE("computeCosineDistance calculates correct cosine distance", "[cosine_d
 
         float result = computeCosineDistance(std::span(vector1), std::span(vector2), true);
         REQUIRE_THAT(result, Catch::Matchers::WithinAbs(1, 0.0001));
+
+        float result2 = cosine(std::span(vector1), std::span(vector2));
+        REQUIRE_THAT(result2, Catch::Matchers::WithinAbs(1, 0.0001));
     }
 
     SECTION("Non-normalised vectors") {
