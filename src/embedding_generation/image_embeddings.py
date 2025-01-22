@@ -53,12 +53,14 @@ class HFImageEmbeddingGenerator(ImageEmbeddingGenerator):
     Embedding generator using HuggingFace ConvNextModel
     """
 
-    def __init__(self, model_name: str = "google/vit-base-patch16-224-in21k"):
+    def __init__(self, model_name: str = "google/vit-base-patch16-224-in21k", batch_size=128):
         self.logger = logging.getLogger(__name__)
+        self.batch_size = batch_size
         self.DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.logger.info(f"Loading image-feature-extraction pipeline for {model_name}...")
         self.pipe = pipeline(task="image-feature-extraction", model=model_name,
-                             device=self.DEVICE, pool=True, torch_dtype=torch.float32)
+                             device=self.DEVICE, pool=True, torch_dtype=torch.float32,
+                             batch_size=self.batch_size)
         self.logger.info(f"Loaded {model_name}")
 
     def generate_image_embeddings(self, image_paths: list[str], normalize_embeddings: bool = False) -> np.ndarray:
@@ -79,11 +81,7 @@ class HFImageEmbeddingGenerator(ImageEmbeddingGenerator):
         self.verify_images_exist(image_paths)
         self.logger.info(f"Generating {len(image_paths)} embeddings with batches of size {batch_size}...")
 
-        np_embeddings = np.array([
-            embedding
-            for i in tqdm(range(0, len(image_paths), batch_size))
-            for embedding in self.__generate_image_embeddings(image_paths[i:i + batch_size])
-        ])
+        np_embeddings = self.__generate_image_embeddings(image_paths)
 
         if normalize_embeddings:
             self.logger.info("Normalizing embeddings...")
