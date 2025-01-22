@@ -49,3 +49,11 @@ cpp/cmake-build-debug/
 
 # profiling results
 fil-result/
+
+# ignore big data dirs and files
+data/LAION-*
+data/*.parquet
+data/*.zip
+
+# ignore logs
+logs/*.log
