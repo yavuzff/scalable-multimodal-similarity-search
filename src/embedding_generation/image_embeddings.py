@@ -59,8 +59,7 @@ class HFImageEmbeddingGenerator(ImageEmbeddingGenerator):
         self.DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.logger.info(f"Loading image-feature-extraction pipeline for {model_name}...")
         self.pipe = pipeline(task="image-feature-extraction", model=model_name,
-                             device=self.DEVICE, pool=True, torch_dtype=torch.float32,
-                             batch_size=self.batch_size)
+                             device=self.DEVICE, pool=True, torch_dtype=torch.float32)
         self.logger.info(f"Loaded {model_name}")
 
     def generate_image_embeddings(self, image_paths: list[str], normalize_embeddings: bool = False) -> np.ndarray:
@@ -77,9 +76,9 @@ class HFImageEmbeddingGenerator(ImageEmbeddingGenerator):
 
         return embeddings
 
-    def batch_generate_image_embeddings(self, image_paths: list[str], normalize_embeddings: bool = False, batch_size: int = 128) -> np.ndarray:
+    def batch_generate_image_embeddings(self, image_paths: list[str], normalize_embeddings: bool = False) -> np.ndarray:
         self.verify_images_exist(image_paths)
-        self.logger.info(f"Generating {len(image_paths)} embeddings with batches of size {batch_size}...")
+        self.logger.info(f"Generating {len(image_paths)} embeddings with batches of size {self.batch_size}...")
 
         np_embeddings = self.__generate_image_embeddings(image_paths)
 
@@ -87,12 +86,19 @@ class HFImageEmbeddingGenerator(ImageEmbeddingGenerator):
             self.logger.info("Normalizing embeddings...")
             np_embeddings = self.normalize_embeddings(np_embeddings)
 
-        self.logger.info(f"Finished generation of {len(image_paths)} embeddings through batches of size {batch_size}!")
+        self.logger.info(f"Finished generation of {len(image_paths)} embeddings through batches of size {self.batch_size}!")
 
         return np_embeddings
 
     def __generate_image_embeddings(self, images: list) -> np.ndarray:
-        outputs = self.pipe(images)
+        outputs = []
+
+        # Process images in batches with tqdm
+        for i in tqdm(range(0, len(images), self.batch_size), desc="Generating image embeddings"):
+            batch = images[i:i + self.batch_size]
+            outputs.extend(self.pipe(batch))
+        
+        outputs = np.array(outputs)
         embeddings = np.squeeze(outputs, axis=1)
         # cast embeddings to float32
         embeddings = embeddings.astype(np.float32)

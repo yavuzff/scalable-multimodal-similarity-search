@@ -27,47 +27,68 @@ def parse_arguments():
         default="data/",
         help="Base path for dataset files."
     )
+    parser.add_argument(
+        '--num_vectors',
+        type=int,
+        default=None,
+        help="Number of vectors to process from the total (default is None which means all)"
+    )
+    parser.add_argument(
+        '--batch_size',
+        type=int,
+        default=128,
+        help="Batch size for processing embeddings"
+    )
+    parser.add_argument(
+        '--find_duplicates',
+        action='store_true',
+        help="If set, find duplicates in the embeddings"
+    )
     return parser.parse_args()
 
 def create_directory(path):
     """Create a directory if it does not exist."""
-    if not os.path.exists(path):
-        print(f"Creating directory: {path}")
-        os.makedirs(path)
+    os.makedirs(path, exist_ok=True)
 
 def load_metadata(metadata_path):
     """Load metadata from a Parquet file."""
     return pd.read_parquet(metadata_path)
 
-def generate_text_embeddings(df, model, vector_path, num_vectors=None):
+def generate_text_embeddings(df, model, vector_path, num_vectors=None, batch_size=128):
     """Generate and save text embeddings."""
     texts = list(df["TEXT"])
     if num_vectors is not None:
         texts = texts[:num_vectors]
 
     embedding_generator = SentenceTransformerEmbeddingGenerator(model)
-    embeddings = embedding_generator.generate_text_embeddings(texts, normalize_embeddings=False, batch_size=128)
+    embeddings = embedding_generator.generate_text_embeddings(texts, normalize_embeddings=False, batch_size=batch_size)
 
-    text_vector_path = save_embeddings(embeddings, vector_path + "text_vectors")
+    save_path = os.path.join(vector_path, str(num_vectors), "text_vectors.npy")
+    print(f"Saving text embeddings to {save_path}")
+    text_vector_path = save_embeddings(embeddings, save_path)
     return text_vector_path
 
-def generate_image_embeddings(image_paths, model, vector_path, num_vectors=None):
+def generate_image_embeddings(image_paths, model, vector_path, num_vectors=None, batch_size=128):
     """Generate and save image embeddings."""
     if num_vectors is not None:
         image_paths = image_paths[:num_vectors]
 
-    embedding_generator = HFImageEmbeddingGenerator(model)
-    embeddings = embedding_generator.batch_generate_image_embeddings(image_paths, normalize_embeddings=False, batch_size=128)
+    embedding_generator = HFImageEmbeddingGenerator(model, batch_size=batch_size)
+    embeddings = embedding_generator.batch_generate_image_embeddings(image_paths, normalize_embeddings=False)
 
-    image_vector_path = save_embeddings(embeddings, vector_path + "image_vectors")
+    save_path = os.path.join(vector_path, str(num_vectors), "image_vectors.npy")
+    print(f"Saving image embeddings to {save_path}")
+    image_vector_path = save_embeddings(embeddings, save_path)
     return image_vector_path
 
 def save_embeddings(embeddings, path):
     """Save embeddings to a file and handle conflicts."""
-    if os.path.exists(path + ".npy"):
-        new_path = path + datetime.datetime.now().strftime("-%Y-%m-%d-%H-%M-%S")
-        print(f"Path {path} already exists. Saving to {new_path}.npy instead.")
+    if os.path.exists(path):
+        new_path = path.replace(".npy", "") + datetime.datetime.now().strftime("-%Y-%m-%d-%H-%M-%S") + ".npy"
+        print(f"Path {path} already exists. Saving to {new_path} instead.")
         path = new_path
+    
+    create_directory(os.path.dirname(path))
     np.save(path, embeddings)
     return path
 
@@ -95,6 +116,11 @@ def main():
     args = parse_arguments()
 
     # Paths and constants
+    if args.num_vectors is None:
+        args.num_vectors = args.dataset_entity_count
+
+    batch_size = args.batch_size
+
     dataset_base_path = os.path.join(args.base_path, f"LAION-{args.dataset_entity_count}")
     metadata_path = os.path.join(dataset_base_path, "metadata.parquet")
     images_path = os.path.join(dataset_base_path, "images/")
@@ -106,21 +132,24 @@ def main():
 
     # Generate text embeddings
     text_model = "BAAI/bge-small-en-v1.5"
-    text_vector_path = generate_text_embeddings(df, text_model, vector_path)
+    text_vector_path = generate_text_embeddings(df, text_model, vector_path, num_vectors=args.num_vectors, batch_size=batch_size)
 
     # Generate image embeddings
     image_model = "google/vit-base-patch16-224-in21k"
     image_paths = glob.glob(os.path.join(images_path, "*/*.jpg"))
     image_paths.sort()
-    image_vector_path = generate_image_embeddings(image_paths, image_model, vector_path)
+    image_vector_path = generate_image_embeddings(image_paths, image_model, vector_path, num_vectors=args.num_vectors, batch_size=batch_size)
 
-    # Compute similarity matrix
-    image_embeddings = np.load(image_vector_path + ".npy")
-    similarity_matrix = compute_similarity_matrix(image_embeddings)
+    if args.find_duplicates:
+        # Compute similarity matrix
+        print("Computing similarity matrix")
+        image_embeddings = np.load(image_vector_path)
+        similarity_matrix = compute_similarity_matrix(image_embeddings)
 
-    # Find and save near-duplicate IDs
-    near_duplicates = find_near_duplicates(similarity_matrix)
-    save_near_duplicate_ids(near_duplicates, vector_path + "placeholder_images.npy")
+        # Find and save near-duplicate IDs
+        print("Finding near duplicates")
+        near_duplicates = find_near_duplicates(similarity_matrix)
+        save_near_duplicate_ids(near_duplicates, vector_path + "placeholder_images.npy")
 
 if __name__ == '__main__':
     main()
