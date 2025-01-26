@@ -156,8 +156,11 @@ cmake --build cmake-build-debug -j 6 --target main
     - Run `python3 -m src.main` to test the changes.
 
 #### Dataset generation:
-- Used data_processing/dataset_preparation to download images and save image/metadata.
-- Used data_processing/embedding_generation to generate text and image vectors, saving them, and identifying placeholder images.
+- Run the scripts in `src/dataset_processing` to generate the dataset: 
+    - `data_download.py` to download the LAION dataset metadata and images.
+    - `embedding_generation.py` to generate vectors for the texts and images.
+    - `find_duplicates.py` to identify placeholder images in the dataset (which tend to be duplicated many times)
+- You can also use the notebooks in `notebooks/`.
 
 #### Testing:
 

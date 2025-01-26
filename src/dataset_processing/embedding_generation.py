@@ -1,16 +1,16 @@
 """
-This script is used to generate and save vector embeddings for the text and image data prepared in dataset_preparation.ipynb. Update the parameters in the cell below. Additionally, the number of threads used to generate text/image embeddings can be amended in their corresponding function calls below. The last part of this notebook identifies placeholder images by computing pairwise similarities across every generated image embedding.
+This script is used to generate and save vector embeddings for the text and image data downloaded using data_download.py.
+The number of threads used to generate text/image embeddings can be amended in their corresponding function calls below.
 """
 
-import os
 import glob
-import datetime
 import numpy as np
 import pandas as pd
 import argparse
-from embedding_generation.text_embeddings import SentenceTransformerEmbeddingGenerator
-from embedding_generation.image_embeddings import HFImageEmbeddingGenerator
-from common.logger import *
+from src.embedding_generators.text_embeddings import SentenceTransformerEmbeddingGenerator
+from src.embedding_generators.image_embeddings import HFImageEmbeddingGenerator
+from src.common.logger import *
+
 
 def parse_arguments():
     """Parse command-line arguments."""
@@ -39,20 +39,18 @@ def parse_arguments():
         default=128,
         help="Batch size for processing embeddings"
     )
-    parser.add_argument(
-        '--find_duplicates',
-        action='store_true',
-        help="If set, find duplicates in the embeddings"
-    )
     return parser.parse_args()
+
 
 def create_directory(path):
     """Create a directory if it does not exist."""
     os.makedirs(path, exist_ok=True)
 
+
 def load_metadata(metadata_path):
     """Load metadata from a Parquet file."""
     return pd.read_parquet(metadata_path)
+
 
 def generate_text_embeddings(df, model, vector_path, num_vectors=None, batch_size=128):
     """Generate and save text embeddings."""
@@ -68,6 +66,7 @@ def generate_text_embeddings(df, model, vector_path, num_vectors=None, batch_siz
     text_vector_path = save_embeddings(embeddings, save_path)
     return text_vector_path
 
+
 def generate_image_embeddings(image_paths, model, vector_path, num_vectors=None, batch_size=128):
     """Generate and save image embeddings."""
     if num_vectors is not None:
@@ -81,36 +80,18 @@ def generate_image_embeddings(image_paths, model, vector_path, num_vectors=None,
     image_vector_path = save_embeddings(embeddings, save_path)
     return image_vector_path
 
+
 def save_embeddings(embeddings, path):
     """Save embeddings to a file and handle conflicts."""
     if os.path.exists(path):
         new_path = path.replace(".npy", "") + datetime.datetime.now().strftime("-%Y-%m-%d-%H-%M-%S") + ".npy"
         print(f"Path {path} already exists. Saving to {new_path} instead.")
         path = new_path
-    
+
     create_directory(os.path.dirname(path))
     np.save(path, embeddings)
     return path
 
-def compute_similarity_matrix(embeddings):
-    """Compute similarity matrix for embeddings."""
-    normalized_embeddings = embeddings / np.linalg.norm(embeddings, axis=1, keepdims=True)
-    return np.dot(normalized_embeddings, normalized_embeddings.T)
-
-def find_near_duplicates(similarity_matrix, threshold=0.99):
-    """Find near-duplicate embeddings based on a similarity threshold."""
-    near_duplicates = [
-        (i, j, similarity_matrix[i][j])
-        for i in range(len(similarity_matrix))
-        for j in range(i + 1, len(similarity_matrix))
-        if similarity_matrix[i][j] > threshold
-    ]
-    return sorted(near_duplicates, key=lambda x: x[2])
-
-def save_near_duplicate_ids(near_duplicates, path):
-    """Save IDs of near-duplicate embeddings."""
-    near_duplicate_ids = {i for i, j, _ in near_duplicates}.union(j for i, j, _ in near_duplicates)
-    np.save(path, np.array(list(near_duplicate_ids)))
 
 def main():
     args = parse_arguments()
@@ -132,24 +113,18 @@ def main():
 
     # Generate text embeddings
     text_model = "BAAI/bge-small-en-v1.5"
-    text_vector_path = generate_text_embeddings(df, text_model, vector_path, num_vectors=args.num_vectors, batch_size=batch_size)
+    text_vector_path = generate_text_embeddings(df, text_model, vector_path, num_vectors=args.num_vectors,
+                                                batch_size=batch_size)
+    print("Text embeddings saved to", text_vector_path)
 
     # Generate image embeddings
     image_model = "google/vit-base-patch16-224-in21k"
     image_paths = glob.glob(os.path.join(images_path, "*/*.jpg"))
     image_paths.sort()
-    image_vector_path = generate_image_embeddings(image_paths, image_model, vector_path, num_vectors=args.num_vectors, batch_size=batch_size)
+    image_vector_path = generate_image_embeddings(image_paths, image_model, vector_path, num_vectors=args.num_vectors,
+                                                  batch_size=batch_size)
+    print("Image embeddings saved to", image_vector_path)
 
-    if args.find_duplicates:
-        # Compute similarity matrix
-        print("Computing similarity matrix")
-        image_embeddings = np.load(image_vector_path)
-        similarity_matrix = compute_similarity_matrix(image_embeddings)
-
-        # Find and save near-duplicate IDs
-        print("Finding near duplicates")
-        near_duplicates = find_near_duplicates(similarity_matrix)
-        save_near_duplicate_ids(near_duplicates, vector_path + "placeholder_images.npy")
 
 if __name__ == '__main__':
     main()

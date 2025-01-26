@@ -1,6 +1,6 @@
 """
 This handles the generation of embeddings for the images
-We provide an abstract class for the embedding generation, which extended by HuggingFace pipelines
+We provide an abstract class for the embedding generation, which is extended by HuggingFace pipelines
 """
 from abc import ABC, abstractmethod
 import numpy as np
@@ -50,7 +50,7 @@ class ImageEmbeddingGenerator(ABC):
 
 class HFImageEmbeddingGenerator(ImageEmbeddingGenerator):
     """
-    Embedding generator using HuggingFace ConvNextModel
+    Embedding generator using HuggingFace, default is googles Vision Transformer
     """
 
     def __init__(self, model_name: str = "google/vit-base-patch16-224-in21k", batch_size=128):

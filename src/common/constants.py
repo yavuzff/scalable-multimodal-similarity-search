@@ -2,7 +2,7 @@
 Stores the constants used in the project.
 """
 
-DATASET_ENTITY_COUNT = 20000 # e.g. 20000, 150
+DATASET_ENTITY_COUNT = 20000  # e.g. 20000, 150
 
 PREP_DATASET_PATH = f"/Users/yavuz/data/LAION-{DATASET_ENTITY_COUNT}/"
 METADATA_PATH = PREP_DATASET_PATH + "metadata.parquet"
@@ -11,4 +11,3 @@ IMAGES_PATH = PREP_DATASET_PATH + "images"
 IMAGE_VECTORS_PATH = PREP_DATASET_PATH + "vectors/image_vectors.npy"
 IMAGE_VECTORS32_PATH = PREP_DATASET_PATH + "vectors/image_vectors32.npy"
 TEXT_VECTORS_PATH = PREP_DATASET_PATH + "vectors/text_vectors.npy"
-

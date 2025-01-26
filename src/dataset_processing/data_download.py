@@ -16,6 +16,7 @@ import shutil
 import argparse
 from img2dataset import download
 
+
 def parse_arguments():
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(description="Process the LAION dataset.")
@@ -39,6 +40,7 @@ def parse_arguments():
     )
     return parser.parse_args()
 
+
 def create_directory(path):
     """Create a directory if it does not exist."""
     if not os.path.exists(path):
@@ -46,6 +48,7 @@ def create_directory(path):
         os.makedirs(path)
     else:
         print(f"Warning: {path} already exists!")
+
 
 def read_safe_data(path, count):
     """Return non-NSFW entries from the full LAION dataset."""
@@ -57,6 +60,7 @@ def read_safe_data(path, count):
     print(f"Size after removing URLs with commas: {len(clean_url_data)}")
     return clean_url_data
 
+
 def write_urls(data, path):
     """Write the URLs found in the dataframe to a file."""
     with open(path, "w+") as f:
@@ -64,10 +68,12 @@ def write_urls(data, path):
             f.write(url + "\n")
     print(f"Finished writing {len(data)} URLs to {path}")
 
+
 def download_images(url_path, images_path):
     """Download images from a text file containing URLs."""
     if os.path.exists(images_path):
-        print(f"Warning: {images_path} exists - renaming to {images_path}_{datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}!")
+        print(
+            f"Warning: {images_path} exists - renaming to {images_path}_{datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}!")
         os.rename(images_path, images_path + "_" + datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S"))
     download(
         processes_count=8,
@@ -77,6 +83,7 @@ def download_images(url_path, images_path):
         output_folder=images_path,
     )
 
+
 def get_valid_file_ids(path):
     """Return the IDs of valid image files in a directory."""
     files = glob.glob(os.path.join(path, "*/*.jpg"))
@@ -84,6 +91,7 @@ def get_valid_file_ids(path):
     ids = [int(os.path.basename(file).split(".")[0]) for file in files]
     ids.sort()
     return ids
+
 
 def move_files(images_path):
     """Rename and move files across shards for continuous indexing."""
@@ -97,6 +105,7 @@ def move_files(images_path):
         os.makedirs(os.path.dirname(new_image_path), exist_ok=True)
         shutil.move(file_path, new_image_path)
         shutil.move(file_path.replace(".jpg", ".json"), new_json_path)
+
 
 def process_dataset(args):
     """Main dataset processing workflow."""
@@ -119,9 +128,11 @@ def process_dataset(args):
 
     move_files(images_path)
 
+
 def main():
     args = parse_arguments()
     process_dataset(args)
+
 
 if __name__ == '__main__':
     main()

@@ -14,6 +14,7 @@ NUM_SAMPLES = 50
 if not SKIP:
     full_data = pd.read_parquet(METADATA_PATH)
 
+
 def test_image_dataset():
     """
     Verify that the images at the image_path is consistent with the data frame.
