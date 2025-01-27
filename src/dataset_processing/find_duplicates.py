@@ -25,22 +25,41 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def compute_duplicate_set(normalised_embeddings, placeholder_images_path):
+def batch_compute_all_duplicates(normalised_embeddings, batch_size=1000):
+    """
+    Compute all duplicates in batches.
+    """
+    near_duplicate_ids = set()
+    for i in tqdm(range(0, len(normalised_embeddings), batch_size)):
+        batch_embeddings = normalised_embeddings[i:i + batch_size]
+        rest_embeddings = normalised_embeddings[i + batch_size:]
+        similarity_matrix = np.dot(rest_embeddings, batch_embeddings.T)
+        duplicate_indices = np.where(similarity_matrix > 0.99)
+
+        near_duplicate_ids.update(duplicate_indices[0] + i + batch_size)
+        near_duplicate_ids.update(duplicate_indices[1] + i)
+
+    return near_duplicate_ids
+
+
+def compute_duplicate_set_from_window(normalised_embeddings, placeholder_images_path, window_size=10000, threshold=0.99):
     """
     Compute a set of near-duplicate embedding ids.
     """
     near_duplicates = set()
     for i in tqdm(range(0, len(normalised_embeddings))):
-        for j in range(i + 1, min(len(normalised_embeddings), i + 10000)):
-            # 0.99 has been chosen the boundary after some experimentation, by viewing sample images
-            score = np.dot(normalised_embeddings[i], normalised_embeddings[j])
-            if score > 0.99:
-                near_duplicates.add(i)
-                near_duplicates.add(j)
+        start = i + 1
+        end = min(i + window_size, len(normalised_embeddings))
+        if start < end:
+            scores = np.dot(normalised_embeddings[i], normalised_embeddings[start:end].T)
 
-        # save every 50k iterations
+            near_duplicate_indices = np.where(scores > threshold)[0] + start
+            if len(near_duplicate_indices) > 0:
+                near_duplicates.update([i] + list(near_duplicate_indices))
+
+        # Save checkpoint every 50k iterations
         if i % 50000 == 0:
-            np.save(placeholder_images_path + "placeholder_images_checkpoint", np.array(list(near_duplicates)))
+            np.save(placeholder_images_path + "_checkpoint", np.array(list(near_duplicates)))
 
     return near_duplicates
 
@@ -83,8 +102,17 @@ def main():
     image_embeddings = np.load(image_vector_path)
     normalised_image_embeddings = normalise_embeddings(image_embeddings)
 
-    placeholder_images_path = os.path.join(vector_path, "placeholder_images.npy")
-    near_duplicates = compute_duplicate_set(normalised_image_embeddings, placeholder_images_path)
+    near_duplicates = set()
+    window_size = 50000
+    placeholder_images_path = os.path.join(vector_path, "placeholder_images" + str(window_size) + "_window")
+
+    # below performs the all pairwise comparisons - this leads to around 3% duplicates identifed.
+    # around a half of these are not placeholder images. So we do not perform this step.
+    # near_duplicates.update(batch_compute_all_duplicates(normalised_image_embeddings, batch_size=1000))
+
+    # below checks for duplicates within a sliding window of size 10k. This identifies around 1.5% duplicates.
+    # most of these are placeholder images.
+    near_duplicates.update(compute_duplicate_set_from_window(normalised_image_embeddings, placeholder_images_path, window_size=window_size))
 
     save_near_duplicate_ids(near_duplicates, placeholder_images_path)
 
