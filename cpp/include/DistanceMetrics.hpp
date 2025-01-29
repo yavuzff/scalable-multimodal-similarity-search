@@ -19,21 +19,21 @@ std::string distanceMetricToString(DistanceMetric metric);
 // vectorised implementations with no overhead to get an Eigen value
 inline float euclidean(const std::span<const float>& v1, const std::span<const float>& v2) {
     assert(v1.size() == v2.size());
-    Eigen::Map<const Eigen::VectorXf> vector1(v1.data(), v1.size());
-    Eigen::Map<const Eigen::VectorXf> vector2(v2.data(), v2.size());
+    const Eigen::Map<const Eigen::VectorXf> vector1(v1.data(), v1.size());
+    const Eigen::Map<const Eigen::VectorXf> vector2(v2.data(), v2.size());
     return (vector1 - vector2).norm();
 }
 inline float manhattan(const std::span<const float>& v1, const std::span<const float>& v2) {
     assert(v1.size() == v2.size());
-    Eigen::Map<const Eigen::VectorXf> vector1(v1.data(), v1.size());
-    Eigen::Map<const Eigen::VectorXf> vector2(v2.data(), v2.size());
+    const Eigen::Map<const Eigen::VectorXf> vector1(v1.data(), v1.size());
+    const Eigen::Map<const Eigen::VectorXf> vector2(v2.data(), v2.size());
     return (vector1 - vector2).lpNorm<1>();
 }
 //cosine distance on normalised inputs
 inline float cosine(const std::span<const float>& v1, const std::span<const float>& v2) {
     assert(v1.size() == v2.size());
-    Eigen::Map<const Eigen::VectorXf> vector1(v1.data(), v1.size());
-    Eigen::Map<const Eigen::VectorXf> vector2(v2.data(), v2.size());
+    const Eigen::Map<const Eigen::VectorXf> vector1(v1.data(), v1.size());
+    const Eigen::Map<const Eigen::VectorXf> vector2(v2.data(), v2.size());
     assert(std::abs(vector1.norm() - 1.0f) < 1e-6f);
     assert(std::abs(vector2.norm() - 1.0f) < 1e-6f);
     return 1.0f - vector1.dot(vector2);

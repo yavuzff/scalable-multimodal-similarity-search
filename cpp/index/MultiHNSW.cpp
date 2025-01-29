@@ -28,7 +28,7 @@ MultiHNSW::MultiHNSW(size_t numModalities,
         this->distributionScaleFactor = 1.0f / log(targetDegree);
     }
     // initialise storage
-    entityStorage.resize(numModalities);
+    entityStorageByModality.resize(numModalities);
 }
 
 void MultiHNSW::validateParameters() const {
@@ -73,88 +73,93 @@ void MultiHNSW::addEntities(const vector<span<const float>>& entities) {
     numEntities = finalNumEntities;
 }
 
-void MultiHNSW::addToEntityStorage(const vector<span<const float>>& entities, size_t numNewEntities) {
+void MultiHNSW::addToEntityStorageByModality(const vector<span<const float>>& entities, size_t numNewEntities) {
     // copy the input entities into the entityStorage
     for (size_t i = 0; i < numModalities; ++i) {
         const auto& modalityVectors = entities[i];
-        entityStorage[i].insert(entityStorage[i].end(), modalityVectors.begin(), modalityVectors.end());
+        entityStorageByModality[i].insert(entityStorageByModality[i].end(), modalityVectors.begin(), modalityVectors.end());
 
         // if the modality uses cosine distance, normalise the inserted vectors for this modality
         if (distanceMetrics[i] == DistanceMetric::Cosine) {
             cout << "Storing normalised vectors for modality " << i << " to efficiently compute cosine distance" << endl;
             for (size_t j = 0; j < numNewEntities; ++j) {
-                l2NormalizeVector(span(entityStorage[i]).subspan(j * dimensions[i], dimensions[i]));
+                l2NormalizeVector(span(entityStorageByModality[i]).subspan(j * dimensions[i], dimensions[i]));
             }
         }
     }
 }
 
-span<const float> MultiHNSW::getEntityModality(entity_id_t entityId, entity_id_t modality) const {
-    const vector<float>& modalityData = entityStorage[modality];
+void MultiHNSW::addToEntityStorage(const vector<span<const float>>& entities, size_t numNewEntities) {
+    // set the capacity of the entityStorage to the new size
+    const size_t previousSize = entityStorage.size();
+    const size_t numNewFloats = numNewEntities * totalDimensions;
+    entityStorage.reserve(previousSize + numNewFloats);
+
+    // copy the flattened input entities into entityStorage
+    for (size_t i = 0; i < numNewEntities; ++i) {
+        for (size_t modality = 0; modality < numModalities; ++modality) {
+            size_t offset = i * dimensions[modality]; // offset to the start of the modality vectors
+            entityStorage.insert(entityStorage.end(),
+                                 entities[modality].begin() + offset,
+                                 entities[modality].begin() + offset + dimensions[modality]);
+        }
+    }
+
+    // normalise the inserted vectors for each modality that should be normalised
+    size_t cumulativeDimensionSum = 0;
+    for (size_t modality = 0 ; modality < numModalities; ++modality) {
+        if (distanceMetrics[modality] == DistanceMetric::Cosine) {
+            for (size_t i = 0; i < numNewEntities; ++i) {
+                span<float> vectorToNormalise = span(entityStorage).subspan(previousSize + i * totalDimensions + cumulativeDimensionSum, dimensions[modality]);
+                l2NormalizeVector(vectorToNormalise);
+            }
+        }
+        cumulativeDimensionSum += dimensions[modality];
+    }
+}
+
+span<const float> MultiHNSW::getEntityModalityFromEntityId(entity_id_t entityId, size_t modality) const {
+    const vector<float>& modalityData = entityStorageByModality[modality];
     return span(modalityData.data() + entityId * dimensions[modality], dimensions[modality]);
 }
 
-float MultiHNSW::computeDistanceBetweenEntities(entity_id_t entityId1, entity_id_t entityId2, const vector<float>& weights) const{
-    float dist = 0.0f;
-    for (size_t modality = 0; modality < numModalities; ++modality) {
-        if (weights[modality] == 0) {
-            continue;
-        }
-        span<const float> vector1 = getEntityModality(entityId1, modality);
-        span<const float> vector2 = getEntityModality(entityId2, modality);
-
-        float modalityDistance;
-        switch(distanceMetrics[modality]){
-            case DistanceMetric::Euclidean:
-                modalityDistance = euclidean(vector1, vector2);
-                break;
-            case DistanceMetric::Manhattan:
-                modalityDistance = manhattan(vector1, vector2);
-                break;
-            case DistanceMetric::Cosine:
-                // vectors are already normalised
-                modalityDistance = cosine(vector1, vector2);
-                break;
-            default:
-                throw invalid_argument("Invalid distance metric. You should not be seeing this message.");
-        }
-        assert(modalityDistance >= 0);
-        // aggregate distance by summing modalityDistance*weight
-        dist += weights[modality] * modalityDistance;
-    }
-    assert (dist >= 0);
-    return dist;
+std::span<const float> MultiHNSW::getEntityFromEntityId(entity_id_t entityId) const {
+    return span(entityStorage.data() + entityId * totalDimensions, totalDimensions);
 }
 
-float MultiHNSW::computeDistanceToQuery(entity_id_t entityId, const vector<span<const float>>& query, const vector<float>& weights) const {
+float MultiHNSW::computeDistance(const std::span<const float> entity1,  const std::span<const float> entity2, const std::vector<float>& weights) const {
+    assert(entity1.size() == totalDimensions);
+    assert(entity2.size() == totalDimensions);
+
     float dist = 0.0f;
+    size_t modalityStartIndex = 0;
     for (size_t modality = 0; modality < numModalities; ++modality) {
-        if (weights[modality] == 0) {
-            continue;
-        }
-        span<const float> vector1 = getEntityModality(entityId, modality);
-        span<const float> vector2 = query[modality];
+        if (weights[modality] != 0) {
+            span<const float> vector1 = entity1.subspan(modalityStartIndex, dimensions[modality]);
+            span<const float> vector2 = entity2.subspan(modalityStartIndex, dimensions[modality]);
 
-        float modalityDistance;
-        switch(distanceMetrics[modality]){
-            case DistanceMetric::Euclidean:
-                modalityDistance = euclidean(vector1, vector2);
-            break;
-            case DistanceMetric::Manhattan:
-                modalityDistance = manhattan(vector1, vector2);
-            break;
-            case DistanceMetric::Cosine:
-                // vectors are already normalised
-                modalityDistance = cosine(vector1, vector2);
-            break;
-            default:
-                throw invalid_argument("Invalid distance metric. You should not be seeing this message.");
-        }
-        // check modalityDistance >= 0 with tolerance of 1e-6
-        assert(modalityDistance >= -1e-6);
+            float modalityDistance;
+            switch(distanceMetrics[modality]){
+                case DistanceMetric::Euclidean:
+                    modalityDistance = euclidean(vector1, vector2);
+                break;
+                case DistanceMetric::Manhattan:
+                    modalityDistance = manhattan(vector1, vector2);
+                break;
+                case DistanceMetric::Cosine:
+                    // vectors are already normalised
+                        modalityDistance = cosine(vector1, vector2);
+                break;
+                default:
+                    throw invalid_argument("Invalid distance metric. You should not be seeing this message.");
+            }
+            // check modalityDistance >= 0 with tolerance of 1e-6
+            assert(modalityDistance >= -1e-6);
 
-        // aggregate distance by summing modalityDistance*weight
-        dist += weights[modality] * modalityDistance;
+            // aggregate distance by summing modalityDistance*weight
+            dist += weights[modality] * modalityDistance;
+        }
+        modalityStartIndex += dimensions[modality];
     }
     // check distance >= 0 with tolerance of 1e-6
     assert(dist >= -1e-6);
@@ -206,7 +211,7 @@ void MultiHNSW::addEntityToGraph(entity_id_t entityId) {
     debug_printf("Reserved memory for each of the %zu layers\n", targetLevel + 1);
 
     if (entityId == 0) {
-        // this is the first node
+        // this is the first node in the graph
         debug_printf("Entity %d is the first node, setting as entry point\n", entityId);
         entryPoint = entityId;
         maxLevel = targetLevel;
@@ -271,7 +276,7 @@ void MultiHNSW::addEntityToGraph(entity_id_t entityId) {
     return level;
 }
 
-void MultiHNSW::addAndPruneEdgesForExistingNodes(entity_id_t newEntityId, vector<pair<float, entity_id_t>> &connectedNeighbours, size_t layer) {
+void MultiHNSW::addAndPruneEdgesForExistingNodes(entity_id_t newEntityId, const vector<pair<float, entity_id_t>> &connectedNeighbours, size_t layer) {
     size_t _maxDegree;
     if (layer == 0) {
         _maxDegree = maxDegreeLayer0;
@@ -295,7 +300,10 @@ void MultiHNSW::addAndPruneEdgesForExistingNodes(entity_id_t newEntityId, vector
             size_t worstNeighbourIndex = _maxDegree;
             float maxDist = item.first;
             for (size_t i = 0; i < _maxDegree; i++) {
-                const float dist = computeDistanceBetweenEntities(currentEntity, nodes[currentEntity].neighboursPerLayer[layer][i], indexWeights);
+                const float dist = computeDistance(
+                                    getEntityFromEntityId(currentEntity),
+                                    getEntityFromEntityId(nodes[currentEntity].neighboursPerLayer[layer][i]),
+                                    indexWeights);
                 if (dist < maxDist) {
                     maxDist = dist;
                     worstNeighbourIndex = i;
@@ -326,27 +334,21 @@ vector<entity_id_t> MultiHNSW::internalSearch(const vector<span<const float>>& u
     if (numEntities == 0) {
         return {};
     }
-
-    // normalise query vectors if using cosine distance
-    std::vector<std::span<const float>> query = userQuery;
-    // storage for normalized query vectors to ensure valid spans
-    // this storage must be defined outside the if block to ensure the data is in scope throughout the search
-    std::vector<std::vector<float>> normalisedVectors;
-    if (!toNormalise.empty()) {
-        std::vector<std::span<const float>> normalisedQuery;
-        for (size_t i = 0; i < numModalities; ++i) {
-            if (distanceMetrics[i] == DistanceMetric::Cosine) {
-                std::cout << "Normalising query for modality " << i << " to efficiently compute cosine distance" << std::endl;
-                // copy and normalize vector
-                normalisedVectors.emplace_back(query[i].begin(), query[i].end());
-                l2NormalizeVector(std::span(normalisedVectors.back()));
-                normalisedQuery.emplace_back(std::span(normalisedVectors.back()));
-            } else {
-                normalisedQuery.push_back(query[i]);
-            }
+    // copy and flatten the userQuery vectors into a single vector
+    vector<float> flattenedQueryData;
+    flattenedQueryData.reserve(totalDimensions);
+    for (size_t i = 0; i < numModalities; ++i) {
+        // copy vector into flattenedQueryData
+        flattenedQueryData.insert(flattenedQueryData.end(), userQuery[i].begin(), userQuery[i].end());
+        if (distanceMetrics[i] == DistanceMetric::Cosine) {
+            // normalise query vector if this modality is using cosine distance
+            assert(userQuery[i].size() == dimensions[i]);
+            l2NormalizeVector(span(flattenedQueryData).subspan(flattenedQueryData.size() - dimensions[i], dimensions[i]));
         }
-        query = std::move(normalisedQuery);
     }
+
+    // create a span to the flattened query data, to use a unified searchLayer function
+    const span<const float> query = flattenedQueryData;
 
     // start searching the graph
     priority_queue<pair<float, entity_id_t>> candidateNearestNeighbours;
@@ -371,56 +373,11 @@ vector<entity_id_t> MultiHNSW::internalSearch(const vector<span<const float>>& u
     return result;
 }
 
-[[nodiscard]] priority_queue<pair<float, entity_id_t>> MultiHNSW::searchLayer(const vector<span<const float>>& query, const vector<entity_id_t> &entryPoints, const vector<float>& weights, size_t ef, size_t layer) const {
-    assert(!entryPoints.empty());
-    assert(layer <= maxLevel);
-    // set of visited elements initialised to entryPoints
-    unordered_set<entity_id_t> visited(entryPoints.begin(), entryPoints.end());
-    // min priority queue of candidates, stores negative dist
-    priority_queue<pair<float, entity_id_t>> candidates;
-    // fixed-size priority queue of nearest neighbours found so far (ef size)
-    priority_queue<pair<float, entity_id_t>> nearestNeighbours;
-
-    // populate the priority queues
-    for (entity_id_t entryPoint : entryPoints) {
-        const float dist = computeDistanceToQuery(entryPoint, query, weights);
-        candidates.emplace(-dist, entryPoint);
-        nearestNeighbours.emplace(dist, entryPoint);
-    }
-
-    while (!candidates.empty()) {
-        auto [bestNegDist, bestCandidate] = candidates.top();
-        float bestCandidateDist = -bestNegDist;
-        candidates.pop();
-
-        // terminate if the best candidate is worse than the worst neighbour
-        auto [worstNeighbourDist, worstNeighbour] = nearestNeighbours.top();
-        if (bestCandidateDist > worstNeighbourDist) {
-            break;
-        }
-
-        // process the unvisited neighbours of the best candidate
-        assert(nodes[bestCandidate].neighboursPerLayer.size() > layer); // candidate must be at least at this layer
-        for (entity_id_t neighbour : nodes[bestCandidate].neighboursPerLayer[layer]) {
-            if (!visited.contains(neighbour)) {
-                visited.insert(neighbour);
-                const float newDist = computeDistanceToQuery(neighbour, query, weights);
-                auto [_worstNeighbourDist, _worstNeighbour] = nearestNeighbours.top();
-                if (newDist < _worstNeighbourDist || nearestNeighbours.size() < ef) {
-                    candidates.emplace(-newDist, neighbour);
-                    nearestNeighbours.emplace(newDist, neighbour);
-                    if (nearestNeighbours.size() > ef) {
-                        nearestNeighbours.pop();
-                    }
-                }
-            }
-        }
-    }
-    return nearestNeighbours;
+[[nodiscard]] priority_queue<pair<float, entity_id_t>> MultiHNSW::searchLayer(entity_id_t entityId, const vector<entity_id_t> &entryPoints, const vector<float>& weights, size_t ef, size_t layer) const {
+    return searchLayer(getEntityFromEntityId(entityId), entryPoints, weights, ef, layer);
 }
 
-// Warning: this is duplicated code of above but just for searching an entity
-[[nodiscard]] priority_queue<pair<float, entity_id_t>> MultiHNSW::searchLayer(entity_id_t entityId, const vector<entity_id_t> &entryPoints, const vector<float>& weights, size_t ef, size_t layer) const {
+[[nodiscard]] priority_queue<pair<float, entity_id_t>> MultiHNSW::searchLayer(const std::span<const float> entity, const vector<entity_id_t> &entryPoints, const vector<float>& weights, size_t ef, size_t layer) const {
     assert(!entryPoints.empty());
     assert(layer <= maxLevel);
     // set of visited elements initialised to entryPoints
@@ -431,11 +388,11 @@ vector<entity_id_t> MultiHNSW::internalSearch(const vector<span<const float>>& u
     priority_queue<pair<float, entity_id_t>> nearestNeighbours;
 
     // populate the priority queues
-    for (entity_id_t entryPoint : entryPoints) {
-        const float dist = computeDistanceBetweenEntities(entryPoint, entityId, weights);
-        //const float dist = computeDistanceToQuery(entryPoint, query, weights);
-        candidates.emplace(-dist, entryPoint);
-        nearestNeighbours.emplace(dist, entryPoint);
+    for (entity_id_t entryPointId : entryPoints) {
+        const std::span<const float> entryPoint = getEntityFromEntityId(entryPointId);
+        const float dist = computeDistance(entryPoint, entity, weights);
+        candidates.emplace(-dist, entryPointId);
+        nearestNeighbours.emplace(dist, entryPointId);
     }
 
     while (!candidates.empty()) {
@@ -451,15 +408,15 @@ vector<entity_id_t> MultiHNSW::internalSearch(const vector<span<const float>>& u
 
         // process the unvisited neighbours of the best candidate
         assert(nodes[bestCandidate].neighboursPerLayer.size() > layer); // candidate must be at least at this layer
-        for (entity_id_t neighbour : nodes[bestCandidate].neighboursPerLayer[layer]) {
-            if (!visited.contains(neighbour)) {
-                visited.insert(neighbour);
-                const float newDist = computeDistanceBetweenEntities(neighbour, entityId, weights);
-                //const float newDist = computeDistanceToQuery(neighbour, query, weights);
+        for (entity_id_t neighbourId : nodes[bestCandidate].neighboursPerLayer[layer]) {
+            if (!visited.contains(neighbourId)) {
+                visited.insert(neighbourId);
+                const std::span<const float> neighbour = getEntityFromEntityId(neighbourId);
+                const float newDist = computeDistance(neighbour, entity, weights);
                 auto [_worstNeighbourDist, _worstNeighbour] = nearestNeighbours.top();
                 if (newDist < _worstNeighbourDist || nearestNeighbours.size() < ef) {
-                    candidates.emplace(-newDist, neighbour);
-                    nearestNeighbours.emplace(newDist, neighbour);
+                    candidates.emplace(-newDist, neighbourId);
+                    nearestNeighbours.emplace(newDist, neighbourId);
                     if (nearestNeighbours.size() > ef) {
                         nearestNeighbours.pop();
                     }
@@ -491,14 +448,16 @@ void MultiHNSW::selectNearestCandidates(priority_queue<pair<float, entity_id_t>>
 
 // computes and finds the M closest entities to the targetEntityId from the candidates
 priority_queue<pair<float, entity_id_t>> MultiHNSW::selectNearestCandidates(entity_id_t targetEntityId, const span<entity_id_t> candidates, size_t M, const std::vector<float>& weights) const {
-
     // precondition: candidates is a non-empty array
     assert(!candidates.empty());
     assert(M <= candidates.size());
     priority_queue<pair<float, entity_id_t>> maxHeap;
     for (const entity_id_t candidate : candidates) {
         assert(candidate != targetEntityId);
-        const float dist = computeDistanceBetweenEntities(targetEntityId, candidate, weights);
+        const float dist = computeDistance(
+            getEntityFromEntityId(targetEntityId),
+            getEntityFromEntityId(candidate),
+            weights);
         if (maxHeap.size() < M) {
             maxHeap.emplace(dist, candidate);
         } else if (dist < maxHeap.top().first) {

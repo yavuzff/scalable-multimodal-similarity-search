@@ -2,6 +2,7 @@
 #include "../include/utils.hpp"
 
 #include <iostream>
+#include <numeric>
 #include <optional>
 
 #include "../include/common.hpp"
@@ -42,6 +43,9 @@ AbstractMultiIndex::AbstractMultiIndex(size_t theModalities,
     } else {
         validateAndNormaliseWeights(indexWeights, numModalities);
     }
+
+    // calculate total dimensions
+    totalDimensions = std::accumulate(dimensions.begin(), dimensions.end(), 0);
 
     // print out what we just initialised:
     debug_printf("Created MultiIndex with %zu modalities\n", numModalities);

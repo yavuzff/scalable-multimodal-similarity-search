@@ -77,7 +77,7 @@ std::vector<size_t> ExactMultiIndex::internalSearch(const std::vector<std::span<
         std::vector<std::span<const float>> normalisedQuery;
         for (size_t i = 0; i < numModalities; ++i) {
             if (distanceMetrics[i] == DistanceMetric::Cosine) {
-                std::cout << "Normalising query for modality " << i << " to efficiently compute cosine distance" << std::endl;
+                debug_printf("Normalising query for modality %zu to efficiently compute cosine distance\n", i);
                 // copy and normalize vector
                 normalisedVectors.emplace_back(query[i].begin(), query[i].end());
                 l2NormalizeVector(std::span(normalisedVectors.back()));

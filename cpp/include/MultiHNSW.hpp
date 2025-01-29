@@ -20,7 +20,9 @@ private:
     size_t seed;
 
     // internal data structures
-    std::vector<std::vector<float>> entityStorage;
+    std::vector<std::vector<float>> entityStorageByModality;
+    std::vector<float> entityStorage;
+
     struct Node {
         std::vector<std::vector<entity_id_t>> neighboursPerLayer;
     };
@@ -35,22 +37,26 @@ private:
     // private methods
     void validateParameters() const;
     void addToEntityStorage(const std::vector<std::span<const float>>& entities, size_t num_entities);
-    std::span<const float> getEntityModality(entity_id_t entityId, entity_id_t modality) const;
-    float computeDistanceBetweenEntities(entity_id_t entityId1, entity_id_t entityId2, const std::vector<float>& weights) const;
-    float computeDistanceToQuery(entity_id_t entityId, const std::vector<std::span<const float>>& query, const std::vector<float>& weights) const;
+    std::span<const float> getEntityFromEntityId(entity_id_t entityId) const;
+
+    // storage by modality
+    void addToEntityStorageByModality(const std::vector<std::span<const float>>& entities, size_t num_entities);
+    std::span<const float> getEntityModalityFromEntityId(entity_id_t entityId, size_t modality) const;
+
+    float computeDistance(std::span<const float> entity1,  std::span<const float> entity2, const std::vector<float>& weights) const;
 
     [[nodiscard]] size_t generateRandomLevel() const;
     void addEntityToGraph(entity_id_t entityId);
     std::vector<entity_id_t> internalSearch(const std::vector<std::span<const float>>& userQuery, size_t k, const std::vector<float>& weights) const;
 
-    [[nodiscard]] std::priority_queue<std::pair<float, entity_id_t>> searchLayer(const std::vector<std::span<const float>>& query, const std::vector<entity_id_t> &entryPoints, const std::vector<float>& weights, size_t ef, size_t layer) const;
+    [[nodiscard]] std::priority_queue<std::pair<float, entity_id_t>> searchLayer(std::span<const float> entity, const std::vector<entity_id_t> &entryPoints, const std::vector<float>& weights, size_t ef, size_t layer) const;
     [[nodiscard]] std::priority_queue<std::pair<float, entity_id_t>> searchLayer(entity_id_t entityId, const std::vector<entity_id_t> &entryPoints, const std::vector<float>& weights, size_t ef, size_t layer) const;
 
     void selectNearestCandidates(std::priority_queue<std::pair<float, entity_id_t>> &candidates, size_t M) const;
     std::priority_queue<std::pair<float, entity_id_t>> selectNearestCandidates(entity_id_t targetEntityId, std::span<entity_id_t> candidates, size_t M, const std::vector<float>& weights) const;
     void selectDiversifiedCandidates(std::priority_queue<std::pair<float, entity_id_t>>& candidates, const std::vector<float>& weights, size_t M) const;
 
-    void addAndPruneEdgesForExistingNodes(entity_id_t newEntityId, std::vector<std::pair<float, entity_id_t>> &connectedNeighbours, size_t layer);
+    void addAndPruneEdgesForExistingNodes(entity_id_t newEntityId, const std::vector<std::pair<float, entity_id_t>> &connectedNeighbours, size_t layer);
 
     friend class MultiHNSWTest;  // grant access to the test class
     // Stats: number of edges traversed, number of distances computed, number of nodes visited

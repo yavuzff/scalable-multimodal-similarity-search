@@ -24,37 +24,64 @@ public:
         return multiHNSW;
     }
 
-    static void testAddToEntityStorage1(MultiHNSW& hnsw) {
+    static void testAddToEntityStorageByModality1(MultiHNSW& hnsw) {
         std::vector<std::vector<float>> entities = {
             {1.0f, 2.0f, 3.0f,      4.0f, 5.0f, 6.0f},
             {7.0f, 8.0f, 9.0f,      10.0f, 11.0f, 12.0f}
         };
-        hnsw.addToEntityStorage(getSpanViewOfVectors(entities), 2);
+        hnsw.addToEntityStorageByModality(getSpanViewOfVectors(entities), 2);
 
-        REQUIRE(hnsw.entityStorage.size() == 2);
-        REQUIRE(hnsw.entityStorage[0].size() == 6);
-        REQUIRE(hnsw.entityStorage[1].size() == 6);
+        REQUIRE(hnsw.entityStorageByModality.size() == 2);
+        REQUIRE(hnsw.entityStorageByModality[0].size() == 6);
+        REQUIRE(hnsw.entityStorageByModality[1].size() == 6);
     }
 
-    static void testGetEntityModality1(MultiHNSW& hnsw) {
+    static void testAddToEntityStorage(MultiHNSW& hnsw) {
         std::vector<std::vector<float>> entities = {
             {1.0f, 2.0f, 3.0f,      4.0f, 5.0f, 6.0f},
             {7.0f, 8.0f, 9.0f,      10.0f, 11.0f, 12.0f}
         };
         hnsw.addToEntityStorage(getSpanViewOfVectors(entities), 2);
 
-        auto vector = hnsw.getEntityModality(1, 1);
+        std::vector<float> expectedResults1 = {1.0f, 2.0f, 3.0f, 7.0f, 8.0f, 9.0f, 4.0f, 5.0f, 6.0f, 10.0f, 11.0f, 12.0f};
+        REQUIRE(hnsw.entityStorage.size() == 12);
+        REQUIRE_THAT(hnsw.entityStorage, Catch::Matchers::RangeEquals(expectedResults1));
+    }
+
+    static void testGetEntityModalityFromEntityId1(MultiHNSW& hnsw) {
+        std::vector<std::vector<float>> entities = {
+            {1.0f, 2.0f, 3.0f,      4.0f, 5.0f, 6.0f},
+            {7.0f, 8.0f, 9.0f,      10.0f, 11.0f, 12.0f}
+        };
+        hnsw.addToEntityStorageByModality(getSpanViewOfVectors(entities), 2);
+
+        auto vector = hnsw.getEntityModalityFromEntityId(1, 1);
         REQUIRE(vector.size() == 3);
         REQUIRE(vector[0] == 10.0f);
         REQUIRE(vector[1] == 11.0f);
         REQUIRE(vector[2] == 12.0f);
 
-        vector = hnsw.getEntityModality(1, 0);
+        vector = hnsw.getEntityModalityFromEntityId(1, 0);
         REQUIRE(vector.size() == 3);
         REQUIRE(vector[0] == 4.0f);
         REQUIRE(vector[1] == 5.0f);
         REQUIRE(vector[2] == 6.0f);
+    }
 
+    static void testGetEntityFromEntityId1(MultiHNSW& hnsw) {
+        std::vector<std::vector<float>> entities = {
+            {1.0f, 2.0f, 3.0f,      4.0f, 5.0f, 6.0f},
+            {7.0f, 8.0f, 9.0f,      10.0f, 11.0f, 12.0f}
+        };
+        hnsw.addToEntityStorage(getSpanViewOfVectors(entities), 2);
+
+        auto vector1 = hnsw.getEntityFromEntityId(0);
+        std::vector<float> expectedResults1 = {1.0f, 2.0f, 3.0f, 7.0f, 8.0f, 9.0f};
+        REQUIRE_THAT(vector1, Catch::Matchers::RangeEquals(expectedResults1));
+
+        auto vector2 = hnsw.getEntityFromEntityId(1);
+        std::vector<float> expectedResults2 = {4.0f, 5.0f, 6.0f, 10.0f, 11.0f, 12.0f};
+        REQUIRE_THAT(vector2, Catch::Matchers::RangeEquals(expectedResults2));
     }
 
     static void testComputeDistanceBetweenEntities1(MultiHNSW& hnsw) {
@@ -66,12 +93,12 @@ public:
         hnsw.addToEntityStorage(spanEntities, 2);
 
         std::vector<float> weights = {0.5f, 0.5f};
-        float distance = hnsw.computeDistanceBetweenEntities(0, 1, weights);
+        float distance = hnsw.computeDistance(hnsw.getEntityFromEntityId(0), hnsw.getEntityFromEntityId(1), weights);
         // 2.5 + 3.5 = 6.0f
         REQUIRE_THAT(distance, Catch::Matchers::WithinAbs(6.0f, 0.0001));
     }
 
-    static void testGetEntityModality2() {
+    static void testGetEntityModalityFromEntityId2() {
         MultiHNSW hnsw = MultiHNSW::Builder(3, {1, 2, 3})
             .setDistanceMetrics({"euclidean", "manhattan", "cosine"})
             .setWeights({0.3f, 0.5f, 0.2f})
@@ -82,23 +109,60 @@ public:
             {7.0f, 8.0f,            9.0f, 10.0f,            11.0f, 12.0f},
             {13.0f, 14.0f, 15.0f,   16.0f, 17.0f, 18.0f,    19.0f, 20.f, 21.f}
         };
-        hnsw.addToEntityStorage(getSpanViewOfVectors(entities), 2);
+        hnsw.addToEntityStorageByModality(getSpanViewOfVectors(entities), 3);
 
-        REQUIRE(hnsw.entityStorage.size() == 3);
-        REQUIRE(hnsw.entityStorage[0].size() == 3);
-        REQUIRE(hnsw.entityStorage[1].size() == 6);
-        REQUIRE(hnsw.entityStorage[2].size() == 9);
+        REQUIRE(hnsw.entityStorageByModality.size() == 3);
+        REQUIRE(hnsw.entityStorageByModality[0].size() == 3);
+        REQUIRE(hnsw.entityStorageByModality[1].size() == 6);
+        REQUIRE(hnsw.entityStorageByModality[2].size() == 9);
 
-        auto vector = hnsw.getEntityModality(1, 2); // cosine so should be normalised
+        auto vector = hnsw.getEntityModalityFromEntityId(1, 2); // cosine so should be normalised
         REQUIRE(vector.size() == 3);
         REQUIRE_THAT(vector[0], Catch::Matchers::WithinAbs(0.5427628252422066, 0.0001));
         REQUIRE_THAT(vector[1], Catch::Matchers::WithinAbs(0.5766855018198446, 0.0001));
         REQUIRE_THAT(vector[2], Catch::Matchers::WithinAbs(0.6106081783974825, 0.0001));
 
-        vector = hnsw.getEntityModality(0, 1);
+        vector = hnsw.getEntityModalityFromEntityId(2, 2); // cosine so should be normalised
+        REQUIRE(vector.size() == 3);
+        REQUIRE_THAT(vector[0], Catch::Matchers::WithinAbs(0.548026257310873, 0.0001));
+        REQUIRE_THAT(vector[1], Catch::Matchers::WithinAbs(0.576869744537761, 0.0001));
+        REQUIRE_THAT(vector[2], Catch::Matchers::WithinAbs(0.6057132317646491, 0.0001));
+
+        vector = hnsw.getEntityModalityFromEntityId(0, 1);
         REQUIRE(vector.size() == 2);
         REQUIRE(vector[0] == 7.0f);
         REQUIRE(vector[1] == 8.0f);
+    }
+
+    static void testGetEntityFromEntityId2() {
+        MultiHNSW hnsw = MultiHNSW::Builder(3, {1, 2, 3})
+            .setDistanceMetrics({"euclidean", "manhattan", "cosine"})
+            .setWeights({0.3f, 0.5f, 0.2f})
+            .build();
+
+        std::vector<std::vector<float>> entities = {
+            {1.0f,                  2.0f,                   3.0f},
+            {7.0f, 8.0f,            9.0f, 10.0f,            11.0f, 12.0f},
+            {13.0f, 14.0f, 15.0f,   16.0f, 17.0f, 18.0f,    19.0f, 20.f, 21.0f}
+        };
+        hnsw.addToEntityStorage(getSpanViewOfVectors(entities), 3);
+
+        std::vector<float> expectedStorage = {1.0f, 7.0f, 8.0f, 0.5352015302352019f, 0.5763708787148328f, 0.6175402271944638f,
+            2.0f, 9.0f, 10.0f, 0.5427628252422066f, 0.5766855018198446f, 0.6106081783974825f,
+            3.0f, 11.0f, 12.0f, 0.548026257310873f, 0.576869744537761f, 0.6057132317646491f};
+        REQUIRE_THAT(hnsw.entityStorage, Catch::Matchers::RangeEquals(expectedStorage));
+
+        auto vector0 = hnsw.getEntityFromEntityId(0);
+        std::vector<float> expectedVector0 = {1.0f, 7.0f, 8.0f, 0.5352015302352019f, 0.5763708787148328f, 0.6175402271944638f};
+        REQUIRE_THAT(vector0, Catch::Matchers::RangeEquals(expectedVector0));
+
+        auto vector1 = hnsw.getEntityFromEntityId(1);
+        std::vector<float> expectedVector1 = {2.0f, 9.0f, 10.0f, 0.5427628252422066f, 0.5766855018198446f, 0.6106081783974825f};
+        REQUIRE_THAT(vector1, Catch::Matchers::RangeEquals(expectedVector1));
+
+        auto vector2 = hnsw.getEntityFromEntityId(2);
+        std::vector<float> expectedVector2 = {3.0f, 11.0f, 12.0f, 0.548026257310873f, 0.576869744537761f, 0.6057132317646491f};
+        REQUIRE_THAT(vector2, Catch::Matchers::RangeEquals(expectedVector2));
     }
 
     static void testGenerateRandomLevel() {
@@ -117,7 +181,7 @@ public:
         REQUIRE(level >= 0);
     }
 
-    static void testSearchLayer() {
+    static void testSearchLayerUsingEntityStorageByModality() {
         size_t numModalities = 1;
         vector<size_t> dims = {1};
 
@@ -154,9 +218,12 @@ public:
 
         // explicitly allocate memory for the query, so that the span refers to persistent data (not temporary data)
         std::vector<float> queryData = {5.0f};
-        vector<span<const float>> query = {span<const float>(queryData)};
+        // we are using flattened query as this is the internal representation used for searchLayer
+        auto query = span<const float>(queryData);
         vector<float> weights = {1.0f};
         size_t ef = 3;
+
+        std::cout << "Searching for entity with query: " << query[0] << std::endl;
 
         SECTION("Test layer 1 search") {
             vector<MultiHNSW::entity_id_t> entryPoints = {0};
@@ -313,9 +380,16 @@ public:
         };
 
         index.addEntities(entities);
+
+        std::vector<float> expectedStorage = {
+            0.50709255283711f, 0.1690308509457033f, 0.8451542547285166f, 3.0, 1.0f, 5.0f,
+            0.3697881993120397f, 0.55746964720408f, 0.7432928629387733f, 1.99f, 3.0f, 4.0f
+        };
+        REQUIRE_THAT(index.entityStorage, Catch::Matchers::RangeEquals(expectedStorage));
+
         index.printGraph();
         std::vector<std::vector<float>> query = {
-            {3.0f, 2.0f, 3.0f}, {3.0f, 2.0f, 3.0f} // Query for both modalities
+            {3.0f, 2.0f, 3.0f}, {3.0f, 2.0f, 3.0f} // query vectors for both modalities
         };
 
         SECTION("Search with cosine and manhattan metrics") {
@@ -334,9 +408,12 @@ public:
             result = index.search(query, 1, weights3);
             REQUIRE(result == std::vector<size_t>{0}); // (1.707731, 1.707760)
 
+            std::cout << "Search with weights 0.0, 1.0" << std::endl;
             std::vector<float> weights4 = {0.0f, 1.0f};
             result = index.search(query, 1, weights4);
+            std::cout << "About to  assert: " << result[0] << std::endl;
             REQUIRE(result == std::vector<size_t>{0}); // (3, 3.01)
+            std::cout << "END with with weights 0.0, 1.0. Returned: " << result[0] << std::endl;
         }
     }
 };
@@ -363,16 +440,28 @@ TEST_CASE("MultiHNSWBuilder builds", "[MultiHNSWBuilder]") {
 
 TEST_CASE("MultiHNSW Basic Tests", "[MultiHNSW]") {
     MultiHNSW hnsw = MultiHNSWTest::initaliseTest1();
+    SECTION("Test addToEntityStorageByModality") {
+        MultiHNSWTest::testAddToEntityStorageByModality1(hnsw);
+    }
+
     SECTION("Test addToEntityStorage") {
-        MultiHNSWTest::testAddToEntityStorage1(hnsw);
+        MultiHNSWTest::testAddToEntityStorage(hnsw);
     }
 
     SECTION("Test getEntityModality") {
-        MultiHNSWTest::testGetEntityModality1(hnsw);
+        MultiHNSWTest::testGetEntityModalityFromEntityId1(hnsw);
+    }
+
+    SECTION("Test getEntityFromEntityId") {
+        MultiHNSWTest::testGetEntityFromEntityId1(hnsw);
     }
 
     SECTION("Test getEntityModality2") {
-        MultiHNSWTest::testGetEntityModality2();
+        MultiHNSWTest::testGetEntityModalityFromEntityId2();
+    }
+
+    SECTION("Test getEntityFromEntityId2") {
+        MultiHNSWTest::testGetEntityFromEntityId2();
     }
 
     SECTION("Test computeDistanceBetweenEntities") {
@@ -385,7 +474,7 @@ TEST_CASE("MultiHNSW Basic Tests", "[MultiHNSW]") {
 }
 
 TEST_CASE("MultiHNSW SearchLayer", "[SearchLayer]") {
-    MultiHNSWTest::testSearchLayer();
+    MultiHNSWTest::testSearchLayerUsingEntityStorageByModality();
 }
 
 TEST_CASE("MultiHNSW AddEntities", "[AddEntities]") {

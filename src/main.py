@@ -9,7 +9,7 @@ def load_dataset():
     Load the dataset from the prepared paths.
     """
     text_vectors = np.load(TEXT_VECTORS_PATH)
-    image_vectors = np.load(IMAGE_VECTORS32_PATH)
+    image_vectors = np.load(IMAGE_VECTORS_PATH)
 
     #check type stored, should be float32
     if text_vectors.dtype != np.float32:
@@ -32,7 +32,7 @@ def main():
     text_vectors_all, image_vectors_all = load_dataset()
 
     # define subset for indexing and querying
-    NUM_INDEXED_ENTITIES = 10000
+    NUM_INDEXED_ENTITIES = 50_000
     NUM_QUERY_ENTITIES = 100
     index_text_vectors = text_vectors_all[:NUM_INDEXED_ENTITIES]
     index_image_vectors = image_vectors_all[:NUM_INDEXED_ENTITIES]

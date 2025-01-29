@@ -16,6 +16,7 @@ protected:
     std::vector<float> indexWeights;
     size_t numEntities = 0;
     std::vector<size_t> toNormalise; // indices of modality vectors to normalise
+    size_t totalDimensions; // sum of all dimensions
 
     size_t validateEntities(const std::vector<std::span<const float>> &entities) const;
     void validateQuery(const std::vector<std::span<const float>> &query, size_t k) const;

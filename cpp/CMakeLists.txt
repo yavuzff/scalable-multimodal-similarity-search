@@ -30,8 +30,8 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -O3 -DNDEBUG")
 # for openmp #pragma
 #set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fopenmp")
 
-# for compilation to target the native architecture
-set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -march=native")
+# for compilation to target the native architecture - setting this leads to Valgrind Illegal Instruction.
+# set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -march=native")
 
 # path for the eigen library
 set(EIGEN_PATH /usr/local/include/eigen3)
