@@ -1,11 +1,11 @@
 from multimodal_index import MultiHNSW
 import numpy as np
-import os
 import random
 
 from src.common.constants import *
-from src.evaluation import (IndexEvaluator, compute_exact_results, index_construction_evaluation, index_search_evaluation,
-                            Params, MultiHNSWConstructionParams, MultiHNSWSearchParams)
+from src.evaluation import IndexEvaluator, compute_exact_results, index_construction_evaluation, index_search_evaluation
+from src.evaluation_params import Params, MultiHNSWConstructionParams, MultiHNSWSearchParams
+
 
 def load_dataset():
     """
@@ -28,22 +28,6 @@ def load_dataset():
 
     print(f"Loaded 32-bit vectors. Text vectors shape: {text_vectors.shape}. Image vectors shape: {image_vectors.shape}.")
     return text_vectors, image_vectors
-
-def save_image_vectors_to_32(image_vectors_path):
-    vectors = np.load(image_vectors_path)
-
-    if vectors.dtype != np.float32:
-
-        image_vectors_path = '/'.join(image_vectors_path.split('/')[:-1]) + '/image_vectors.npy'
-        # check if path is empty
-        if not os.path.exists(image_vectors_path):
-            vectors = vectors.astype(np.float32)
-            np.save(image_vectors_path, vectors)
-            print(f"Saved image vectors to 32-bit at {image_vectors_path}.")
-        else:
-            raise ValueError(f"Image vectors already exist at {image_vectors_path}.")
-
-
 
 def main():
     # load dataset
@@ -134,8 +118,6 @@ def evaluate_construction():
     # exact_results, times = compute_exact_results(params)
     #print(exact_results.shape)
 
-
-
 def evaluate_search():
 
     params = get_params()
@@ -188,6 +170,6 @@ if __name__ == "__main__":
 
     #run_exact_results()
     #evaluate_construction()
-    #evaluate_search()
+    evaluate_search()
 
-    evaluate_parameter_space()
+    #evaluate_parameter_space()
