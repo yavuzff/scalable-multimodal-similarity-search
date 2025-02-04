@@ -124,8 +124,10 @@ def evaluate_search():
     construction_params = get_construction_params()
     search_params = get_search_params(params)
 
-
     exact_results, exact_times = compute_exact_results(params, cache=True)
+    print("Exact results are:", exact_results)
+    print("Exact times are:", exact_times)
+
     index, index_path = index_construction_evaluation(params, construction_params)
 
     results, search_times, recall_scores = index_search_evaluation(index, index_path, exact_results, params, search_params)
@@ -136,9 +138,9 @@ def evaluate_parameter_space():
     search_params = get_search_params(params)
     NUM_QUERY_ENTITIES = 100
 
-    for index_size in [10_000, 25_000, 50_000, 75_000, 100_000]:
-        for k in [10, 50, 100]:
-            # set query_ids to last NUM_QUERY_ENTITIES
+    for index_size in [250_000, 500_000, 750_000, 1_000_000]:
+        for k in [50]:
+            # set query_ids to a random sample of NUM_QUERY_ENTITIES unused entities
             query_ids = random.sample(range(params.index_size, len(params.dataset[0])), NUM_QUERY_ENTITIES)
             params.query_ids = query_ids
             params.index_size = index_size
@@ -146,12 +148,14 @@ def evaluate_parameter_space():
             search_params.k = k
 
             exact_results, exact_times = compute_exact_results(params, cache=True) # will cache these when possible
+            print(f"Average time for k={k} exact search on index_size {index_size} is {round(np.mean(exact_times)*1000, 3)} ms.")
 
             # construct index
-            for target_degree in [16, 32, 64, 128]:
-                for max_degree in [target_degree, 2 * target_degree]:
-                    for ef_construction in [50, 100, 150, 200]:
-                        for seed in [1,2,3,4,5]:
+            for target_degree in [16]:
+                for max_degree in [target_degree]:
+                    for ef_construction in [100]:
+                        #for seed in [1,2,3,4,5]:
+                        for seed in [1]:
                             construction_params.target_degree = target_degree
                             construction_params.max_degree = max_degree
                             construction_params.ef_construction = ef_construction
@@ -163,6 +167,28 @@ def evaluate_parameter_space():
                                 search_params.ef_search = ef_search
                                 results, search_times, recall_scores = index_search_evaluation(index, index_path, exact_results, params, search_params)
 
+def evaluate_single_modality():
+    import time
+
+    text_vectors_all, image_vectors_all = load_dataset()
+
+    MODALITIES = 1
+    DIMENSIONS = [text_vectors_all.shape[1]]
+    DISTANCE_METRICS = ["cosine"]
+    WEIGHTS = [1]
+
+    entities_to_insert = [text_vectors_all[:100_000]]
+
+    start_time = time.time()
+    multi_hnsw = MultiHNSW(MODALITIES, DIMENSIONS, DISTANCE_METRICS, weights=WEIGHTS,
+                           target_degree=16,
+                           max_degree=16,
+                           ef_construction=200,
+                           seed=10)
+    multi_hnsw.add_entities(entities_to_insert)
+    total_time = time.time() - start_time
+
+    print(f"Index construction time: {total_time}")
 
 if __name__ == "__main__":
     #main()
@@ -170,6 +196,8 @@ if __name__ == "__main__":
 
     #run_exact_results()
     #evaluate_construction()
-    evaluate_search()
+    #evaluate_search()
 
-    #evaluate_parameter_space()
+    evaluate_parameter_space()
+
+    #evaluate_single_modality()
