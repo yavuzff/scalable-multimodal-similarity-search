@@ -26,8 +26,10 @@ def load_dataset():
         # np.save(IMAGE_VECTORS32_PATH, image_vectors)
         raise ValueError(f"Image vectors are not float32. They are {image_vectors.dtype}.")
 
-    print(f"Loaded 32-bit vectors. Text vectors shape: {text_vectors.shape}. Image vectors shape: {image_vectors.shape}.")
+    print(
+        f"Loaded 32-bit vectors. Text vectors shape: {text_vectors.shape}. Image vectors shape: {image_vectors.shape}.")
     return text_vectors, image_vectors
+
 
 def main():
     # load dataset
@@ -58,15 +60,18 @@ def main():
     print(f"Inserting {NUM_INDEXED_ENTITIES} entities to the index.")
     insertion_time, memory_consumption = index_evaluator.evaluate_add_entities(entities)
     print(f"Insertion Time: {insertion_time:.3f} seconds.")
-    print(f"Insertion Memory: {memory_consumption/1024/1024} MiB.")
+    print(f"Insertion Memory: {memory_consumption / 1024 / 1024} MiB.")
 
     # evaluate search performance
     queries = [query_text_vectors, query_image_vectors]
     search_times, recall_scores, memory_consumption = index_evaluator.evaluate_search(queries, K)
 
-    print(f"Average search time: {np.mean(search_times):.3f} seconds. Variance: {np.var(search_times):.3f}. Min: {np.min(search_times):.3f}. Max: {np.max(search_times):.3f}.")
-    print(f"Average recall: {np.mean(recall_scores):.3f}. Variance: {np.var(recall_scores):.3f}. Min: {np.min(recall_scores):.3f}. Max: {np.max(recall_scores):.3f}.")
-    print(f"Average memory consumption: {np.mean(memory_consumption):.3f} bytes. Variance: {np.var(memory_consumption):.3f}. Min: {np.min(memory_consumption):.3f}. Max: {np.max(memory_consumption):.3f}.")
+    print(
+        f"Average search time: {np.mean(search_times):.3f} seconds. Variance: {np.var(search_times):.3f}. Min: {np.min(search_times):.3f}. Max: {np.max(search_times):.3f}.")
+    print(
+        f"Average recall: {np.mean(recall_scores):.3f}. Variance: {np.var(recall_scores):.3f}. Min: {np.min(recall_scores):.3f}. Max: {np.max(recall_scores):.3f}.")
+    print(
+        f"Average memory consumption: {np.mean(memory_consumption):.3f} bytes. Variance: {np.var(memory_consumption):.3f}. Min: {np.min(memory_consumption):.3f}. Max: {np.max(memory_consumption):.3f}.")
 
 
 def get_params():
@@ -89,6 +94,7 @@ def get_params():
 
     return Params(MODALITIES, DIMENSIONS, DISTANCE_METRICS, WEIGHTS, dataset, NUM_INDEXED_ENTITIES, K, query_ids)
 
+
 def get_construction_params():
     TARGET_DEGREE = 32
     MAX_DEGREE = 64
@@ -97,19 +103,25 @@ def get_construction_params():
 
     return MultiHNSWConstructionParams(TARGET_DEGREE, MAX_DEGREE, EF_CONSTRUCTION, SEED)
 
+
 def get_search_params(params: Params):
     EF_SEARCH = 20
 
     return MultiHNSWSearchParams(params.k, EF_SEARCH)
 
+
 def run_exact_results():
     params = get_params()
+    params.k = 50
+    params.index_size = 10000
+    params.metrics = ["euclidean", "euclidean"]
     print(f"Searching {len(params.query_ids)} ids in exact index:")
     exact_results, times = compute_exact_results(params, cache=True)
-    print(exact_results.shape)
+    print("Searched for query ids", params.query_ids)
+    print("Exact results are:", exact_results)
+
 
 def evaluate_construction():
-
     params = get_params()
     construction_params = get_construction_params()
 
@@ -118,8 +130,8 @@ def evaluate_construction():
     # exact_results, times = compute_exact_results(params)
     #print(exact_results.shape)
 
-def evaluate_search():
 
+def evaluate_search():
     params = get_params()
     construction_params = get_construction_params()
     search_params = get_search_params(params)
@@ -130,7 +142,9 @@ def evaluate_search():
 
     index, index_path = index_construction_evaluation(params, construction_params)
 
-    results, search_times, recall_scores = index_search_evaluation(index, index_path, exact_results, params, search_params)
+    results, search_times, recall_scores = index_search_evaluation(index, index_path, exact_results, params,
+                                                                   search_params)
+
 
 def evaluate_parameter_space():
     params = get_params()
@@ -138,24 +152,29 @@ def evaluate_parameter_space():
     search_params = get_search_params(params)
     NUM_QUERY_ENTITIES = 100
 
-    for index_size in [250_000, 500_000, 750_000, 1_000_000]:
+    for index_size in [10_000, 25_000, 50_000, 75_000, 100_000, 250_000, 500_000, 750_000, 1_000_000]:
+    #for index_size in [10_000]:
+        params.index_size = index_size
+
         for k in [50]:
-            # set query_ids to a random sample of NUM_QUERY_ENTITIES unused entities
-            query_ids = random.sample(range(params.index_size, len(params.dataset[0])), NUM_QUERY_ENTITIES)
-            params.query_ids = query_ids
-            params.index_size = index_size
             params.k = k
             search_params.k = k
 
-            exact_results, exact_times = compute_exact_results(params, cache=True) # will cache these when possible
-            print(f"Average time for k={k} exact search on index_size {index_size} is {round(np.mean(exact_times)*1000, 3)} ms.")
+            # set query_ids to a random sample of NUM_QUERY_ENTITIES unused entities
+            query_ids = random.sample(range(params.index_size, len(params.dataset[0])), NUM_QUERY_ENTITIES)
+            params.query_ids = query_ids
+
+            exact_results, exact_times = compute_exact_results(params, cache=True)  # will cache these when possible
+            print(
+                f"Average time for k={k} exact search on index_size {index_size} is {round(np.mean(exact_times) * 1000, 3)} ms.")
 
             # construct index
-            for target_degree in [16]:
-                for max_degree in [target_degree]:
-                    for ef_construction in [100]:
-                        #for seed in [1,2,3,4,5]:
-                        for seed in [1]:
+            # for target_degree in [16]:
+            #     for max_degree in [target_degree]:
+            #         for ef_construction in [100]:
+            #             #for seed in [1,2,3,4,5]:
+            #             for seed in [1]:
+            for target_degree, max_degree, ef_construction, seed in [(16, 16, 100, 1), (32, 32, 200, 1)]:
                             construction_params.target_degree = target_degree
                             construction_params.max_degree = max_degree
                             construction_params.ef_construction = ef_construction
@@ -163,9 +182,12 @@ def evaluate_parameter_space():
 
                             index, index_path = index_construction_evaluation(params, construction_params)
 
-                            for ef_search in [1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]:
+                            # try 20 values for ef_search, starting from ef_search=k
+                            for ef_search in range(k, k + 200, 10):
                                 search_params.ef_search = ef_search
-                                results, search_times, recall_scores = index_search_evaluation(index, index_path, exact_results, params, search_params)
+                                results, search_times, recall_scores = index_search_evaluation(index, index_path,
+                                                                                               exact_results, params,
+                                                                                               search_params)
 
 def evaluate_single_modality():
     import time
@@ -189,6 +211,7 @@ def evaluate_single_modality():
     total_time = time.time() - start_time
 
     print(f"Index construction time: {total_time}")
+
 
 if __name__ == "__main__":
     #main()

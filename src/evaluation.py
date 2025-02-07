@@ -7,11 +7,10 @@ from datetime import datetime
 from multimodal_index import ExactMultiIndex, MultiHNSW
 from src.evaluation_params import Params, MultiHNSWConstructionParams, MultiHNSWSearchParams
 
-
 EXPERIMENTS_DIR = "experiments/"
 EXACT_RESULTS_DIR = EXPERIMENTS_DIR + "exact_results/"
 CONSTRUCTION_DIR = EXPERIMENTS_DIR + "construction/"
-SEARCH_DIR = EXPERIMENTS_DIR+"search/"
+SEARCH_DIR = EXPERIMENTS_DIR + "search/"
 
 
 def compute_exact_results(p: Params, cache=True):
@@ -20,7 +19,8 @@ def compute_exact_results(p: Params, cache=True):
     """
     assert p.modalities == len(p.dataset)
 
-    save_folder = EXACT_RESULTS_DIR + sanitise_path_string(f"{p.modalities}_{p.dimensions}_{p.metrics}_{p.weights}_{p.index_size}_{p.k}/")
+    save_folder = EXACT_RESULTS_DIR + sanitise_path_string(
+        f"{p.modalities}_{p.dimensions}_{p.metrics}_{p.weights}_{p.index_size}_{p.k}/")
 
     if cache and os.path.exists(save_folder):
         # iterate over every folder in save_folder
@@ -32,7 +32,7 @@ def compute_exact_results(p: Params, cache=True):
                 return data["results"], data["search_times"]
 
     # create directory where we will save our results
-    current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f")[:-3] # get up to millisecond
+    current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f")[:-3]  # get up to millisecond
     save_folder += current_time + "/"
     os.makedirs(os.path.dirname(save_folder))
 
@@ -45,38 +45,36 @@ def compute_exact_results(p: Params, cache=True):
     exact_index.add_entities(entities_to_insert)
     print(f"Inserted {len(entities_to_insert[0])} entities to the exact index.")
 
-
     for query_id in p.query_ids:
         query = [modality[query_id] for modality in p.dataset]
         start_time = time.time()
         result = exact_index.search(query, p.k)
         end_time = time.time()
-        search_times.append(end_time-start_time)
+        search_times.append(end_time - start_time)
         results.append(result)
 
     # save query_ids, results and search_times at save_folder
     np.save(save_folder + "query_ids.npy", p.query_ids)
-    np.savez(save_folder+"results.npz", query_ids=p.query_ids, results=results, search_times=search_times)
+    np.savez(save_folder + "results.npz", results=results, search_times=search_times)
 
-    print(f"Saved query_ids.npy and results.npz to {save_folder}")
+    print(f"Saved results.npz to {save_folder}")
 
     return np.array(results), np.array(search_times)
 
 
 def index_construction_evaluation(p: Params, specific_params: MultiHNSWConstructionParams):
-
     save_folder = CONSTRUCTION_DIR + \
                   sanitise_path_string(f"{p.modalities}_{p.dimensions}_{p.metrics}_{p.weights}_{p.index_size}/") + \
                   f"{specific_params.target_degree}_{specific_params.max_degree}_{specific_params.ef_construction}_{specific_params.seed}/"
 
-    current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f")[:-3] # get up to millisecond
+    current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f")[:-3]  # get up to millisecond
 
     entities_to_insert = [modality[:p.index_size] for modality in p.dataset]
 
     start_time = time.time()
     multi_hnsw = MultiHNSW(p.modalities, p.dimensions, p.metrics, weights=p.weights,
                            target_degree=specific_params.target_degree,
-                           max_degree= specific_params.max_degree,
+                           max_degree=specific_params.max_degree,
                            ef_construction=specific_params.ef_construction,
                            seed=specific_params.seed)
     multi_hnsw.add_entities(entities_to_insert)
@@ -84,23 +82,25 @@ def index_construction_evaluation(p: Params, specific_params: MultiHNSWConstruct
 
     os.makedirs(os.path.dirname(save_folder), exist_ok=True)
 
-    save_file = save_folder+current_time + ".npz"
+    save_file = save_folder + current_time + ".npz"
     np.savez(save_file, time=[total_time])
 
     print(f"Constructed index in {total_time} seconds. Saved to {save_file}")
 
     return multi_hnsw, save_file
 
-def index_search_evaluation(index: MultiHNSW, index_path: str, exact_results, params: Params, search_params: MultiHNSWSearchParams):
 
+def index_search_evaluation(index: MultiHNSW, index_path: str, exact_results, params: Params,
+                            search_params: MultiHNSWSearchParams):
     assert params.k == search_params.k
 
     index_path_components = index_path.split('/')
-    index_path_components[-1] = index_path_components[-1].replace(".npz","") # update the index path to be a folder
-    rest_path = '/'.join(index_path_components[2:]) # do not include the starting part of the index path (exp/const/...)
+    index_path_components[-1] = index_path_components[-1].replace(".npz", "")  # update the index path to be a folder
+    rest_path = '/'.join(
+        index_path_components[2:])  # do not include the starting part of the index path (exp/const/...)
     save_folder = SEARCH_DIR + rest_path + '/'
 
-    current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f")[:-3] # get up to millisecond
+    current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f")[:-3]  # get up to millisecond
     save_folder += f"{search_params.k}_{search_params.ef_search}_" + current_time + "/"
     os.makedirs(os.path.dirname(save_folder))
 
@@ -114,17 +114,20 @@ def index_search_evaluation(index: MultiHNSW, index_path: str, exact_results, pa
         start_time = time.time()
         result = index.search(query, params.k)
         end_time = time.time()
-        search_times.append(end_time-start_time)
+        search_times.append(end_time - start_time)
         results.append(result)
         recall_scores.append(compute_recall(result, exact_results[i]))
 
     # save query_ids, results and search_times at save_folder
-    np.save(save_folder+"query_ids.npy", params.query_ids)
-    np.savez(save_folder+"results.npz", query_ids=params.query_ids, results=results, search_times=search_times, recall_scores=recall_scores)
+    np.save(save_folder + "query_ids.npy", params.query_ids)
+    np.savez(save_folder + "results.npz", results=results, search_times=search_times,
+             recall_scores=recall_scores)
 
-    print(f"Ran with ef_search={search_params.ef_search} with average recall {sum(recall_scores)/len(recall_scores):.5f} and average time {(sum(search_times)/len(search_times)*1000):.3f}ms. Saved query_ids.npy and results.npz to {save_folder}")
+    print(
+        f"Ran with ef_search={search_params.ef_search} with average recall {sum(recall_scores) / len(recall_scores):.5f} and average time {(sum(search_times) / len(search_times) * 1000):.3f}ms. Saved query_ids.npy and results.npz to {save_folder}")
 
     return results, search_times, recall_scores
+
 
 def sanitise_path_string(path):
     return path.replace(" ", "").replace("'", "").replace("[", ":").replace("]", ":")
@@ -139,7 +142,7 @@ class IndexEvaluator:
             num_modalities=index.num_modalities,
             dimensions=index.dimensions,
             distance_metrics=index.distance_metrics,
-            weights = index.weights
+            weights=index.weights
         )
 
         self.process = psutil.Process(os.getpid())
@@ -165,7 +168,7 @@ class IndexEvaluator:
         exact_index_total_time = time.time() - exact_index_start_time
         mem_after = self.process.memory_info().rss
         print(f"Exact index insertion time: {exact_index_total_time:.3f} seconds.")
-        print(f"Exact index memory consumption: {(mem_after - mem_before)/1024/1024} MiB.")
+        print(f"Exact index memory consumption: {(mem_after - mem_before) / 1024 / 1024} MiB.")
 
         return total_time, mem_usage
 
@@ -189,7 +192,7 @@ class IndexEvaluator:
             end_time = time.time()
             mem_after = self.process.memory_info().rss
 
-            search_times.append(end_time-start_time)
+            search_times.append(end_time - start_time)
             memory_consumptions.append(mem_after - mem_before)
 
             # calculate recall
@@ -197,6 +200,7 @@ class IndexEvaluator:
             recall_scores.append(compute_recall(results, exact_results))
 
         return search_times, recall_scores, memory_consumptions
+
 
 def compute_recall(results, exact_results):
     """
