@@ -6,7 +6,7 @@ from datetime import datetime
 
 from multimodal_index import ExactMultiIndex, MultiHNSW
 from src.evaluation_params import Params, MultiHNSWConstructionParams, MultiHNSWSearchParams
-from load_dataset import load_dataset
+from src.load_dataset import load_dataset
 
 EXPERIMENTS_DIR = "experiments/"
 EXACT_RESULTS_DIR = EXPERIMENTS_DIR + "exact_results/"
