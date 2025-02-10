@@ -6,6 +6,7 @@ from datetime import datetime
 
 from multimodal_index import ExactMultiIndex, MultiHNSW
 from src.evaluation_params import Params, MultiHNSWConstructionParams, MultiHNSWSearchParams
+from load_dataset import load_dataset
 
 EXPERIMENTS_DIR = "experiments/"
 EXACT_RESULTS_DIR = EXPERIMENTS_DIR + "exact_results/"
@@ -47,9 +48,9 @@ def compute_exact_results(p: Params, cache=True):
 
     for query_id in p.query_ids:
         query = [modality[query_id] for modality in p.dataset]
-        start_time = time.time()
+        start_time = time.perf_counter()
         result = exact_index.search(query, p.k)
-        end_time = time.time()
+        end_time = time.perf_counter()
         search_times.append(end_time - start_time)
         results.append(result)
 
@@ -63,6 +64,9 @@ def compute_exact_results(p: Params, cache=True):
 
 
 def index_construction_evaluation(p: Params, specific_params: MultiHNSWConstructionParams):
+    """
+    Construct an index with the given parameters and save the time it took to construct it to a file.
+    """
     save_folder = CONSTRUCTION_DIR + \
                   sanitise_path_string(f"{p.modalities}_{p.dimensions}_{p.metrics}_{p.weights}_{p.index_size}/") + \
                   f"{specific_params.target_degree}_{specific_params.max_degree}_{specific_params.ef_construction}_{specific_params.seed}/"
@@ -71,14 +75,14 @@ def index_construction_evaluation(p: Params, specific_params: MultiHNSWConstruct
 
     entities_to_insert = [modality[:p.index_size] for modality in p.dataset]
 
-    start_time = time.time()
+    start_time = time.perf_counter()
     multi_hnsw = MultiHNSW(p.modalities, p.dimensions, p.metrics, weights=p.weights,
                            target_degree=specific_params.target_degree,
                            max_degree=specific_params.max_degree,
                            ef_construction=specific_params.ef_construction,
                            seed=specific_params.seed)
     multi_hnsw.add_entities(entities_to_insert)
-    total_time = time.time() - start_time
+    total_time = time.perf_counter() - start_time
 
     os.makedirs(os.path.dirname(save_folder), exist_ok=True)
 
@@ -92,6 +96,9 @@ def index_construction_evaluation(p: Params, specific_params: MultiHNSWConstruct
 
 def index_search_evaluation(index: MultiHNSW, index_path: str, exact_results, params: Params,
                             search_params: MultiHNSWSearchParams):
+    """
+    Search the index with the given parameters and save the ANN results and search times to a file.
+    """
     assert params.k == search_params.k
 
     index_path_components = index_path.split('/')
@@ -111,9 +118,9 @@ def index_search_evaluation(index: MultiHNSW, index_path: str, exact_results, pa
     recall_scores = []
     for i, query_id in enumerate(params.query_ids):
         query = [modality[query_id] for modality in params.dataset]
-        start_time = time.time()
+        start_time = time.perf_counter()
         result = index.search(query, params.k)
-        end_time = time.time()
+        end_time = time.perf_counter()
         search_times.append(end_time - start_time)
         results.append(result)
         recall_scores.append(compute_recall(result, exact_results[i]))
@@ -121,19 +128,50 @@ def index_search_evaluation(index: MultiHNSW, index_path: str, exact_results, pa
     # save query_ids, results and search_times at save_folder
     np.save(save_folder + "query_ids.npy", params.query_ids)
     np.savez(save_folder + "results.npz", results=results, search_times=search_times,
-             recall_scores=recall_scores)
+             recall_scores=recall_scores, ef_search=search_params.ef_search)
 
-    print(
-        f"Ran with ef_search={search_params.ef_search} with average recall {sum(recall_scores) / len(recall_scores):.5f} and average time {(sum(search_times) / len(search_times) * 1000):.3f}ms. Saved query_ids.npy and results.npz to {save_folder}")
-
+    print(f"Search time (ms), efSearch, recall: {sum(search_times) / len(search_times) * 1000:.3f}, {search_params.ef_search}, {sum(recall_scores) / len(recall_scores):.5f}")
+    print(f"Saved query_ids.npy and results.npz for efSearch={search_params.ef_search} to {save_folder}")
     return results, search_times, recall_scores
 
 
+def evaluate_single_modality():
+    """
+    Evaluate the MultiHSNW index construction and search for a single modality.
+    """
+    import time
+
+    text_vectors_all, image_vectors_all = load_dataset()
+
+    MODALITIES = 1
+    DIMENSIONS = [text_vectors_all.shape[1]]
+    DISTANCE_METRICS = ["cosine"]
+    WEIGHTS = [1]
+
+    entities_to_insert = [text_vectors_all[:100_000]]
+
+    start_time = time.perf_counter()
+    multi_hnsw = MultiHNSW(MODALITIES, DIMENSIONS, DISTANCE_METRICS, weights=WEIGHTS,
+                           target_degree=16,
+                           max_degree=16,
+                           ef_construction=200,
+                           seed=10)
+    multi_hnsw.add_entities(entities_to_insert)
+    total_time = time.perf_counter() - start_time
+
+    print(f"Index construction time: {total_time}")
+
 def sanitise_path_string(path):
+    """
+    Replace invalid characters in a path string.
+    """
     return path.replace(" ", "").replace("'", "").replace("[", ":").replace("]", ":")
 
 
 class IndexEvaluator:
+    """
+    Class for evaluating the performance of an index, by computing exact index results and comparing them to evaluated index results.
+    """
     def __init__(self, index: MultiHNSW):
         self.index = index
 
@@ -154,18 +192,17 @@ class IndexEvaluator:
         :returns: The total time it took to add the entities to the index and the max memory usage in bytes.
         """
         mem_before = self.process.memory_info().rss
-        start_time = time.time()
+        start_time = time.perf_counter()
         self.index.add_entities(entities)
+        total_time = time.perf_counter() - start_time
         mem_after = self.process.memory_info().rss
-
-        total_time = time.time() - start_time
         mem_usage = mem_after - mem_before
 
         # also add it to exact index
         mem_before = self.process.memory_info().rss
-        exact_index_start_time = time.time()
+        exact_index_start_time = time.perf_counter()
         self.exact_index.add_entities(entities)
-        exact_index_total_time = time.time() - exact_index_start_time
+        exact_index_total_time = time.perf_counter() - exact_index_start_time
         mem_after = self.process.memory_info().rss
         print(f"Exact index insertion time: {exact_index_total_time:.3f} seconds.")
         print(f"Exact index memory consumption: {(mem_after - mem_before) / 1024 / 1024} MiB.")
@@ -187,9 +224,9 @@ class IndexEvaluator:
             query = [modality[i] for modality in queries]
 
             mem_before = self.process.memory_info().rss
-            start_time = time.time()
+            start_time = time.perf_counter()
             results = self.index.search(query, k)
-            end_time = time.time()
+            end_time = time.perf_counter()
             mem_after = self.process.memory_info().rss
 
             search_times.append(end_time - start_time)

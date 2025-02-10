@@ -2,33 +2,9 @@ from multimodal_index import MultiHNSW
 import numpy as np
 import random
 
-from src.common.constants import *
+from src.load_dataset import load_dataset
 from src.evaluation import IndexEvaluator, compute_exact_results, index_construction_evaluation, index_search_evaluation
 from src.evaluation_params import Params, MultiHNSWConstructionParams, MultiHNSWSearchParams
-
-
-def load_dataset():
-    """
-    Load the dataset from the prepared paths.
-    """
-    text_vectors = np.load(TEXT_VECTORS_PATH)
-    image_vectors = np.load(IMAGE_VECTORS_PATH)
-
-    #check type stored, should be float32
-    if text_vectors.dtype != np.float32:
-        # raise exception
-        raise ValueError(f"Text vectors are not float32. They are {text_vectors.dtype}.")
-
-    if image_vectors.dtype != np.float32:
-        # raise exception
-        # cast to float 32 and raise exception
-        # image_vectors = image_vectors.astype(np.float32)
-        # np.save(IMAGE_VECTORS32_PATH, image_vectors)
-        raise ValueError(f"Image vectors are not float32. They are {image_vectors.dtype}.")
-
-    print(
-        f"Loaded 32-bit vectors. Text vectors shape: {text_vectors.shape}. Image vectors shape: {image_vectors.shape}.")
-    return text_vectors, image_vectors
 
 
 def main():
@@ -36,7 +12,7 @@ def main():
     text_vectors_all, image_vectors_all = load_dataset()
 
     # define subset for indexing and querying
-    NUM_INDEXED_ENTITIES = 1_000_000
+    NUM_INDEXED_ENTITIES = 500_000
     NUM_QUERY_ENTITIES = 100
     index_text_vectors = text_vectors_all[:NUM_INDEXED_ENTITIES]
     index_image_vectors = image_vectors_all[:NUM_INDEXED_ENTITIES]
@@ -47,10 +23,11 @@ def main():
     MODALITIES = 2
     DIMENSIONS = [text_vectors_all.shape[1], image_vectors_all.shape[1]]
     DISTANCE_METRICS = ["cosine", "cosine"]
-    my_index = MultiHNSW(MODALITIES, dimensions=DIMENSIONS, distance_metrics=DISTANCE_METRICS)
-
+    my_index = MultiHNSW(MODALITIES, dimensions=DIMENSIONS, distance_metrics=DISTANCE_METRICS, weights=[0.5, 0.5],
+                         target_degree=32, max_degree=32, ef_construction=200, seed=1)
+    my_index.set_ef_search(50)
     # search parameters
-    K = 10
+    K = 50
 
     # evaluate the index
     index_evaluator = IndexEvaluator(my_index)
@@ -67,7 +44,7 @@ def main():
     search_times, recall_scores, memory_consumption = index_evaluator.evaluate_search(queries, K)
 
     print(
-        f"Average search time: {np.mean(search_times):.3f} seconds. Variance: {np.var(search_times):.3f}. Min: {np.min(search_times):.3f}. Max: {np.max(search_times):.3f}.")
+        f"Average search time: {np.mean(search_times):.6f} seconds. Variance: {np.var(search_times):.6f}. Min: {np.min(search_times):.6f}. Max: {np.max(search_times):.6f}.")
     print(
         f"Average recall: {np.mean(recall_scores):.3f}. Variance: {np.var(recall_scores):.3f}. Min: {np.min(recall_scores):.3f}. Max: {np.max(recall_scores):.3f}.")
     print(
@@ -75,10 +52,13 @@ def main():
 
 
 def get_params():
+    """
+    Get the parameters for the exact index setup.
+    """
     text_vectors_all, image_vectors_all = load_dataset()
     dataset = [text_vectors_all, image_vectors_all]
 
-    NUM_INDEXED_ENTITIES = 1000
+    INDEX_SIZE = 1000
 
     MODALITIES = 2
     DIMENSIONS = [text_vectors_all.shape[1], image_vectors_all.shape[1]]
@@ -92,10 +72,13 @@ def get_params():
     # set query_ids to last NUM_QUERY_ENTITIES
     query_ids = list(range(len(dataset[0]) - NUM_QUERY_ENTITIES, len(dataset[0])))
 
-    return Params(MODALITIES, DIMENSIONS, DISTANCE_METRICS, WEIGHTS, dataset, NUM_INDEXED_ENTITIES, K, query_ids)
+    return Params(MODALITIES, DIMENSIONS, DISTANCE_METRICS, WEIGHTS, dataset, INDEX_SIZE, K, query_ids)
 
 
 def get_construction_params():
+    """
+    Get the parameters for the HNSW index construction.
+    """
     TARGET_DEGREE = 32
     MAX_DEGREE = 64
     EF_CONSTRUCTION = 20
@@ -105,12 +88,18 @@ def get_construction_params():
 
 
 def get_search_params(params: Params):
+    """
+    Get the parameters for the HNSW index search.
+    """
     EF_SEARCH = 20
 
     return MultiHNSWSearchParams(params.k, EF_SEARCH)
 
 
 def run_exact_results():
+    """
+    Evaluate the exact results search.
+    """
     params = get_params()
     params.k = 50
     params.index_size = 10000
@@ -122,16 +111,20 @@ def run_exact_results():
 
 
 def evaluate_construction():
+    """
+    Evaluate the MultiHSNW index construction.
+    """
     params = get_params()
     construction_params = get_construction_params()
 
-    index = index_construction_evaluation(params, construction_params)
+    index_construction_evaluation(params, construction_params)
 
-    # exact_results, times = compute_exact_results(params)
-    #print(exact_results.shape)
 
 
 def evaluate_search():
+    """
+    Evaluate the MultiHSNW index search.
+    """
     params = get_params()
     construction_params = get_construction_params()
     search_params = get_search_params(params)
@@ -147,13 +140,16 @@ def evaluate_search():
 
 
 def evaluate_parameter_space():
+    """
+    Evaluate a range of values in the parameter space for the MultiHSNW index construction and search.
+    """
     params = get_params()
     construction_params = get_construction_params()
     search_params = get_search_params(params)
     NUM_QUERY_ENTITIES = 100
 
-    for index_size in [10_000, 25_000, 50_000, 75_000, 100_000, 250_000, 500_000, 750_000, 1_000_000]:
-    #for index_size in [10_000]:
+    #for index_size in [10_000, 25_000, 50_000, 75_000, 100_000, 250_000, 375_000, 500_000, 625_000, 750_000, 875_000, 1_000_000]:
+    for index_size in reversed([10_000, 25_000, 50_000, 75_000, 100_000, 250_000, 375_000, 500_000, 625_000, 750_000, 875_000, 1_000_000]):
         params.index_size = index_size
 
         for k in [50]:
@@ -163,7 +159,7 @@ def evaluate_parameter_space():
             # set query_ids to a random sample of NUM_QUERY_ENTITIES unused entities
             query_ids = random.sample(range(params.index_size, len(params.dataset[0])), NUM_QUERY_ENTITIES)
             params.query_ids = query_ids
-
+            print("Query_ids:", query_ids)
             exact_results, exact_times = compute_exact_results(params, cache=True)  # will cache these when possible
             print(
                 f"Average time for k={k} exact search on index_size {index_size} is {round(np.mean(exact_times) * 1000, 3)} ms.")
@@ -189,30 +185,6 @@ def evaluate_parameter_space():
                                                                                                exact_results, params,
                                                                                                search_params)
 
-def evaluate_single_modality():
-    import time
-
-    text_vectors_all, image_vectors_all = load_dataset()
-
-    MODALITIES = 1
-    DIMENSIONS = [text_vectors_all.shape[1]]
-    DISTANCE_METRICS = ["cosine"]
-    WEIGHTS = [1]
-
-    entities_to_insert = [text_vectors_all[:100_000]]
-
-    start_time = time.time()
-    multi_hnsw = MultiHNSW(MODALITIES, DIMENSIONS, DISTANCE_METRICS, weights=WEIGHTS,
-                           target_degree=16,
-                           max_degree=16,
-                           ef_construction=200,
-                           seed=10)
-    multi_hnsw.add_entities(entities_to_insert)
-    total_time = time.time() - start_time
-
-    print(f"Index construction time: {total_time}")
-
-
 if __name__ == "__main__":
     #main()
     #save_image_vectors_to_32(IMAGE_VECTORS_PATH.replace("image_vectors.npy", "image_vectors64.npy"))
@@ -220,7 +192,9 @@ if __name__ == "__main__":
     #run_exact_results()
     #evaluate_construction()
     #evaluate_search()
-
+    print("Beginning parameter space evaluation...")
     evaluate_parameter_space()
-
+    print("Finished parameter space evaluation. Now testing main()...")
+    main()
+    
     #evaluate_single_modality()
