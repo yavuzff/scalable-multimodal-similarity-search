@@ -30,7 +30,7 @@ private:
 
     entity_id_t entryPoint;
     size_t maxLevel;
-    size_t maxDegreeLayer0;  //set to 2 * maxDegree
+    size_t maxDegreeLayer0;  // set to 2 * maxDegree
 
     mutable std::mt19937 generator;
 
@@ -52,9 +52,9 @@ private:
     [[nodiscard]] std::priority_queue<std::pair<float, entity_id_t>> searchLayer(std::span<const float> entity, const std::vector<entity_id_t> &entryPoints, const std::vector<float>& weights, size_t ef, size_t layer) const;
     [[nodiscard]] std::priority_queue<std::pair<float, entity_id_t>> searchLayer(entity_id_t entityId, const std::vector<entity_id_t> &entryPoints, const std::vector<float>& weights, size_t ef, size_t layer) const;
 
-    void selectNearestCandidates(std::priority_queue<std::pair<float, entity_id_t>> &candidates, size_t M) const;
-    std::priority_queue<std::pair<float, entity_id_t>> selectNearestCandidates(entity_id_t targetEntityId, std::span<entity_id_t> candidates, size_t M, const std::vector<float>& weights) const;
-    void selectDiversifiedCandidates(std::priority_queue<std::pair<float, entity_id_t>>& candidates, const std::vector<float>& weights, size_t M) const;
+    void selectNearestCandidates(std::priority_queue<std::pair<float, entity_id_t>> &candidates, size_t resultSize) const;
+    std::priority_queue<std::pair<float, entity_id_t>> selectNearestCandidates(entity_id_t targetEntityId, std::span<entity_id_t> candidates, size_t numSelected, const std::vector<float>& weights) const;
+    void selectDiversifiedCandidates(std::priority_queue<std::pair<float, entity_id_t>>& candidates, size_t targetSelectedNeighbours, const std::vector<float>& weights) const;
 
     void addAndPruneEdgesForExistingNodes(entity_id_t newEntityId, const std::vector<std::pair<float, entity_id_t>> &connectedNeighbours, size_t layer);
 

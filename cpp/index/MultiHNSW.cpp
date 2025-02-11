@@ -193,7 +193,7 @@ vector<size_t> MultiHNSW::search(const vector<vector<float>>& query, size_t k) {
     return search(getSpanViewOfVectors(query), k);
 }
 
-void MultiHNSW::addEntityToGraph(entity_id_t entityId) {
+void MultiHNSW::addEntityToGraph(const entity_id_t entityId) {
     debug_printf("Inserting entity %d \n", entityId);
 
     assert (entityId < nodes.size());
@@ -238,7 +238,11 @@ void MultiHNSW::addEntityToGraph(entity_id_t entityId) {
 
         // currently have a single entry point to the layer below
         candidateNearestNeighbours = searchLayer(entityId, {currentEntryPoint}, indexWeights, efConstruction, layer);
-        selectNearestCandidates(candidateNearestNeighbours, targetDegree);
+        // selectNearestCandidates(candidateNearestNeighbours, targetDegree);
+        selectDiversifiedCandidates(candidateNearestNeighbours, targetDegree, indexWeights);
+        assert(candidateNearestNeighbours.top().first >= 0);
+        assert(candidateNearestNeighbours.size() <= targetDegree);
+
 
         // identify the neighbours to connect the new node to
         vector<pair<float, entity_id_t>> neighboursToConnect;
@@ -251,7 +255,7 @@ void MultiHNSW::addEntityToGraph(entity_id_t entityId) {
         // update the entry point to be the closest neighbour, which is the last item since we appended from a max heap
         currentEntryPoint = neighboursToConnect.back().second;
 
-        // add edges from the new node to the neighbours
+        // add edges from the new node to the neighbours - note: we are adding the edges by decreasing distance
         for (pair<float, entity_id_t> neighbour : neighboursToConnect) {
             nodes[entityId].neighboursPerLayer[layer].push_back(neighbour.second);
             debug_printf("Connected node %d to neighbor %d at layer %zu\n", entityId, neighbour.second, layer);
@@ -296,35 +300,51 @@ void MultiHNSW::addAndPruneEdgesForExistingNodes(entity_id_t newEntityId, const 
             assert (nodes[currentEntity].neighboursPerLayer[layer].size() == _maxDegree);
             debug_printf("Pruning edges for node %d at layer %zu\n", currentEntity, layer);
 
-            // replace worst neighbour
-            size_t worstNeighbourIndex = _maxDegree;
-            float maxDist = item.first;
-            for (size_t i = 0; i < _maxDegree; i++) {
-                const float dist = computeDistance(
-                                    getEntityFromEntityId(currentEntity),
-                                    getEntityFromEntityId(nodes[currentEntity].neighboursPerLayer[layer][i]),
-                                    indexWeights);
-                if (dist < maxDist) {
-                    maxDist = dist;
-                    worstNeighbourIndex = i;
+            bool simplyReplaceWorstNeighbour = false;
+            if (simplyReplaceWorstNeighbour) {
+                // replace worst neighbour
+                size_t worstNeighbourIndex = _maxDegree;
+                float maxDist = item.first;
+                for (size_t i = 0; i < _maxDegree; i++) {
+                    const float dist = computeDistance(
+                                        getEntityFromEntityId(currentEntity),
+                                        getEntityFromEntityId(nodes[currentEntity].neighboursPerLayer[layer][i]),
+                                        indexWeights);
+                    if (dist < maxDist) {
+                        maxDist = dist;
+                        worstNeighbourIndex = i;
+                    }
+                }
+                if (worstNeighbourIndex != _maxDegree) {
+                    nodes[currentEntity].neighboursPerLayer[layer][worstNeighbourIndex] = newEntityId;
+                }
+            } else {
+                // use diversified candidates heuristic to select the new set of edges
+                priority_queue<pair<float, entity_id_t>> candidateNeighbours;
+                // first add entry for the new entity (item.first is distance(newEntityId, currentEntity))
+                candidateNeighbours.emplace(item.first, newEntityId);
+
+                // iterate through existing neighbours
+                for (entity_id_t existingNeighbour: nodes[currentEntity].neighboursPerLayer[layer]) {
+                    // compute distance for the corresponding edge - note: we would have computed this value previously when constructing edge
+                    const float dist = computeDistance(
+                                        getEntityFromEntityId(currentEntity),
+                                        getEntityFromEntityId(existingNeighbour),
+                                        indexWeights);
+                    candidateNeighbours.emplace(dist, existingNeighbour);
+                }
+
+                selectDiversifiedCandidates(candidateNeighbours, _maxDegree, indexWeights);
+
+                // update the neighbours for the current entity by resizing the vector and adding the new neighbours
+                assert(nodes[currentEntity].neighboursPerLayer[layer].capacity() == _maxDegree);
+                nodes[currentEntity].neighboursPerLayer[layer].clear();
+                assert(nodes[currentEntity].neighboursPerLayer[layer].capacity() == _maxDegree);
+                while (!candidateNeighbours.empty()) {
+                    nodes[currentEntity].neighboursPerLayer[layer].push_back(candidateNeighbours.top().second);
+                    candidateNeighbours.pop();
                 }
             }
-            if (worstNeighbourIndex != _maxDegree) {
-                nodes[currentEntity].neighboursPerLayer[layer][worstNeighbourIndex] = newEntityId;
-            }
-
-            /*
-            priority_queue<pair<float, entity_id_t>> neighboursToConsider;
-            //first add entry for the newEntity: Assuming distance is symmetric?
-            neighboursToConsider.emplace(item.first, newEntityId);
-            // iterate through existing neighbours
-            for (entity_id_t existingNeighbour: nodes[currentEntity].neighboursPerLayer[layer]) {
-                const float dist = computeDistanceBetweenEntities(currentEntity, existingNeighbour, indexWeights);
-                neighboursToConsider.emplace(dist, existingNeighbour);
-            }
-
-            // To do: use diversifiedCandidates heuristic, resize nodes and update neighbours with new selected neighbours
-            */
         }
     }
 }
@@ -428,13 +448,13 @@ vector<entity_id_t> MultiHNSW::internalSearch(const vector<span<const float>>& u
 }
 
 
-void MultiHNSW::selectNearestCandidates(priority_queue<pair<float, entity_id_t>> &candidates, size_t M) const {
+void MultiHNSW::selectNearestCandidates(priority_queue<pair<float, entity_id_t>> &candidates, size_t resultSize) const {
     // precondition: candidates is a non-empty max heap
     assert(!candidates.empty());
     assert(candidates.top().first >= 0);
 
     // pop from the heap until needed
-    while (candidates.size() > M) {
+    while (candidates.size() > resultSize) {
         candidates.pop();
     }
 
@@ -447,10 +467,10 @@ void MultiHNSW::selectNearestCandidates(priority_queue<pair<float, entity_id_t>>
 }
 
 // computes and finds the M closest entities to the targetEntityId from the candidates
-priority_queue<pair<float, entity_id_t>> MultiHNSW::selectNearestCandidates(entity_id_t targetEntityId, const span<entity_id_t> candidates, size_t M, const std::vector<float>& weights) const {
+priority_queue<pair<float, entity_id_t>> MultiHNSW::selectNearestCandidates(entity_id_t targetEntityId, const span<entity_id_t> candidates, size_t numSelected, const std::vector<float>& weights) const {
     // precondition: candidates is a non-empty array
     assert(!candidates.empty());
-    assert(M <= candidates.size());
+    assert(numSelected <= candidates.size());
     priority_queue<pair<float, entity_id_t>> maxHeap;
     for (const entity_id_t candidate : candidates) {
         assert(candidate != targetEntityId);
@@ -458,19 +478,66 @@ priority_queue<pair<float, entity_id_t>> MultiHNSW::selectNearestCandidates(enti
             getEntityFromEntityId(targetEntityId),
             getEntityFromEntityId(candidate),
             weights);
-        if (maxHeap.size() < M) {
+        if (maxHeap.size() < numSelected) {
             maxHeap.emplace(dist, candidate);
         } else if (dist < maxHeap.top().first) {
             maxHeap.pop();
             maxHeap.emplace(dist, candidate);
         }
     }
-    assert(!maxHeap.empty() && maxHeap.size() <= M);
+    assert(!maxHeap.empty() && maxHeap.size() <= numSelected);
     return maxHeap;
 }
 
 
-// selectDiversifiedCandidates
+void MultiHNSW::selectDiversifiedCandidates(priority_queue<pair<float, entity_id_t>>& candidates, size_t targetSelectedNeighbours, const vector<float>& weights) const {
+    // precondition: candidates is a non-empty max heap
+    assert(!candidates.empty());
+    assert(candidates.top().first >= 0);
+
+    // we do not extend the list of candidates with neighbours of neighbours, which reduces insertion time
+    // also, we will not force to return targetSelectedNeighbours, to avoid repeatedly pruning every time after we reach targetDegree for a node
+    if (candidates.size() <= targetSelectedNeighbours) {
+        return;
+    }
+
+    // form a min heap from the candidates
+    priority_queue<pair<float, entity_id_t>> candidatesMinHeap;
+    while (!candidates.empty()) {
+        candidatesMinHeap.emplace(-candidates.top().first, candidates.top().second);
+        candidates.pop();
+    }
+
+    vector<pair<float, entity_id_t>> selectedCandidates; // stores the diversified candidates
+    while (!candidatesMinHeap.empty() && selectedCandidates.size() < targetSelectedNeighbours) {
+        pair<float, entity_id_t> candidate = candidatesMinHeap.top();
+        candidatesMinHeap.pop();
+        const float distToCandidate = -candidate.first;
+
+        // add current candidate only if (for all s in selected: dist(current, query) < dist(current, s)).
+        bool addCandidate = true;
+        for (const pair<float, entity_id_t>& selected : selectedCandidates) {
+            const float distToSelected = computeDistance(
+                getEntityFromEntityId(selected.second),
+                getEntityFromEntityId(candidate.second),
+                weights);
+            if (distToCandidate >= distToSelected) {
+                addCandidate = false;
+                break;
+            }
+        }
+        if (addCandidate) {
+            selectedCandidates.push_back(candidate);
+        }
+    }
+
+    // update the original candidates heap
+    for (const pair<float, entity_id_t>& selected : selectedCandidates) {
+        candidates.emplace(-selected.first, selected.second);
+    }
+    assert(candidates.size() <= targetSelectedNeighbours);
+    assert(candidates.top().first >= 0);
+}
 
 void MultiHNSW::printGraph() const {
     std::cout << "Printing graph layer by layer:\n";
