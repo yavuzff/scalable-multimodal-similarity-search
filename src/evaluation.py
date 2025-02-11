@@ -58,12 +58,12 @@ def compute_exact_results(p: Params, cache=True):
     np.save(save_folder + "query_ids.npy", p.query_ids)
     np.savez(save_folder + "results.npz", results=results, search_times=search_times)
 
-    print(f"Saved results.npz to {save_folder}")
+    print(f"Saved exact results.npz and query_ids.npy to {save_folder}")
 
     return np.array(results), np.array(search_times)
 
 
-def index_construction_evaluation(p: Params, specific_params: MultiHNSWConstructionParams):
+def evaluate_index_construction(p: Params, specific_params: MultiHNSWConstructionParams):
     """
     Construct an index with the given parameters and save the time it took to construct it to a file.
     """
@@ -94,8 +94,8 @@ def index_construction_evaluation(p: Params, specific_params: MultiHNSWConstruct
     return multi_hnsw, save_file
 
 
-def index_search_evaluation(index: MultiHNSW, index_path: str, exact_results, params: Params,
-                            search_params: MultiHNSWSearchParams):
+def evaluate_index_search(index: MultiHNSW, index_path: str, exact_results, params: Params,
+                          search_params: MultiHNSWSearchParams):
     """
     Search the index with the given parameters and save the ANN results and search times to a file.
     """
@@ -130,8 +130,8 @@ def index_search_evaluation(index: MultiHNSW, index_path: str, exact_results, pa
     np.savez(save_folder + "results.npz", results=results, search_times=search_times,
              recall_scores=recall_scores, ef_search=search_params.ef_search)
 
-    print(f"Search time (ms), efSearch, recall: {sum(search_times) / len(search_times) * 1000:.3f}, {search_params.ef_search}, {sum(recall_scores) / len(recall_scores):.5f}")
-    print(f"Saved query_ids.npy and results.npz for efSearch={search_params.ef_search} to {save_folder}")
+    print(f"Search time, efSearch, recall: {sum(search_times) / len(search_times) * 1000:.3f}, {search_params.ef_search}, {sum(recall_scores) / len(recall_scores):.5f}")
+    print(f"Saved efSearch={search_params.ef_search} results to {save_folder}")
     return results, search_times, recall_scores
 
 
@@ -160,6 +160,56 @@ def evaluate_single_modality():
     total_time = time.perf_counter() - start_time
 
     print(f"Index construction time: {total_time}")
+
+
+def evaluate_hnsw_rerank_construction(p: Params, specific_params: MultiHNSWConstructionParams):
+    """
+    Evaluate the construction and search of a HNSW index with reranking.
+    """
+    indexes = []
+    construction_times = []
+    for i in range(p.modalities):
+        start_time = time.perf_counter()
+        vectors_to_insert = p.dataset[i][:p.index_size]
+        index = MultiHNSW(1, [p.dimensions[i]], [p.metrics[i]], weights=[1],
+                               target_degree=specific_params.target_degree,
+                               max_degree=specific_params.max_degree,
+                               ef_construction=specific_params.ef_construction,
+                               seed=specific_params.seed)
+        index.add_entities([vectors_to_insert])
+        total_time = time.perf_counter() - start_time
+        construction_times.append(total_time)
+        indexes.append(index)
+
+    print(f"Constructed indexes in: {construction_times} with total time {sum(construction_times)}")
+
+    return indexes
+
+def evaluate_hnsw_rerank_search(indexes, exact_results, params: Params, search_params: MultiHNSWSearchParams):
+    """
+    Evaluate the search performance of a HNSW index with reranking. We use ef search as the k for each search.
+    """
+
+    for index in indexes:
+        index.set_ef_search(search_params.ef_search)
+
+    search_times = []
+    recall_scores = []
+    for i, query_id in enumerate(params.query_ids):
+        start_time = time.perf_counter()
+        ids = []
+        for modality in range(0, len(indexes)):
+            result = indexes[modality].search([params.dataset[modality][query_id]], search_params.ef_search)
+            ids.append(result)
+        # flatten the ids into a set containing unique elements
+        result = set([item for sublist in ids for item in sublist])
+        end_time = time.perf_counter()
+
+        search_times.append(end_time - start_time)
+        recall_scores.append(compute_recall(result, exact_results[i]))
+
+    print(f"Rerank: Search time, efSearch=k', recall: {sum(search_times) / len(search_times) * 1000:.3f}, {search_params.ef_search}, {sum(recall_scores) / len(recall_scores):.5f}")
+
 
 def sanitise_path_string(path):
     """

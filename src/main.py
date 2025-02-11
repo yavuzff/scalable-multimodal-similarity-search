@@ -1,9 +1,11 @@
 from multimodal_index import MultiHNSW
 import numpy as np
 import random
+import time
 
 from src.load_dataset import load_dataset
-from src.evaluation import IndexEvaluator, compute_exact_results, index_construction_evaluation, index_search_evaluation
+from src.evaluation import IndexEvaluator, compute_exact_results, evaluate_index_construction, evaluate_index_search
+from src.evaluation import evaluate_hnsw_rerank_construction, evaluate_hnsw_rerank_search
 from src.evaluation_params import Params, MultiHNSWConstructionParams, MultiHNSWSearchParams
 
 
@@ -65,7 +67,7 @@ def get_params():
     DISTANCE_METRICS = ["cosine", "cosine"]
     WEIGHTS = [0.5, 0.5]
 
-    K = 10
+    K = 50
 
     NUM_QUERY_ENTITIES = 100
 
@@ -116,9 +118,7 @@ def evaluate_construction():
     """
     params = get_params()
     construction_params = get_construction_params()
-
-    index_construction_evaluation(params, construction_params)
-
+    evaluate_index_construction(params, construction_params)
 
 
 def evaluate_search():
@@ -133,10 +133,10 @@ def evaluate_search():
     print("Exact results are:", exact_results)
     print("Exact times are:", exact_times)
 
-    index, index_path = index_construction_evaluation(params, construction_params)
+    index, index_path = evaluate_index_construction(params, construction_params)
 
-    results, search_times, recall_scores = index_search_evaluation(index, index_path, exact_results, params,
-                                                                   search_params)
+    results, search_times, recall_scores = evaluate_index_search(index, index_path, exact_results, params,
+                                                                 search_params)
 
 
 def evaluate_parameter_space():
@@ -150,6 +150,7 @@ def evaluate_parameter_space():
 
     #for index_size in [10_000, 25_000, 50_000, 75_000, 100_000, 250_000, 375_000, 500_000, 625_000, 750_000, 875_000, 1_000_000]:
     for index_size in reversed([10_000, 25_000, 50_000, 75_000, 100_000, 250_000, 375_000, 500_000, 625_000, 750_000, 875_000, 1_000_000]):
+    #for index_size in [1000, 10_000]:
         params.index_size = index_size
 
         for k in [50]:
@@ -176,14 +177,65 @@ def evaluate_parameter_space():
                             construction_params.ef_construction = ef_construction
                             construction_params.seed = seed
 
-                            index, index_path = index_construction_evaluation(params, construction_params)
+                            index, index_path = evaluate_index_construction(params, construction_params)
 
                             # try 20 values for ef_search, starting from ef_search=k
                             for ef_search in range(k, k + 200, 10):
                                 search_params.ef_search = ef_search
-                                results, search_times, recall_scores = index_search_evaluation(index, index_path,
-                                                                                               exact_results, params,
-                                                                                               search_params)
+                                results, search_times, recall_scores = evaluate_index_search(index, index_path,
+                                                                                             exact_results, params,
+                                                                                             search_params)
+
+        time.sleep(index_size/5000) # sleep to avoid overloading the system
+
+
+def evaluate_rerank_hnsw():
+    """
+    Evaluate a range of values in the parameter space for the MultiHSNW index construction and search.
+    """
+    from src.evaluation import EXACT_RESULTS_DIR, sanitise_path_string
+    import os
+
+    params = get_params()
+    construction_params = get_construction_params()
+    search_params = get_search_params(params)
+    NUM_QUERY_ENTITIES = 100
+
+    for index_size in reversed([10_000, 25_000, 50_000, 75_000, 100_000, 250_000, 375_000, 500_000, 625_000, 750_000, 875_000, 1_000_000]):
+    #for index_size in [1000, 10_000]:
+        params.index_size = index_size
+        for k in [50]:
+            params.k = k
+            search_params.k = k
+
+            save_folder = EXACT_RESULTS_DIR + sanitise_path_string(
+                f"{params.modalities}_{params.dimensions}_{params.metrics}_{params.weights}_{params.index_size}_{params.k}/")
+
+            # read save_folder and get the folder with the date/time that is the latest
+            sub_folders = [f for f in os.listdir(save_folder) if os.path.isdir(save_folder + f)]
+            last_sub_folder = sorted(sub_folders)[-1]
+            print("Reading query ids and results from folder:", save_folder+ last_sub_folder)
+            # read query_ids.npy from last_sub_folder
+            params.query_ids = np.load(save_folder + last_sub_folder + "/query_ids.npy")
+            assert len(params.query_ids) == NUM_QUERY_ENTITIES
+            exact_results = np.load(save_folder + last_sub_folder + "/results.npz")["results"]
+            print("Query_ids:", params.query_ids)
+
+            # construct indexes
+            for target_degree, max_degree, ef_construction, seed in [(16, 16, 100, 1), (32, 32, 200, 1)]:
+                construction_params.target_degree = target_degree
+                construction_params.max_degree = max_degree
+                construction_params.ef_construction = ef_construction
+                construction_params.seed = seed
+
+                rerank_hnsw_indexes = evaluate_hnsw_rerank_construction(params, construction_params)
+
+                # try 20 values for ef_search=k', starting from ef_search=k
+                for ef_search in range(k, k + 200, 10):
+                    search_params.ef_search = ef_search
+                    evaluate_hnsw_rerank_search(rerank_hnsw_indexes, exact_results, params, search_params)
+
+        time.sleep(index_size/5000) # sleep to avoid overloading the system
 
 if __name__ == "__main__":
     #main()
@@ -192,9 +244,8 @@ if __name__ == "__main__":
     #run_exact_results()
     #evaluate_construction()
     #evaluate_search()
-    print("Beginning parameter space evaluation...")
+    print("Starting parameter space evaluation...")
     evaluate_parameter_space()
-    print("Finished parameter space evaluation. Now testing main()...")
-    main()
-    
-    #evaluate_single_modality()
+    print("Starting rerank evaluation for the previous parameter space...")
+    evaluate_rerank_hnsw()
+    #main()
