@@ -166,22 +166,24 @@ def evaluate_hnsw_rerank_construction(p: Params, specific_params: MultiHNSWConst
     """
     Evaluate the construction and search of a HNSW index with reranking.
     """
+    print("Starting construction at ", datetime.now(), " for ", p.dimensions, " and ", p.metrics)
     indexes = []
     construction_times = []
     for i in range(p.modalities):
+        vectors_to_insert = [p.dataset[i][:p.index_size]]
         start_time = time.perf_counter()
-        vectors_to_insert = p.dataset[i][:p.index_size]
         index = MultiHNSW(1, [p.dimensions[i]], [p.metrics[i]], weights=[1],
                                target_degree=specific_params.target_degree,
                                max_degree=specific_params.max_degree,
                                ef_construction=specific_params.ef_construction,
                                seed=specific_params.seed)
-        index.add_entities([vectors_to_insert])
+        index.add_entities(vectors_to_insert)
         total_time = time.perf_counter() - start_time
         construction_times.append(total_time)
         indexes.append(index)
 
     print(f"Constructed indexes in: {construction_times} with total time {sum(construction_times)}")
+    print(f"Index params were {specific_params.target_degree}, {specific_params.max_degree}, {specific_params.ef_construction}, {specific_params.seed}")
 
     return indexes
 

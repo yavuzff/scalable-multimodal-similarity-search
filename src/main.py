@@ -146,11 +146,12 @@ def evaluate_parameter_space():
     params = get_params()
     construction_params = get_construction_params()
     search_params = get_search_params(params)
-    NUM_QUERY_ENTITIES = 100
+    NUM_QUERY_ENTITIES = 1000
 
     #for index_size in [10_000, 25_000, 50_000, 75_000, 100_000, 250_000, 375_000, 500_000, 625_000, 750_000, 875_000, 1_000_000]:
-    for index_size in reversed([10_000, 25_000, 50_000, 75_000, 100_000, 250_000, 375_000, 500_000, 625_000, 750_000, 875_000, 1_000_000]):
+    #for index_size in reversed([10_000, 25_000, 50_000, 75_000, 100_000, 250_000, 375_000, 500_000, 625_000, 750_000, 875_000, 1_000_000]):
     #for index_size in [1000, 10_000]:
+    for index_size in [500_000, 625_000, 750_000, 875_000, 1_000_000]:
         params.index_size = index_size
 
         for k in [50]:
@@ -189,7 +190,7 @@ def evaluate_parameter_space():
         time.sleep(index_size/5000) # sleep to avoid overloading the system
 
 
-def evaluate_rerank_hnsw():
+def evaluate_rerank_hnsw(index_sizes):
     """
     Evaluate a range of values in the parameter space for the MultiHSNW index construction and search.
     """
@@ -201,8 +202,10 @@ def evaluate_rerank_hnsw():
     search_params = get_search_params(params)
     NUM_QUERY_ENTITIES = 100
 
-    for index_size in reversed([10_000, 25_000, 50_000, 75_000, 100_000, 250_000, 375_000, 500_000, 625_000, 750_000, 875_000, 1_000_000]):
+    #for index_size in reversed([10_000, 25_000, 50_000, 75_000, 100_000, 250_000, 375_000, 500_000, 625_000, 750_000, 875_000, 1_000_000]):
+    #for index_size in [10_000, 25_000, 50_000, 75_000, 100_000, 250_000, 375_000, 500_000, 625_000, 750_000, 875_000, 1_000_000]:
     #for index_size in [1000, 10_000]:
+    for index_size in index_sizes:
         params.index_size = index_size
         for k in [50]:
             params.k = k
@@ -217,7 +220,6 @@ def evaluate_rerank_hnsw():
             print("Reading query ids and results from folder:", save_folder+ last_sub_folder)
             # read query_ids.npy from last_sub_folder
             params.query_ids = np.load(save_folder + last_sub_folder + "/query_ids.npy")
-            assert len(params.query_ids) == NUM_QUERY_ENTITIES
             exact_results = np.load(save_folder + last_sub_folder + "/results.npz")["results"]
             print("Query_ids:", params.query_ids)
 
@@ -230,8 +232,9 @@ def evaluate_rerank_hnsw():
 
                 rerank_hnsw_indexes = evaluate_hnsw_rerank_construction(params, construction_params)
 
-                # try 20 values for ef_search=k', starting from ef_search=k
-                for ef_search in range(k, k + 200, 10):
+                # try values for ef_search=k', starting from ef_search=k
+                for ef_search in range(k-10, k + 600, 10):
+                #for ef_search in range(300, 500, 10):
                     search_params.ef_search = ef_search
                     evaluate_hnsw_rerank_search(rerank_hnsw_indexes, exact_results, params, search_params)
 
@@ -244,8 +247,13 @@ if __name__ == "__main__":
     #run_exact_results()
     #evaluate_construction()
     #evaluate_search()
+    #print("Starting parameter space evaluation...")
+    #evaluate_parameter_space()
+    print("Starting rerank evaluation for the previous parameter space...")
+    evaluate_rerank_hnsw([625_000, 750_000, 875_000, 1_000_000])
+
     print("Starting parameter space evaluation...")
     evaluate_parameter_space()
-    print("Starting rerank evaluation for the previous parameter space...")
-    evaluate_rerank_hnsw()
+    evaluate_rerank_hnsw([500_000, 750_000, 1_000_000, 625_000, 875_000])
+
     #main()
