@@ -152,6 +152,7 @@ def evaluate_parameter_space():
     #for index_size in reversed([10_000, 25_000, 50_000, 75_000, 100_000, 250_000, 375_000, 500_000, 625_000, 750_000, 875_000, 1_000_000]):
     #for index_size in [1000, 10_000]:
     for index_size in [500_000, 625_000, 750_000, 875_000, 1_000_000]:
+    #for index_size in [10_000, 25_000, 50_000, 75_000, 100_000, 150_000, 200_000, 250_000, 375_000]:
         params.index_size = index_size
 
         for k in [50]:
@@ -200,7 +201,7 @@ def evaluate_rerank_hnsw(index_sizes):
     params = get_params()
     construction_params = get_construction_params()
     search_params = get_search_params(params)
-    NUM_QUERY_ENTITIES = 100
+    NUM_QUERY_ENTITIES = 1000
 
     #for index_size in reversed([10_000, 25_000, 50_000, 75_000, 100_000, 250_000, 375_000, 500_000, 625_000, 750_000, 875_000, 1_000_000]):
     #for index_size in [10_000, 25_000, 50_000, 75_000, 100_000, 250_000, 375_000, 500_000, 625_000, 750_000, 875_000, 1_000_000]:
@@ -230,13 +231,13 @@ def evaluate_rerank_hnsw(index_sizes):
                 construction_params.ef_construction = ef_construction
                 construction_params.seed = seed
 
-                rerank_hnsw_indexes = evaluate_hnsw_rerank_construction(params, construction_params)
+                rerank_hnsw_indexes, index_path = evaluate_hnsw_rerank_construction(params, construction_params)
 
                 # try values for ef_search=k', starting from ef_search=k
                 for ef_search in range(k-10, k + 600, 10):
                 #for ef_search in range(300, 500, 10):
                     search_params.ef_search = ef_search
-                    evaluate_hnsw_rerank_search(rerank_hnsw_indexes, exact_results, params, search_params)
+                    evaluate_hnsw_rerank_search(rerank_hnsw_indexes, index_path, exact_results, params, search_params)
 
         time.sleep(index_size/5000) # sleep to avoid overloading the system
 
@@ -250,10 +251,11 @@ if __name__ == "__main__":
     #print("Starting parameter space evaluation...")
     #evaluate_parameter_space()
     print("Starting rerank evaluation for the previous parameter space...")
-    evaluate_rerank_hnsw([625_000, 750_000, 875_000, 1_000_000])
+    #evaluate_rerank_hnsw([500_000, 625_000, 750_000, 875_000, 1_000_000])
 
-    print("Starting parameter space evaluation...")
-    evaluate_parameter_space()
-    evaluate_rerank_hnsw([500_000, 750_000, 1_000_000, 625_000, 875_000])
+    #evaluate_parameter_space()
 
+    #evaluate_rerank_hnsw([10_000, 25_000, 50_000, 75_000, 100_000, 150_000, 200_000, 250_000, 375_000])
+
+    #evaluate_rerank_hnsw([10_000])
     #main()

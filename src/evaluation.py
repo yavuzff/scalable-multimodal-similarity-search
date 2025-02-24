@@ -13,6 +13,8 @@ EXACT_RESULTS_DIR = EXPERIMENTS_DIR + "exact_results/"
 CONSTRUCTION_DIR = EXPERIMENTS_DIR + "construction/"
 SEARCH_DIR = EXPERIMENTS_DIR + "search/"
 
+RERANK_CONSTRUCTION_DIR = EXPERIMENTS_DIR + "rerank_construction/"
+RERANK_SEARCH_DIR = EXPERIMENTS_DIR + "rerank_search/"
 
 def compute_exact_results(p: Params, cache=True):
     """
@@ -166,7 +168,14 @@ def evaluate_hnsw_rerank_construction(p: Params, specific_params: MultiHNSWConst
     """
     Evaluate the construction and search of a HNSW index with reranking.
     """
-    print("Starting construction at ", datetime.now(), " for ", p.dimensions, " and ", p.metrics)
+    print("Starting rerank construction at ", datetime.now(), " for ", p.dimensions, " and ", p.metrics)
+
+    save_folder = RERANK_CONSTRUCTION_DIR + \
+                  sanitise_path_string(f"{p.modalities}_{p.dimensions}_{p.metrics}_{p.weights}_{p.index_size}/") + \
+                  f"{specific_params.target_degree}_{specific_params.max_degree}_{specific_params.ef_construction}_{specific_params.seed}/"
+
+    current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f")[:-3]  # get up to millisecond
+
     indexes = []
     construction_times = []
     for i in range(p.modalities):
@@ -185,16 +194,33 @@ def evaluate_hnsw_rerank_construction(p: Params, specific_params: MultiHNSWConst
     print(f"Constructed indexes in: {construction_times} with total time {sum(construction_times)}")
     print(f"Index params were {specific_params.target_degree}, {specific_params.max_degree}, {specific_params.ef_construction}, {specific_params.seed}")
 
-    return indexes
+    # save construction times
+    os.makedirs(os.path.dirname(save_folder), exist_ok=True)
+    save_file = save_folder + current_time + ".npz"
+    np.savez(save_file, time=construction_times)
+    print(f"Saved construction times to {save_file}")
 
-def evaluate_hnsw_rerank_search(indexes, exact_results, params: Params, search_params: MultiHNSWSearchParams):
+    return indexes, save_file
+
+
+def evaluate_hnsw_rerank_search(indexes, index_path: str, exact_results, params: Params, search_params: MultiHNSWSearchParams):
     """
     Evaluate the search performance of a HNSW index with reranking. We use ef search as the k for each search.
     """
+    index_path_components = index_path.split('/')
+    index_path_components[-1] = index_path_components[-1].replace(".npz", "")  # update the index path to be a folder
+    rest_path = '/'.join(
+        index_path_components[2:])  # do not include the starting part of the index path (exp/construction/...)
+    save_folder = RERANK_SEARCH_DIR + rest_path + '/'
+
+    current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f")[:-3]  # get up to millisecond
+    save_folder += f"{search_params.k}_{search_params.ef_search}_" + current_time + "/"
+    os.makedirs(os.path.dirname(save_folder))
 
     for index in indexes:
         index.set_ef_search(search_params.ef_search)
 
+    # note that we do not keep track of the results returned, just the recall
     search_times = []
     recall_scores = []
     for i, query_id in enumerate(params.query_ids):
@@ -209,6 +235,11 @@ def evaluate_hnsw_rerank_search(indexes, exact_results, params: Params, search_p
 
         search_times.append(end_time - start_time)
         recall_scores.append(compute_recall(result, exact_results[i]))
+
+    # save query_ids, recall_scores and search_times at save_folder
+    np.save(save_folder + "query_ids.npy", params.query_ids)
+    np.savez(save_folder + "results.npz", search_times=search_times,
+             recall_scores=recall_scores, ef_search=search_params.ef_search)
 
     print(f"Rerank: Search time, efSearch=k', recall: {sum(search_times) / len(search_times) * 1000:.3f}, {search_params.ef_search}, {sum(recall_scores) / len(recall_scores):.5f}")
 
