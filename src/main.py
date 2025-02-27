@@ -1,4 +1,4 @@
-from multimodal_index import MultiHNSW
+from multivec_index import MultiVecHNSW
 import numpy as np
 import random
 import time
@@ -6,7 +6,7 @@ import time
 from src.load_dataset import load_dataset
 from src.evaluation import IndexEvaluator, compute_exact_results, evaluate_index_construction, evaluate_index_search
 from src.evaluation import evaluate_hnsw_rerank_construction, evaluate_hnsw_rerank_search
-from src.evaluation_params import Params, MultiHNSWConstructionParams, MultiHNSWSearchParams
+from src.evaluation_params import Params, MultiVecHNSWConstructionParams, MultiVecHNSWSearchParams
 
 
 def main():
@@ -25,7 +25,7 @@ def main():
     MODALITIES = 2
     DIMENSIONS = [text_vectors_all.shape[1], image_vectors_all.shape[1]]
     DISTANCE_METRICS = ["cosine", "cosine"]
-    my_index = MultiHNSW(MODALITIES, dimensions=DIMENSIONS, distance_metrics=DISTANCE_METRICS, weights=[0.5, 0.5],
+    my_index = MultiVecHNSW(MODALITIES, dimensions=DIMENSIONS, distance_metrics=DISTANCE_METRICS, weights=[0.5, 0.5],
                          target_degree=32, max_degree=32, ef_construction=200, seed=1)
     my_index.set_ef_search(50)
     # search parameters
@@ -86,7 +86,7 @@ def get_construction_params():
     EF_CONSTRUCTION = 20
     SEED = 2
 
-    return MultiHNSWConstructionParams(TARGET_DEGREE, MAX_DEGREE, EF_CONSTRUCTION, SEED)
+    return MultiVecHNSWConstructionParams(TARGET_DEGREE, MAX_DEGREE, EF_CONSTRUCTION, SEED)
 
 
 def get_search_params(params: Params):
@@ -95,7 +95,7 @@ def get_search_params(params: Params):
     """
     EF_SEARCH = 20
 
-    return MultiHNSWSearchParams(params.k, EF_SEARCH)
+    return MultiVecHNSWSearchParams(params.k, EF_SEARCH)
 
 
 def run_exact_results():
@@ -114,7 +114,7 @@ def run_exact_results():
 
 def evaluate_construction():
     """
-    Evaluate the MultiHSNW index construction.
+    Evaluate the MultiVecHSNW index construction.
     """
     params = get_params()
     construction_params = get_construction_params()
@@ -123,7 +123,7 @@ def evaluate_construction():
 
 def evaluate_search():
     """
-    Evaluate the MultiHSNW index search.
+    Evaluate the MultiVecHSNW index search.
     """
     params = get_params()
     construction_params = get_construction_params()
@@ -141,7 +141,7 @@ def evaluate_search():
 
 def evaluate_parameter_space():
     """
-    Evaluate a range of values in the parameter space for the MultiHSNW index construction and search.
+    Evaluate a range of values in the parameter space for the MultiVecHSNW index construction and search.
     """
     params = get_params()
     construction_params = get_construction_params()
@@ -151,8 +151,8 @@ def evaluate_parameter_space():
     #for index_size in [10_000, 25_000, 50_000, 75_000, 100_000, 250_000, 375_000, 500_000, 625_000, 750_000, 875_000, 1_000_000]:
     #for index_size in reversed([10_000, 25_000, 50_000, 75_000, 100_000, 250_000, 375_000, 500_000, 625_000, 750_000, 875_000, 1_000_000]):
     #for index_size in [1000, 10_000]:
-    for index_size in [500_000, 625_000, 750_000, 875_000, 1_000_000]:
-    #for index_size in [10_000, 25_000, 50_000, 75_000, 100_000, 150_000, 200_000, 250_000, 375_000]:
+    #for index_size in [500_000, 625_000, 750_000, 875_000, 1_000_000]:
+    for index_size in [10_000, 25_000, 50_000, 75_000, 100_000, 150_000, 200_000, 250_000, 375_000]:
         params.index_size = index_size
 
         for k in [50]:
@@ -193,7 +193,7 @@ def evaluate_parameter_space():
 
 def evaluate_rerank_hnsw(index_sizes):
     """
-    Evaluate a range of values in the parameter space for the MultiHSNW index construction and search.
+    Evaluate a range of values in the parameter space for the MultiVecHSNW index construction and search.
     """
     from src.evaluation import EXACT_RESULTS_DIR, sanitise_path_string
     import os
@@ -251,11 +251,10 @@ if __name__ == "__main__":
     #print("Starting parameter space evaluation...")
     #evaluate_parameter_space()
     print("Starting rerank evaluation for the previous parameter space...")
-    #evaluate_rerank_hnsw([500_000, 625_000, 750_000, 875_000, 1_000_000])
+    ##evaluate_rerank_hnsw([500_000, 625_000, 750_000, 875_000, 1_000_000])
 
-    #evaluate_parameter_space()
+    ##evaluate_parameter_space()
 
-    #evaluate_rerank_hnsw([10_000, 25_000, 50_000, 75_000, 100_000, 150_000, 200_000, 250_000, 375_000])
+    ##evaluate_rerank_hnsw([10_000, 25_000, 50_000, 75_000, 100_000, 150_000, 200_000, 250_000, 375_000, 500_000, 625_000, 750_000, 875_000, 1_000_000])
 
-    #evaluate_rerank_hnsw([10_000])
     #main()

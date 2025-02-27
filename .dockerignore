@@ -18,6 +18,6 @@ run-docker.sh
 
 # cpp stuff
 cpp/build/
-cpp/multimodal_cpp_index.egg-info/
+cpp/multivec_cpp_index.egg-info/
 cpp/cmake-build-debug/
 cpp/dist/

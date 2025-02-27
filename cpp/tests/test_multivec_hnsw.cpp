@@ -3,7 +3,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/matchers/catch_matchers_range_equals.hpp>
 
-#include "../include/MultiHNSW.hpp"
+#include "../include/MultiVecHNSW.hpp"
 #include "../include/utils.hpp"
 #include "../include/common.hpp"
 
@@ -13,18 +13,18 @@ float getRandomFloat() {
     return static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
 }
 
-class MultiHNSWTest {
+class MultiVecHNSWTest {
 public:
-    static MultiHNSW initaliseTest1() {
-        MultiHNSW multiHNSW = MultiHNSW::Builder(2, {3, 3})
+    static MultiVecHNSW initaliseTest1() {
+        MultiVecHNSW multiVecHNSW = MultiVecHNSW::Builder(2, {3, 3})
             .setDistanceMetrics({"euclidean", "manhattan"})
             .setWeights({0.5f, 0.5f})
             .build();
 
-        return multiHNSW;
+        return multiVecHNSW;
     }
 
-    static void testAddToEntityStorageByModality1(MultiHNSW& hnsw) {
+    static void testAddToEntityStorageByModality1(MultiVecHNSW& hnsw) {
         std::vector<std::vector<float>> entities = {
             {1.0f, 2.0f, 3.0f,      4.0f, 5.0f, 6.0f},
             {7.0f, 8.0f, 9.0f,      10.0f, 11.0f, 12.0f}
@@ -36,7 +36,7 @@ public:
         REQUIRE(hnsw.entityStorageByModality[1].size() == 6);
     }
 
-    static void testAddToEntityStorage(MultiHNSW& hnsw) {
+    static void testAddToEntityStorage(MultiVecHNSW& hnsw) {
         std::vector<std::vector<float>> entities = {
             {1.0f, 2.0f, 3.0f,      4.0f, 5.0f, 6.0f},
             {7.0f, 8.0f, 9.0f,      10.0f, 11.0f, 12.0f}
@@ -48,7 +48,7 @@ public:
         REQUIRE_THAT(hnsw.entityStorage, Catch::Matchers::RangeEquals(expectedResults1));
     }
 
-    static void testGetEntityModalityFromEntityId1(MultiHNSW& hnsw) {
+    static void testGetEntityModalityFromEntityId1(MultiVecHNSW& hnsw) {
         std::vector<std::vector<float>> entities = {
             {1.0f, 2.0f, 3.0f,      4.0f, 5.0f, 6.0f},
             {7.0f, 8.0f, 9.0f,      10.0f, 11.0f, 12.0f}
@@ -68,7 +68,7 @@ public:
         REQUIRE(vector[2] == 6.0f);
     }
 
-    static void testGetEntityFromEntityId1(MultiHNSW& hnsw) {
+    static void testGetEntityFromEntityId1(MultiVecHNSW& hnsw) {
         std::vector<std::vector<float>> entities = {
             {1.0f, 2.0f, 3.0f,      4.0f, 5.0f, 6.0f},
             {7.0f, 8.0f, 9.0f,      10.0f, 11.0f, 12.0f}
@@ -84,7 +84,7 @@ public:
         REQUIRE_THAT(vector2, Catch::Matchers::RangeEquals(expectedResults2));
     }
 
-    static void testComputeDistanceBetweenEntities1(MultiHNSW& hnsw) {
+    static void testComputeDistanceBetweenEntities1(MultiVecHNSW& hnsw) {
         std::vector<std::vector<float>> entities = {
             {3.0f, 2.0f, 3.0f,      3.0f, -1.0f, 7.0f},
             {3.0f, 2.0f, 3.0f,      3.0f, -1.0f, 7.0f}
@@ -99,7 +99,7 @@ public:
     }
 
     static void testGetEntityModalityFromEntityId2() {
-        MultiHNSW hnsw = MultiHNSW::Builder(3, {1, 2, 3})
+        MultiVecHNSW hnsw = MultiVecHNSW::Builder(3, {1, 2, 3})
             .setDistanceMetrics({"euclidean", "manhattan", "cosine"})
             .setWeights({0.3f, 0.5f, 0.2f})
             .build();
@@ -135,7 +135,7 @@ public:
     }
 
     static void testGetEntityFromEntityId2() {
-        MultiHNSW hnsw = MultiHNSW::Builder(3, {1, 2, 3})
+        MultiVecHNSW hnsw = MultiVecHNSW::Builder(3, {1, 2, 3})
             .setDistanceMetrics({"euclidean", "manhattan", "cosine"})
             .setWeights({0.3f, 0.5f, 0.2f})
             .build();
@@ -166,7 +166,7 @@ public:
     }
 
     static void testGenerateRandomLevel() {
-        MultiHNSW hnsw = MultiHNSW::Builder(2, {3, 3}).build();
+        MultiVecHNSW hnsw = MultiVecHNSW::Builder(2, {3, 3}).build();
 
         int level = hnsw.generateRandomLevel();
         debug_printf("Random level: %d\n", level);
@@ -185,7 +185,7 @@ public:
         size_t numModalities = 1;
         vector<size_t> dims = {1};
 
-        MultiHNSW multiHNSW = MultiHNSW::Builder(numModalities, dims)
+        MultiVecHNSW multiVecHNSW = MultiVecHNSW::Builder(numModalities, dims)
             .setEfConstruction(10)
             .setEfSearch(10)
             .setTargetDegree(2)
@@ -197,24 +197,24 @@ public:
         std::vector<std::vector<float>> entities = {
             {1.0f, 2.0f, 3.0f, 4.0f, 5.0f},
         };
-        multiHNSW.addToEntityStorage(getSpanViewOfVectors(entities), 5);
+        multiVecHNSW.addToEntityStorage(getSpanViewOfVectors(entities), 5);
 
         // create 5 nodes with each node having 2 layers
-        multiHNSW.nodes.resize(5);
-        for (auto& node : multiHNSW.nodes) {
+        multiVecHNSW.nodes.resize(5);
+        for (auto& node : multiVecHNSW.nodes) {
             node.neighboursPerLayer.resize(2);
         }
-        multiHNSW.maxLevel = 1;
+        multiVecHNSW.maxLevel = 1;
 
         // create graph
-        multiHNSW.nodes[0].neighboursPerLayer[0] = {1, 2};
-        multiHNSW.nodes[1].neighboursPerLayer[0] = {0, 3};
-        multiHNSW.nodes[2].neighboursPerLayer[0] = {0, 4};
-        multiHNSW.nodes[3].neighboursPerLayer[0] = {1};
-        multiHNSW.nodes[4].neighboursPerLayer[0] = {2};
+        multiVecHNSW.nodes[0].neighboursPerLayer[0] = {1, 2};
+        multiVecHNSW.nodes[1].neighboursPerLayer[0] = {0, 3};
+        multiVecHNSW.nodes[2].neighboursPerLayer[0] = {0, 4};
+        multiVecHNSW.nodes[3].neighboursPerLayer[0] = {1};
+        multiVecHNSW.nodes[4].neighboursPerLayer[0] = {2};
 
-        multiHNSW.nodes[0].neighboursPerLayer[1] = {1};
-        multiHNSW.nodes[1].neighboursPerLayer[1] = {0};
+        multiVecHNSW.nodes[0].neighboursPerLayer[1] = {1};
+        multiVecHNSW.nodes[1].neighboursPerLayer[1] = {0};
 
         // explicitly allocate memory for the query, so that the span refers to persistent data (not temporary data)
         std::vector<float> queryData = {5.0f};
@@ -226,11 +226,11 @@ public:
         std::cout << "Searching for entity with query: " << query[0] << std::endl;
 
         SECTION("Test layer 1 search") {
-            vector<MultiHNSW::entity_id_t> entryPoints = {0};
-            auto resultLayer1 = multiHNSW.searchLayer(query, entryPoints, weights, ef, 1);
+            vector<MultiVecHNSW::entity_id_t> entryPoints = {0};
+            auto resultLayer1 = multiVecHNSW.searchLayer(query, entryPoints, weights, ef, 1);
 
-            vector<MultiHNSW::entity_id_t> expectedResults1 = {0, 1}; // max heap is based on distance, so results are in reverse order
-            vector<MultiHNSW::entity_id_t> idsResultLayer1;
+            vector<MultiVecHNSW::entity_id_t> expectedResults1 = {0, 1}; // max heap is based on distance, so results are in reverse order
+            vector<MultiVecHNSW::entity_id_t> idsResultLayer1;
 
             while (!resultLayer1.empty()) {
                 idsResultLayer1.push_back(resultLayer1.top().second);
@@ -241,11 +241,11 @@ public:
         }
 
         SECTION("Test layer 0 search") {
-            vector<MultiHNSW::entity_id_t> entryPoints = {3};  // start from a different entry point
-            auto resultLayer0 = multiHNSW.searchLayer(query, entryPoints, weights, ef, 0);
+            vector<MultiVecHNSW::entity_id_t> entryPoints = {3};  // start from a different entry point
+            auto resultLayer0 = multiVecHNSW.searchLayer(query, entryPoints, weights, ef, 0);
 
-            vector<MultiHNSW::entity_id_t> expectedResults0 = {2, 3, 4};
-            vector<MultiHNSW::entity_id_t> idsResultLayer0;
+            vector<MultiVecHNSW::entity_id_t> expectedResults0 = {2, 3, 4};
+            vector<MultiVecHNSW::entity_id_t> idsResultLayer0;
 
             while (!resultLayer0.empty()) {
                 idsResultLayer0.push_back(resultLayer0.top().second);
@@ -256,7 +256,7 @@ public:
     }
 
     static void testAddManyRandomEntities() {
-        MultiHNSW index = MultiHNSW::Builder(2, {3, 3})
+        MultiVecHNSW index = MultiVecHNSW::Builder(2, {3, 3})
             .setDistanceMetrics({"euclidean", "manhattan"})
             .setWeights({0.5f, 0.5f})
             .setTargetDegree(3)
@@ -286,7 +286,7 @@ public:
     }
 
     static void testAddSingleEntities() {
-        MultiHNSW index = MultiHNSW::Builder(1, {1})
+        MultiVecHNSW index = MultiVecHNSW::Builder(1, {1})
             .setDistanceMetrics({ "manhattan"})
             .setTargetDegree(3)
             .setMaxDegree(6)
@@ -318,7 +318,7 @@ public:
     }
 
     static void testAddAndSearch1() {
-        MultiHNSW index = MultiHNSW::Builder(2, {3, 3})
+        MultiVecHNSW index = MultiVecHNSW::Builder(2, {3, 3})
             .setDistanceMetrics({"euclidean", "manhattan"})
             .setWeights({0.5f, 0.5f})
             .setTargetDegree(3)
@@ -365,7 +365,7 @@ public:
     }
 
     static void testAddAndSearch2() {
-        MultiHNSW index = MultiHNSW::Builder(2, {3, 3})
+        MultiVecHNSW index = MultiVecHNSW::Builder(2, {3, 3})
             .setDistanceMetrics({"cosine", "manhattan"})
             .setWeights({0.5f, 0.5f})
             .setTargetDegree(3)
@@ -418,71 +418,71 @@ public:
     }
 };
 
-TEST_CASE("MultiHNSWBuilder builds", "[MultiHNSWBuilder]") {
+TEST_CASE("MultiVecHNSWBuilder builds", "[MultiVecHNSWBuilder]") {
     SECTION("Test default build") {
 
-        MultiHNSW multiHNSW = MultiHNSW::Builder(2, {3,3})
+        MultiVecHNSW multiVecHNSW = MultiVecHNSW::Builder(2, {3,3})
                               .setEfSearch(50)
                               .build();
 
-        REQUIRE(multiHNSW.getNumModalities() == 2);
-        REQUIRE_THAT(multiHNSW.getDimensions(), Catch::Matchers::RangeEquals(std::vector<size_t> {3, 3}));;
-        REQUIRE_THAT(multiHNSW.getWeights(), Catch::Matchers::RangeEquals(std::vector<float> {0.5, 0.5}));;
+        REQUIRE(multiVecHNSW.getNumModalities() == 2);
+        REQUIRE_THAT(multiVecHNSW.getDimensions(), Catch::Matchers::RangeEquals(std::vector<size_t> {3, 3}));;
+        REQUIRE_THAT(multiVecHNSW.getWeights(), Catch::Matchers::RangeEquals(std::vector<float> {0.5, 0.5}));;
 
-        REQUIRE(multiHNSW.getEfSearch() == 50);
-        REQUIRE(multiHNSW.getTargetDegree() == 32);
-        REQUIRE(multiHNSW.getMaxDegree() == 32);
-        REQUIRE_THAT(multiHNSW.getDistributionScaleFactor() , Catch::Matchers::WithinAbs(1/log(multiHNSW.getTargetDegree()), 0.0001));
-        REQUIRE(multiHNSW.getEfConstruction() == 200);
-        REQUIRE(multiHNSW.getSeed() == 42);
+        REQUIRE(multiVecHNSW.getEfSearch() == 50);
+        REQUIRE(multiVecHNSW.getTargetDegree() == 32);
+        REQUIRE(multiVecHNSW.getMaxDegree() == 32);
+        REQUIRE_THAT(multiVecHNSW.getDistributionScaleFactor() , Catch::Matchers::WithinAbs(1/log(multiVecHNSW.getTargetDegree()), 0.0001));
+        REQUIRE(multiVecHNSW.getEfConstruction() == 200);
+        REQUIRE(multiVecHNSW.getSeed() == 42);
     }
 }
 
-TEST_CASE("MultiHNSW Basic Tests", "[MultiHNSW]") {
-    MultiHNSW hnsw = MultiHNSWTest::initaliseTest1();
+TEST_CASE("MultiVecHNSW Basic Tests", "[MultiVecHNSW]") {
+    MultiVecHNSW hnsw = MultiVecHNSWTest::initaliseTest1();
     SECTION("Test addToEntityStorageByModality") {
-        MultiHNSWTest::testAddToEntityStorageByModality1(hnsw);
+        MultiVecHNSWTest::testAddToEntityStorageByModality1(hnsw);
     }
 
     SECTION("Test addToEntityStorage") {
-        MultiHNSWTest::testAddToEntityStorage(hnsw);
+        MultiVecHNSWTest::testAddToEntityStorage(hnsw);
     }
 
     SECTION("Test getEntityModality") {
-        MultiHNSWTest::testGetEntityModalityFromEntityId1(hnsw);
+        MultiVecHNSWTest::testGetEntityModalityFromEntityId1(hnsw);
     }
 
     SECTION("Test getEntityFromEntityId") {
-        MultiHNSWTest::testGetEntityFromEntityId1(hnsw);
+        MultiVecHNSWTest::testGetEntityFromEntityId1(hnsw);
     }
 
     SECTION("Test getEntityModality2") {
-        MultiHNSWTest::testGetEntityModalityFromEntityId2();
+        MultiVecHNSWTest::testGetEntityModalityFromEntityId2();
     }
 
     SECTION("Test getEntityFromEntityId2") {
-        MultiHNSWTest::testGetEntityFromEntityId2();
+        MultiVecHNSWTest::testGetEntityFromEntityId2();
     }
 
     SECTION("Test computeDistanceBetweenEntities") {
-        MultiHNSWTest::testComputeDistanceBetweenEntities1(hnsw);
+        MultiVecHNSWTest::testComputeDistanceBetweenEntities1(hnsw);
     }
 
     SECTION("Test generateRandomLevel") {
-        MultiHNSWTest::testGenerateRandomLevel();
+        MultiVecHNSWTest::testGenerateRandomLevel();
     }
 }
 
-TEST_CASE("MultiHNSW SearchLayer", "[SearchLayer]") {
-    MultiHNSWTest::testSearchLayerUsingEntityStorageByModality();
+TEST_CASE("MultiVecHNSW SearchLayer", "[SearchLayer]") {
+    MultiVecHNSWTest::testSearchLayerUsingEntityStorageByModality();
 }
 
-TEST_CASE("MultiHNSW AddEntities", "[AddEntities]") {
-    MultiHNSWTest::testAddManyRandomEntities();
-    MultiHNSWTest::testAddSingleEntities();
+TEST_CASE("MultiVecHNSW AddEntities", "[AddEntities]") {
+    MultiVecHNSWTest::testAddManyRandomEntities();
+    MultiVecHNSWTest::testAddSingleEntities();
 }
 
-TEST_CASE("MultiHNSW Search", "[Search]") {
-    MultiHNSWTest::testAddAndSearch1();
-    MultiHNSWTest::testAddAndSearch2();
+TEST_CASE("MultiVecHNSW Search", "[Search]") {
+    MultiVecHNSWTest::testAddAndSearch1();
+    MultiVecHNSWTest::testAddAndSearch2();
 }

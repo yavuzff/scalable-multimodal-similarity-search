@@ -1,4 +1,4 @@
-#include "../include/MultiHNSW.hpp"
+#include "../include/MultiVecHNSW.hpp"
 #include "../include/utils.hpp"
 #include "../include/common.hpp"
 
@@ -7,9 +7,9 @@
 #include <unordered_set>
 
 using namespace std;
-using entity_id_t = MultiHNSW::entity_id_t;
+using entity_id_t = MultiVecHNSW::entity_id_t;
 
-MultiHNSW::MultiHNSW(size_t numModalities,
+MultiVecHNSW::MultiVecHNSW(size_t numModalities,
                      vector<size_t> dims,
                      vector<string> distanceMetrics,
                      vector<float> weights,
@@ -18,7 +18,7 @@ MultiHNSW::MultiHNSW(size_t numModalities,
                      size_t maxDegree,
                      size_t efConstruction,
                      size_t efSearch,
-                     size_t seed): AbstractMultiIndex(numModalities, std::move(dims), std::move(distanceMetrics), std::move(weights)),
+                     size_t seed): AbstractMultiVecIndex(numModalities, std::move(dims), std::move(distanceMetrics), std::move(weights)),
                                    distributionScaleFactor(distributionScaleFactor), targetDegree(targetDegree), maxDegree(maxDegree), efConstruction(efConstruction),
                                     efSearch(efSearch), seed(seed), maxLevel(0), maxDegreeLayer0(maxDegree*2), generator(seed) {
     validateParameters();
@@ -31,7 +31,7 @@ MultiHNSW::MultiHNSW(size_t numModalities,
     entityStorageByModality.resize(numModalities);
 }
 
-void MultiHNSW::validateParameters() const {
+void MultiVecHNSW::validateParameters() const {
     if (distributionScaleFactor < 0) {
         throw invalid_argument("Distribution scale factor must be positive");
     }
@@ -50,15 +50,15 @@ void MultiHNSW::validateParameters() const {
     }
 }
 
-void MultiHNSW::addEntities(const vector<vector<float>>& entities) {
+void MultiVecHNSW::addEntities(const vector<vector<float>>& entities) {
     addEntities(getSpanViewOfVectors(entities));
 }
 
-void MultiHNSW::addEntities(const vector<span<const float>>& entities) {
+void MultiVecHNSW::addEntities(const vector<span<const float>>& entities) {
     const size_t numNewEntities = validateEntities(entities);
 
-    std::cout << "Adding " << numNewEntities << " entities to MultiHNSW" << std::endl;
-    //debug_printf("Adding %zu entities to MultiHNSW!\n", numNewEntities);
+    std::cout << "Adding " << numNewEntities << " entities to MultiVecHNSW" << std::endl;
+    //debug_printf("Adding %zu entities to MultiVecHNSW!\n", numNewEntities);
     addToEntityStorage(entities, numNewEntities);
 
     // allocate memory for the new nodes
@@ -73,7 +73,7 @@ void MultiHNSW::addEntities(const vector<span<const float>>& entities) {
     numEntities = finalNumEntities;
 }
 
-void MultiHNSW::addToEntityStorageByModality(const vector<span<const float>>& entities, size_t numNewEntities) {
+void MultiVecHNSW::addToEntityStorageByModality(const vector<span<const float>>& entities, size_t numNewEntities) {
     // copy the input entities into the entityStorage
     for (size_t i = 0; i < numModalities; ++i) {
         const auto& modalityVectors = entities[i];
@@ -89,7 +89,7 @@ void MultiHNSW::addToEntityStorageByModality(const vector<span<const float>>& en
     }
 }
 
-void MultiHNSW::addToEntityStorage(const vector<span<const float>>& entities, size_t numNewEntities) {
+void MultiVecHNSW::addToEntityStorage(const vector<span<const float>>& entities, size_t numNewEntities) {
     // set the capacity of the entityStorage to the new size
     const size_t previousSize = entityStorage.size();
     const size_t numNewFloats = numNewEntities * totalDimensions;
@@ -118,16 +118,16 @@ void MultiHNSW::addToEntityStorage(const vector<span<const float>>& entities, si
     }
 }
 
-span<const float> MultiHNSW::getEntityModalityFromEntityId(entity_id_t entityId, size_t modality) const {
+span<const float> MultiVecHNSW::getEntityModalityFromEntityId(entity_id_t entityId, size_t modality) const {
     const vector<float>& modalityData = entityStorageByModality[modality];
     return span(modalityData.data() + entityId * dimensions[modality], dimensions[modality]);
 }
 
-std::span<const float> MultiHNSW::getEntityFromEntityId(entity_id_t entityId) const {
+std::span<const float> MultiVecHNSW::getEntityFromEntityId(entity_id_t entityId) const {
     return span(entityStorage.data() + entityId * totalDimensions, totalDimensions);
 }
 
-float MultiHNSW::computeDistance(const std::span<const float> entity1,  const std::span<const float> entity2, const std::vector<float>& weights) const {
+float MultiVecHNSW::computeDistance(const std::span<const float> entity1,  const std::span<const float> entity2, const std::vector<float>& weights) const {
     assert(entity1.size() == totalDimensions);
     assert(entity2.size() == totalDimensions);
 
@@ -167,9 +167,9 @@ float MultiHNSW::computeDistance(const std::span<const float> entity1,  const st
 }
 
 
-vector<size_t> MultiHNSW::search(const vector<span<const float>>& query, size_t k, const vector<float>& queryWeights) {
+vector<size_t> MultiVecHNSW::search(const vector<span<const float>>& query, size_t k, const vector<float>& queryWeights) {
     validateQuery(query, k);
-    debug_printf("Searching MultiHNSW with query weights with k=%lu\n", k);
+    debug_printf("Searching MultiVecHNSW with query weights with k=%lu\n", k);
     // copy weights as we will normalise them
     auto normalisedQueryWeights = std::vector(queryWeights);
     validateAndNormaliseWeights(normalisedQueryWeights, numModalities);
@@ -178,22 +178,22 @@ vector<size_t> MultiHNSW::search(const vector<span<const float>>& query, size_t 
     return {result.begin(), result.end()};
 }
 
-vector<size_t> MultiHNSW::search(const vector<span<const float>>& query, size_t k) {
+vector<size_t> MultiVecHNSW::search(const vector<span<const float>>& query, size_t k) {
     validateQuery(query, k);
-    debug_printf("Searching MultiHNSW without query weights with k=%lu\n", k);
+    debug_printf("Searching MultiVecHNSW without query weights with k=%lu\n", k);
     vector<entity_id_t> result = internalSearch(query, k, indexWeights);
     return {result.begin(), result.end()};
 }
 
-vector<size_t> MultiHNSW::search(const vector<vector<float>>& query, size_t k, const vector<float>& queryWeights) {
+vector<size_t> MultiVecHNSW::search(const vector<vector<float>>& query, size_t k, const vector<float>& queryWeights) {
     return search(getSpanViewOfVectors(query), k, queryWeights);
 }
 
-vector<size_t> MultiHNSW::search(const vector<vector<float>>& query, size_t k) {
+vector<size_t> MultiVecHNSW::search(const vector<vector<float>>& query, size_t k) {
     return search(getSpanViewOfVectors(query), k);
 }
 
-void MultiHNSW::addEntityToGraph(const entity_id_t entityId) {
+void MultiVecHNSW::addEntityToGraph(const entity_id_t entityId) {
     debug_printf("Inserting entity %d \n", entityId);
 
     assert (entityId < nodes.size());
@@ -271,7 +271,7 @@ void MultiHNSW::addEntityToGraph(const entity_id_t entityId) {
     debug_printf("Successfully added entity %d to the graph\n", entityId);
 }
 
-[[nodiscard]] size_t MultiHNSW::generateRandomLevel() const {
+[[nodiscard]] size_t MultiVecHNSW::generateRandomLevel() const {
     // generate a random level using -ln(U(0,1)) * distributionScaleFactor
     std::uniform_real_distribution<double> distribution(0.0, 1.0);
     const double randomNumber = distribution(generator);
@@ -280,7 +280,7 @@ void MultiHNSW::addEntityToGraph(const entity_id_t entityId) {
     return level;
 }
 
-void MultiHNSW::addAndPruneEdgesForExistingNodes(entity_id_t newEntityId, const vector<pair<float, entity_id_t>> &connectedNeighbours, size_t layer) {
+void MultiVecHNSW::addAndPruneEdgesForExistingNodes(entity_id_t newEntityId, const vector<pair<float, entity_id_t>> &connectedNeighbours, size_t layer) {
     size_t _maxDegree;
     if (layer == 0) {
         _maxDegree = maxDegreeLayer0;
@@ -350,7 +350,7 @@ void MultiHNSW::addAndPruneEdgesForExistingNodes(entity_id_t newEntityId, const 
 }
 
 
-vector<entity_id_t> MultiHNSW::internalSearch(const vector<span<const float>>& userQuery, size_t k, const vector<float>& weights) const {
+vector<entity_id_t> MultiVecHNSW::internalSearch(const vector<span<const float>>& userQuery, size_t k, const vector<float>& weights) const {
     if (numEntities == 0) {
         return {};
     }
@@ -393,11 +393,11 @@ vector<entity_id_t> MultiHNSW::internalSearch(const vector<span<const float>>& u
     return result;
 }
 
-[[nodiscard]] priority_queue<pair<float, entity_id_t>> MultiHNSW::searchLayer(entity_id_t entityId, const vector<entity_id_t> &entryPoints, const vector<float>& weights, size_t ef, size_t layer) const {
+[[nodiscard]] priority_queue<pair<float, entity_id_t>> MultiVecHNSW::searchLayer(entity_id_t entityId, const vector<entity_id_t> &entryPoints, const vector<float>& weights, size_t ef, size_t layer) const {
     return searchLayer(getEntityFromEntityId(entityId), entryPoints, weights, ef, layer);
 }
 
-[[nodiscard]] priority_queue<pair<float, entity_id_t>> MultiHNSW::searchLayer(const std::span<const float> entity, const vector<entity_id_t> &entryPoints, const vector<float>& weights, size_t ef, size_t layer) const {
+[[nodiscard]] priority_queue<pair<float, entity_id_t>> MultiVecHNSW::searchLayer(const std::span<const float> entity, const vector<entity_id_t> &entryPoints, const vector<float>& weights, size_t ef, size_t layer) const {
     assert(!entryPoints.empty());
     assert(layer <= maxLevel);
     // set of visited elements initialised to entryPoints
@@ -448,7 +448,7 @@ vector<entity_id_t> MultiHNSW::internalSearch(const vector<span<const float>>& u
 }
 
 
-void MultiHNSW::selectNearestCandidates(priority_queue<pair<float, entity_id_t>> &candidates, size_t resultSize) const {
+void MultiVecHNSW::selectNearestCandidates(priority_queue<pair<float, entity_id_t>> &candidates, size_t resultSize) const {
     // precondition: candidates is a non-empty max heap
     assert(!candidates.empty());
     assert(candidates.top().first >= 0);
@@ -467,7 +467,7 @@ void MultiHNSW::selectNearestCandidates(priority_queue<pair<float, entity_id_t>>
 }
 
 // computes and finds the M closest entities to the targetEntityId from the candidates
-priority_queue<pair<float, entity_id_t>> MultiHNSW::selectNearestCandidates(entity_id_t targetEntityId, const span<entity_id_t> candidates, size_t numSelected, const std::vector<float>& weights) const {
+priority_queue<pair<float, entity_id_t>> MultiVecHNSW::selectNearestCandidates(entity_id_t targetEntityId, const span<entity_id_t> candidates, size_t numSelected, const std::vector<float>& weights) const {
     // precondition: candidates is a non-empty array
     assert(!candidates.empty());
     assert(numSelected <= candidates.size());
@@ -490,7 +490,7 @@ priority_queue<pair<float, entity_id_t>> MultiHNSW::selectNearestCandidates(enti
 }
 
 
-void MultiHNSW::selectDiversifiedCandidates(priority_queue<pair<float, entity_id_t>>& candidates, size_t targetSelectedNeighbours, const vector<float>& weights) const {
+void MultiVecHNSW::selectDiversifiedCandidates(priority_queue<pair<float, entity_id_t>>& candidates, size_t targetSelectedNeighbours, const vector<float>& weights) const {
     // precondition: candidates is a non-empty max heap
     assert(!candidates.empty());
     assert(candidates.top().first >= 0);
@@ -539,7 +539,7 @@ void MultiHNSW::selectDiversifiedCandidates(priority_queue<pair<float, entity_id
     assert(candidates.top().first >= 0);
 }
 
-void MultiHNSW::printGraph() const {
+void MultiVecHNSW::printGraph() const {
     std::cout << "Printing graph layer by layer:\n";
 
     for (size_t layer = 0; layer <= maxLevel; ++layer) {
@@ -562,40 +562,40 @@ void MultiHNSW::printGraph() const {
     }
 }
 
-void MultiHNSW::save(const string& path) const {
-    cout << "Saving MultiHNSW to " << path << endl;
+void MultiVecHNSW::save(const string& path) const {
+    cout << "Saving MultiVecHNSW to " << path << endl;
 }
 
-void MultiHNSW::load(const string& path) {
+void MultiVecHNSW::load(const string& path) {
     cout << "Loading index from " << path << endl;
 }
 
 //implement getters and setters
-float MultiHNSW::getDistributionScaleFactor() const {
+float MultiVecHNSW::getDistributionScaleFactor() const {
     return distributionScaleFactor;
 }
 
-size_t MultiHNSW::getTargetDegree() const {
+size_t MultiVecHNSW::getTargetDegree() const {
     return targetDegree;
 }
 
-size_t MultiHNSW::getMaxDegree() const {
+size_t MultiVecHNSW::getMaxDegree() const {
     return maxDegree;
 }
 
-size_t MultiHNSW::getEfConstruction() const {
+size_t MultiVecHNSW::getEfConstruction() const {
     return efConstruction;
 }
 
-size_t MultiHNSW::getEfSearch() const {
+size_t MultiVecHNSW::getEfSearch() const {
     return efSearch;
 }
 
-size_t MultiHNSW::getSeed() const {
+size_t MultiVecHNSW::getSeed() const {
     return seed;
 }
 
-void MultiHNSW::setEfSearch(size_t efSearch) {
+void MultiVecHNSW::setEfSearch(size_t efSearch) {
     if (efSearch < 1) {
         throw invalid_argument("efSearch must be at least 1");
     }

@@ -3,8 +3,8 @@
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
 
-#include "../include/ExactMultiIndex.hpp"
-#include "../include/MultiHNSW.hpp"
+#include "../include/ExactMultiVecIndex.hpp"
+#include "../include/MultiVecHNSW.hpp"
 
 #include <span>
 
@@ -48,15 +48,15 @@ py::array_t<size_t> convert_to_numpy(const std::vector<size_t> &result) {
 }
 
 
-class ExactMultiIndexPyWrapper {
+class ExactMultiVecIndexPyWrapper {
 public:
-    ExactMultiIndex index;
+    ExactMultiVecIndex index;
 
-    ExactMultiIndexPyWrapper(const size_t numModalities,
+    ExactMultiVecIndexPyWrapper(const size_t numModalities,
                              const std::vector<size_t> &dims,
                              const std::vector<std::string> &distance_metrics,
                              const std::vector<float> &weights)
-            : index(ExactMultiIndex(numModalities, dims, distance_metrics, weights)) {}
+            : index(ExactMultiVecIndex(numModalities, dims, distance_metrics, weights)) {}
 
     void addEntities(const py::object &entities) {
         //input is a list of numpy arrays (1D or 2D each)
@@ -129,11 +129,11 @@ public:
 };
 
 
-class MultiHNSWPyWrapper {
+class MultiVecHNSWPyWrapper {
 public:
-    MultiHNSW index;
+    MultiVecHNSW index;
 
-    MultiHNSWPyWrapper(const size_t numModalities,
+    MultiVecHNSWPyWrapper(const size_t numModalities,
                                 const std::vector<size_t> &dims,
                                 const std::vector<std::string> &distanceMetrics,
                                 const std::vector<float> &weights,
@@ -142,7 +142,7 @@ public:
                                 size_t maxDegree,
                                 size_t efConstruction,
                                 size_t efSearch,
-                                size_t seed) : index(MultiHNSW(numModalities, dims, distanceMetrics, weights, distributionScaleFactor, targetDegree, maxDegree, efConstruction, efSearch, seed)) {}
+                                size_t seed) : index(MultiVecHNSW(numModalities, dims, distanceMetrics, weights, distributionScaleFactor, targetDegree, maxDegree, efConstruction, efSearch, seed)) {}
 
     void addEntities(const py::object &entities) {
         //input is a list of numpy arrays (1D or 2D each)
@@ -249,59 +249,59 @@ public:
 };
 
 
-PYBIND11_MODULE(multimodal_index, m) {
-    m.doc() = "This module contains different knn indexes: ExactIndex, ExactMultiIndex"; // optional module docstring
+PYBIND11_MODULE(multivec_index, m) {
+    m.doc() = "This module contains different knn indexes: ExactIndex, ExactMultiVecIndex"; // optional module docstring
 
-    py::class_<ExactMultiIndexPyWrapper>(m, "ExactMultiIndex")
+    py::class_<ExactMultiVecIndexPyWrapper>(m, "ExactMultiVecIndex")
         // note that pybind11/stl.h automatic conversions occur here, which copy these vectors - this is fine for initialisation
         .def(py::init<size_t, const std::vector<size_t>&, const std::vector<std::string>&, const std::vector<float>&>(), py::arg("num_modalities"), py::arg("dimensions"), py::arg("distance_metrics")=std::vector<std::string>(), py::arg("weights")=std::vector<float>())
 
-        .def("add_entities", &ExactMultiIndexPyWrapper::addEntities, "Adds multiple entities to the index. To add `n` entities with `k` modalities, provide a list of length `k`, where each element is a 2D numpy array of shape `(n, dimensions_of_modality)`. Each array corresponds to one modality.",
+        .def("add_entities", &ExactMultiVecIndexPyWrapper::addEntities, "Adds multiple entities to the index. To add `n` entities with `k` modalities, provide a list of length `k`, where each element is a 2D numpy array of shape `(n, dimensions_of_modality)`. Each array corresponds to one modality.",
             py::arg("entities"))
-        .def("search", &ExactMultiIndexPyWrapper::search, "Returns the indices for the k-nearest neighbors of a query entity. Query should be a list of length `k`, where each element is a vector for that modality",
+        .def("search", &ExactMultiVecIndexPyWrapper::search, "Returns the indices for the k-nearest neighbors of a query entity. Query should be a list of length `k`, where each element is a vector for that modality",
             py::arg("query"),
             py::arg("k"),
             py::arg("query_weights")=std::vector<float>())
 
-        .def("save", &ExactMultiIndexPyWrapper::save, "Method to save index", py::arg("path"))
-        .def("load", &ExactMultiIndexPyWrapper::load, "Method to load index", py::arg("path"))
+        .def("save", &ExactMultiVecIndexPyWrapper::save, "Method to save index", py::arg("path"))
+        .def("load", &ExactMultiVecIndexPyWrapper::load, "Method to load index", py::arg("path"))
 
         // read-only attributes
-        .def_property_readonly("num_modalities", &ExactMultiIndexPyWrapper::numModalities)
-        .def_property_readonly("dimensions", &ExactMultiIndexPyWrapper::dimensions)
-        .def_property_readonly("distance_metrics", &ExactMultiIndexPyWrapper::distance_metrics)
-        .def_property_readonly("weights", &ExactMultiIndexPyWrapper::weights)
-        .def_property_readonly("num_entities", &ExactMultiIndexPyWrapper::numEntities);
+        .def_property_readonly("num_modalities", &ExactMultiVecIndexPyWrapper::numModalities)
+        .def_property_readonly("dimensions", &ExactMultiVecIndexPyWrapper::dimensions)
+        .def_property_readonly("distance_metrics", &ExactMultiVecIndexPyWrapper::distance_metrics)
+        .def_property_readonly("weights", &ExactMultiVecIndexPyWrapper::weights)
+        .def_property_readonly("num_entities", &ExactMultiVecIndexPyWrapper::numEntities);
 
 
-    py::class_<MultiHNSWPyWrapper>(m, "MultiHNSW")
+    py::class_<MultiVecHNSWPyWrapper>(m, "MultiVecHNSW")
        // note that pybind11/stl.h automatic conversions occur here, which copy these vectors - this is fine for initialisation
         .def(py::init<size_t, const std::vector<size_t>&, const std::vector<std::string>&, const std::vector<float>&, float, size_t, size_t, size_t, size_t, size_t>(), py::arg("num_modalities"), py::arg("dimensions"), py::arg("distance_metrics")=std::vector<std::string>(), py::arg("weights")=std::vector<float>(),
             py::arg("distribution_scale_factor") = 0.0f, py::arg("target_degree") = 32, py::arg("max_degree") = 32, py::arg("ef_construction") = 200, py::arg("ef_search") = 50, py::arg("seed") = 42)
 
-        .def("add_entities", &MultiHNSWPyWrapper::addEntities, "Adds multiple entities to the index. To add `n` entities with `k` modalities, provide a list of length `k`, where each element is a 2D numpy array of shape `(n, dimensions_of_modality)`. Each array corresponds to one modality.",
+        .def("add_entities", &MultiVecHNSWPyWrapper::addEntities, "Adds multiple entities to the index. To add `n` entities with `k` modalities, provide a list of length `k`, where each element is a 2D numpy array of shape `(n, dimensions_of_modality)`. Each array corresponds to one modality.",
            py::arg("entities"))
-        .def("search", &MultiHNSWPyWrapper::search, "Returns the indices for the k-nearest neighbors of a query entity. Query should be a list of length `k`, where each element is a vector for that modality",
+        .def("search", &MultiVecHNSWPyWrapper::search, "Returns the indices for the k-nearest neighbors of a query entity. Query should be a list of length `k`, where each element is a vector for that modality",
            py::arg("query"),
            py::arg("k"),
            py::arg("query_weights")=std::vector<float>())
 
-        .def("set_ef_search", &MultiHNSWPyWrapper::setEfSearch, "Set the efSearch parameter", py::arg("ef_search"))
-        .def("print_graph", &MultiHNSWPyWrapper::printGraph, "Print the HNSW graph structure")
+        .def("set_ef_search", &MultiVecHNSWPyWrapper::setEfSearch, "Set the efSearch parameter", py::arg("ef_search"))
+        .def("print_graph", &MultiVecHNSWPyWrapper::printGraph, "Print the HNSW graph structure")
 
-        .def("save", &MultiHNSWPyWrapper::save, "Method to save index", py::arg("path"))
-        .def("load", &MultiHNSWPyWrapper::load, "Method to load index", py::arg("path"))
+        .def("save", &MultiVecHNSWPyWrapper::save, "Method to save index", py::arg("path"))
+        .def("load", &MultiVecHNSWPyWrapper::load, "Method to load index", py::arg("path"))
 
         // read-only attributes
-        .def_property_readonly("num_modalities", &MultiHNSWPyWrapper::numModalities)
-        .def_property_readonly("dimensions", &MultiHNSWPyWrapper::dimensions)
-        .def_property_readonly("distance_metrics", &MultiHNSWPyWrapper::distance_metrics)
-        .def_property_readonly("weights", &MultiHNSWPyWrapper::weights)
-        .def_property_readonly("num_entities", &MultiHNSWPyWrapper::numEntities)
-        .def_property_readonly("distribution_scale_factor", &MultiHNSWPyWrapper::distributionScaleFactor)
-        .def_property_readonly("target_degree", &MultiHNSWPyWrapper::targetDegree)
-        .def_property_readonly("max_degree", &MultiHNSWPyWrapper::maxDegree)
-        .def_property_readonly("ef_construction", &MultiHNSWPyWrapper::efConstruction)
-        .def_property_readonly("ef_search", &MultiHNSWPyWrapper::efSearch)
-        .def_property_readonly("seed", &MultiHNSWPyWrapper::seed);
+        .def_property_readonly("num_modalities", &MultiVecHNSWPyWrapper::numModalities)
+        .def_property_readonly("dimensions", &MultiVecHNSWPyWrapper::dimensions)
+        .def_property_readonly("distance_metrics", &MultiVecHNSWPyWrapper::distance_metrics)
+        .def_property_readonly("weights", &MultiVecHNSWPyWrapper::weights)
+        .def_property_readonly("num_entities", &MultiVecHNSWPyWrapper::numEntities)
+        .def_property_readonly("distribution_scale_factor", &MultiVecHNSWPyWrapper::distributionScaleFactor)
+        .def_property_readonly("target_degree", &MultiVecHNSWPyWrapper::targetDegree)
+        .def_property_readonly("max_degree", &MultiVecHNSWPyWrapper::maxDegree)
+        .def_property_readonly("ef_construction", &MultiVecHNSWPyWrapper::efConstruction)
+        .def_property_readonly("ef_search", &MultiVecHNSWPyWrapper::efSearch)
+        .def_property_readonly("seed", &MultiVecHNSWPyWrapper::seed);
 }

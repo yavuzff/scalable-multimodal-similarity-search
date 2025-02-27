@@ -78,7 +78,7 @@ cd cpp
 2. Build the project using CMake:
 ```
 cmake -S . -B cmake-build-debug -DCMAKE_BUILD_TYPE=Release
-cmake --build cmake-build-debug -j 6 --target multimodal_index
+cmake --build cmake-build-debug -j 6 --target multivec_index
 ```
 3. Install the Python bindings:
 ```
@@ -92,12 +92,12 @@ The C++ index can be imported and used within Python scripts.
 1. Import the index:
 
 ```
-from multimodal_index import ExactMultiIndex
+from multivec_index import ExactMultiVecIndex
 ```
 
 2. Initialise the index, e.g.:
 ```
-index = ExactMultiIndex(
+index = ExactMultiVecIndex(
     num_modalities=2,
     dimensions=[128, 64],
     distance_metrics=["euclidean", "cosine"],  # optional: distance metrics for each modality. Default: "euclidean"
@@ -180,7 +180,9 @@ To run the Python tests: `pytest -v tests` in `scalable-multimodal-similarity-se
 - Tests regarding datasets (test/data_processing):
     - test_dataset: validates the raw dataset of images and metadata is consistent
     - test_vector_dataset: validates the generated vectors are consistent with the dataset
-- Tests for the exact multi search C++ index are in `test_exact_multi_index_bindings.py`
+- Tests for the exact multi vector search C++ index are in `test_exact_multivec_index_bindings.py`
+- Tests for multi vector HNSW are in `test_multivec_hnsw_index.py`
+
 
 To run the C++ tests:
 

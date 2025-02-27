@@ -4,8 +4,8 @@ import psutil
 import os
 from datetime import datetime
 
-from multimodal_index import ExactMultiIndex, MultiHNSW
-from src.evaluation_params import Params, MultiHNSWConstructionParams, MultiHNSWSearchParams
+from multivec_index import ExactMultiVecIndex, MultiVecHNSW
+from src.evaluation_params import Params, MultiVecHNSWConstructionParams, MultiVecHNSWSearchParams
 from src.load_dataset import load_dataset
 
 EXPERIMENTS_DIR = "experiments/"
@@ -42,7 +42,7 @@ def compute_exact_results(p: Params, cache=True):
     search_times = []
     results = []
 
-    exact_index = ExactMultiIndex(p.modalities, p.dimensions, p.metrics, p.weights)
+    exact_index = ExactMultiVecIndex(p.modalities, p.dimensions, p.metrics, p.weights)
 
     entities_to_insert = [modality[:p.index_size] for modality in p.dataset]
     exact_index.add_entities(entities_to_insert)
@@ -65,7 +65,7 @@ def compute_exact_results(p: Params, cache=True):
     return np.array(results), np.array(search_times)
 
 
-def evaluate_index_construction(p: Params, specific_params: MultiHNSWConstructionParams):
+def evaluate_index_construction(p: Params, specific_params: MultiVecHNSWConstructionParams):
     """
     Construct an index with the given parameters and save the time it took to construct it to a file.
     """
@@ -78,12 +78,12 @@ def evaluate_index_construction(p: Params, specific_params: MultiHNSWConstructio
     entities_to_insert = [modality[:p.index_size] for modality in p.dataset]
 
     start_time = time.perf_counter()
-    multi_hnsw = MultiHNSW(p.modalities, p.dimensions, p.metrics, weights=p.weights,
+    multivec_hnsw = MultiVecHNSW(p.modalities, p.dimensions, p.metrics, weights=p.weights,
                            target_degree=specific_params.target_degree,
                            max_degree=specific_params.max_degree,
                            ef_construction=specific_params.ef_construction,
                            seed=specific_params.seed)
-    multi_hnsw.add_entities(entities_to_insert)
+    multivec_hnsw.add_entities(entities_to_insert)
     total_time = time.perf_counter() - start_time
 
     os.makedirs(os.path.dirname(save_folder), exist_ok=True)
@@ -93,11 +93,11 @@ def evaluate_index_construction(p: Params, specific_params: MultiHNSWConstructio
 
     print(f"Constructed index in {total_time} seconds. Saved to {save_file}")
 
-    return multi_hnsw, save_file
+    return multivec_hnsw, save_file
 
 
-def evaluate_index_search(index: MultiHNSW, index_path: str, exact_results, params: Params,
-                          search_params: MultiHNSWSearchParams):
+def evaluate_index_search(index: MultiVecHNSW, index_path: str, exact_results, params: Params,
+                          search_params: MultiVecHNSWSearchParams):
     """
     Search the index with the given parameters and save the ANN results and search times to a file.
     """
@@ -139,7 +139,7 @@ def evaluate_index_search(index: MultiHNSW, index_path: str, exact_results, para
 
 def evaluate_single_modality():
     """
-    Evaluate the MultiHSNW index construction and search for a single modality.
+    Evaluate the MultiVecHSNW index construction and search for a single modality.
     """
     import time
 
@@ -153,18 +153,18 @@ def evaluate_single_modality():
     entities_to_insert = [text_vectors_all[:100_000]]
 
     start_time = time.perf_counter()
-    multi_hnsw = MultiHNSW(MODALITIES, DIMENSIONS, DISTANCE_METRICS, weights=WEIGHTS,
+    multivec_hnsw = MultiVecHNSW(MODALITIES, DIMENSIONS, DISTANCE_METRICS, weights=WEIGHTS,
                            target_degree=16,
                            max_degree=16,
                            ef_construction=200,
                            seed=10)
-    multi_hnsw.add_entities(entities_to_insert)
+    multivec_hnsw.add_entities(entities_to_insert)
     total_time = time.perf_counter() - start_time
 
     print(f"Index construction time: {total_time}")
 
 
-def evaluate_hnsw_rerank_construction(p: Params, specific_params: MultiHNSWConstructionParams):
+def evaluate_hnsw_rerank_construction(p: Params, specific_params: MultiVecHNSWConstructionParams):
     """
     Evaluate the construction and search of a HNSW index with reranking.
     """
@@ -181,7 +181,7 @@ def evaluate_hnsw_rerank_construction(p: Params, specific_params: MultiHNSWConst
     for i in range(p.modalities):
         vectors_to_insert = [p.dataset[i][:p.index_size]]
         start_time = time.perf_counter()
-        index = MultiHNSW(1, [p.dimensions[i]], [p.metrics[i]], weights=[1],
+        index = MultiVecHNSW(1, [p.dimensions[i]], [p.metrics[i]], weights=[1],
                                target_degree=specific_params.target_degree,
                                max_degree=specific_params.max_degree,
                                ef_construction=specific_params.ef_construction,
@@ -203,7 +203,7 @@ def evaluate_hnsw_rerank_construction(p: Params, specific_params: MultiHNSWConst
     return indexes, save_file
 
 
-def evaluate_hnsw_rerank_search(indexes, index_path: str, exact_results, params: Params, search_params: MultiHNSWSearchParams):
+def evaluate_hnsw_rerank_search(indexes, index_path: str, exact_results, params: Params, search_params: MultiVecHNSWSearchParams):
     """
     Evaluate the search performance of a HNSW index with reranking. We use ef search as the k for each search.
     """
@@ -255,11 +255,11 @@ class IndexEvaluator:
     """
     Class for evaluating the performance of an index, by computing exact index results and comparing them to evaluated index results.
     """
-    def __init__(self, index: MultiHNSW):
+    def __init__(self, index: MultiVecHNSW):
         self.index = index
 
         # create an exact index for recall calculation
-        self.exact_index = ExactMultiIndex(
+        self.exact_index = ExactMultiVecIndex(
             num_modalities=index.num_modalities,
             dimensions=index.dimensions,
             distance_metrics=index.distance_metrics,

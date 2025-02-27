@@ -1,19 +1,19 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include "../include/ExactMultiIndex.hpp"
+#include "../include/ExactMultiVecIndex.hpp"
 #include "../include/utils.hpp"
 #include <vector>
 #include <cmath>
 
 
-TEST_CASE("ExactMultiIndex with euclidean and manhattan", "[ExactMultiIndex]") {
+TEST_CASE("ExactMultiVecIndex with euclidean and manhattan", "[ExactMultiVecIndex]") {
     size_t numModalities = 2;
     std::vector<size_t> dimensions = {3, 3};
     std::vector<std::string> distanceMetrics = {"euclidean", "manhattan"};
     std::vector<float> weights = {0.5f, 0.5f};
 
-    ExactMultiIndex index(numModalities, dimensions, distanceMetrics, weights);
+    ExactMultiVecIndex index(numModalities, dimensions, distanceMetrics, weights);
 
     std::vector<std::vector<float>> entities = {
         {3.0f, 1.0f, 5.0f,      1.99f, 3.0f, 4.0f},
@@ -62,13 +62,13 @@ TEST_CASE("ExactMultiIndex with euclidean and manhattan", "[ExactMultiIndex]") {
 }
 
 
-TEST_CASE("ExactMultiIndex with cosine and manhattan", "[ExactMultiIndex]") {
+TEST_CASE("ExactMultiVecIndex with cosine and manhattan", "[ExactMultiVecIndex]") {
     size_t numModalities = 2;
     std::vector<size_t> dimensions = {3, 3};
     std::vector<std::string> distanceMetrics = {"cosine", "manhattan"};
     std::vector<float> weights = {0.5f, 0.5f};
 
-    ExactMultiIndex index(numModalities, dimensions, distanceMetrics, weights);
+    ExactMultiVecIndex index(numModalities, dimensions, distanceMetrics, weights);
 
     std::vector<std::vector<float>> entities = {
         {3.0f, 1.0f, 5.0f, 1.99f, 3.0f, 4.0f}, // Modality 1: 2 entities, dimension 3

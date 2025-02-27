@@ -1,11 +1,11 @@
-#ifndef EXACTMULTIINDEX_HPP
-#define EXACTMULTIINDEX_HPP
+#ifndef EXACTMULTIVECINDEX_HPP
+#define EXACTMULTIVECINDEX_HPP
 
-#include "AbstractMultiIndex.hpp"
+#include "AbstractMultiVecIndex.hpp"
 #include "DistanceMetrics.hpp"
 #include <span>
 
-class ExactMultiIndex : public AbstractMultiIndex {
+class ExactMultiVecIndex : public AbstractMultiVecIndex {
     std::vector<std::vector<float>> storedEntities;
 
     [[nodiscard]] std::vector<size_t> internalSearch(const std::vector<std::span<const float>>& query, size_t k,
@@ -14,7 +14,7 @@ class ExactMultiIndex : public AbstractMultiIndex {
     void outputEntities() const;
 
 public:
-    ExactMultiIndex(size_t numModalities,
+    ExactMultiVecIndex(size_t numModalities,
                     std::vector<size_t> dims,
                     std::vector<std::string> distanceMetrics = {},
                     std::vector<float> weights = {});
@@ -37,4 +37,4 @@ public:
 
 };
 
-#endif //EXACTMULTIINDEX_HPP
+#endif //EXACTMULTIVECINDEX_HPP

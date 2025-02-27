@@ -4,8 +4,8 @@
 #include <string>
 #include <chrono>
 
-#include "../include/ExactMultiIndex.hpp"
-#include "../include/MultiHNSW.hpp"
+#include "../include/ExactMultiVecIndex.hpp"
+#include "../include/MultiVecHNSW.hpp"
 
 std::string DATASET_ENTITY_COUNT = "20000";
 std::string PREP_DATASET_PATH = "/Users/yavuz/data/LAION-" + DATASET_ENTITY_COUNT + "/";
@@ -89,13 +89,13 @@ int main() {
     std::vector<std::span<const float>> entities = {textVectors, imageVectors};
     std::vector<std::string> distanceMetrics = {"cosine", "cosine"};
 
-    MultiHNSW index = MultiHNSW::Builder(2, {textsShape[1], imagesShape[1]}).setDistanceMetrics(distanceMetrics).build();
+    MultiVecHNSW index = MultiVecHNSW::Builder(2, {textsShape[1], imagesShape[1]}).setDistanceMetrics(distanceMetrics).build();
     auto start = std::chrono::high_resolution_clock::now();
     index.addEntities(entities);
     auto end = std::chrono::high_resolution_clock::now();
     std::cout << "Adding entities took: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl;
 
-    ExactMultiIndex exactIndex = ExactMultiIndex(2, {textsShape[1], imagesShape[1]}, distanceMetrics);
+    ExactMultiVecIndex exactIndex = ExactMultiVecIndex(2, {textsShape[1], imagesShape[1]}, distanceMetrics);
     exactIndex.addEntities(entities);
 
     int id = 60;
@@ -104,9 +104,9 @@ int main() {
     std::span<const float> query1image = imageVectors.subspan(id * imagesShape[1], imagesShape[1]);
     std::vector<std::span<const float>> query1 = {query1text, query1image};
 
-    std::vector<size_t> multiHNSWresults = index.search(query1, k);
-    std::cout << "MultiHNSW search results for query " << id << ": ";
-    for (size_t result : multiHNSWresults) {
+    std::vector<size_t> multiVecHNSWresults = index.search(query1, k);
+    std::cout << "MultiVecHNSW search results for query " << id << ": ";
+    for (size_t result : multiVecHNSWresults) {
         std::cout << result << " ";
     }
     std::cout << std::endl;

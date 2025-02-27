@@ -1,4 +1,4 @@
-#include "../include/ExactMultiIndex.hpp"
+#include "../include/ExactMultiVecIndex.hpp"
 #include "../include/utils.hpp"
 #include "../include/common.hpp"
 
@@ -7,19 +7,19 @@
 #include <span>
 
 
-ExactMultiIndex::ExactMultiIndex(const size_t numModalities,
+ExactMultiVecIndex::ExactMultiVecIndex(const size_t numModalities,
                                  std::vector<size_t> dims,
                                  std::vector<std::string> distanceMetrics,
                                  std::vector<float> weights)
-    : AbstractMultiIndex(numModalities, std::move(dims), std::move(distanceMetrics), std::move(weights)) {
+    : AbstractMultiVecIndex(numModalities, std::move(dims), std::move(distanceMetrics), std::move(weights)) {
     storedEntities.resize(numModalities);
 }
 
-void ExactMultiIndex::addEntities(const std::vector<std::vector<float>> &entities) {
+void ExactMultiVecIndex::addEntities(const std::vector<std::vector<float>> &entities) {
     addEntities(getSpanViewOfVectors(entities));
 }
 
-void ExactMultiIndex::addEntities(const std::vector<std::span<const float>>& entities) {
+void ExactMultiVecIndex::addEntities(const std::vector<std::span<const float>>& entities) {
     const size_t numNewEntities = validateEntities(entities);
     numEntities += numNewEntities;
     debug_printf("Adding %zu entities!\n", numNewEntities);
@@ -40,7 +40,7 @@ void ExactMultiIndex::addEntities(const std::vector<std::span<const float>>& ent
     }
 }
 
-std::vector<size_t> ExactMultiIndex::search(const std::vector<std::span<const float>>& query, const size_t k,
+std::vector<size_t> ExactMultiVecIndex::search(const std::vector<std::span<const float>>& query, const size_t k,
                         const std::vector<float>& queryWeights) {
     validateQuery(query, k);
     // copy weights as we will normalise them
@@ -50,21 +50,21 @@ std::vector<size_t> ExactMultiIndex::search(const std::vector<std::span<const fl
     return internalSearch(query, k, normalisedQueryWeights);
 }
 
-std::vector<size_t> ExactMultiIndex::search(const std::vector<std::span<const float>>& query, const size_t k) {
+std::vector<size_t> ExactMultiVecIndex::search(const std::vector<std::span<const float>>& query, const size_t k) {
     validateQuery(query, k);
     return internalSearch(query, k, indexWeights);
 }
 
-std::vector<size_t> ExactMultiIndex::search(const std::vector<std::vector<float>>& query, const size_t k,
+std::vector<size_t> ExactMultiVecIndex::search(const std::vector<std::vector<float>>& query, const size_t k,
                         const std::vector<float>& queryWeights) {
     return search(getSpanViewOfVectors(query), k, queryWeights);
 }
 
-std::vector<size_t> ExactMultiIndex::search(const std::vector<std::vector<float>>& query, const size_t k) {
+std::vector<size_t> ExactMultiVecIndex::search(const std::vector<std::vector<float>>& query, const size_t k) {
     return search(getSpanViewOfVectors(query), k);
 }
 
-std::vector<size_t> ExactMultiIndex::internalSearch(const std::vector<std::span<const float>>& userQuery, const size_t k,
+std::vector<size_t> ExactMultiVecIndex::internalSearch(const std::vector<std::span<const float>>& userQuery, const size_t k,
                         const std::vector<float>& normalisedWeights) const {
 
     std::vector<std::span<const float>> query = userQuery;
@@ -142,16 +142,16 @@ std::vector<size_t> ExactMultiIndex::internalSearch(const std::vector<std::span<
     return result;
 }
 
-void ExactMultiIndex::save(const std::string& path) const {
+void ExactMultiVecIndex::save(const std::string& path) const {
     std::cout << "Saving index to " << path << std::endl;
     std::cout << "Index properties: " << numModalities << ", Num Entities: " << numEntities << std::endl;
 }
 
-void ExactMultiIndex::load(const std::string& path) {
+void ExactMultiVecIndex::load(const std::string& path) {
     std::cout << "Loading index from " << path << std::endl;
 }
 
-void ExactMultiIndex::outputEntities() const {
+void ExactMultiVecIndex::outputEntities() const {
     // print entities one by one
     for (size_t i = 0; i < numEntities; ++i) {
         std::cout << "Entity " << i << ": ";

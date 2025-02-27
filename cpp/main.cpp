@@ -1,8 +1,8 @@
 #include <iostream>
 
 #include "include/simple-knn/ExactKNNIndex.hpp"
-#include "include/ExactMultiIndex.hpp"
-#include "include/MultiHNSW.hpp"
+#include "include/ExactMultiVecIndex.hpp"
+#include "include/MultiVecHNSW.hpp"
 
 void exact_demo() {
     ExactKNNIndex index;
@@ -22,13 +22,13 @@ void exact_demo() {
     std::cout << std::endl;
 }
 
-void multi_exact_demo() {
+void multivec_exact_demo() {
     // initialise an index
     size_t modalities = 2;
     std::vector<size_t> dims = {1, 2};
     std::vector<std::string> distance_metrics = {"euclidean", "euclidean"};
     std::vector<float> weights = {0.5f, 0.5f};
-    ExactMultiIndex index(modalities, dims, distance_metrics);
+    ExactMultiVecIndex index(modalities, dims, distance_metrics);
 
     // add some entities
     index.addEntities({{1.0f}, {2.0f, 3.0f}}); // add a single entity
@@ -48,14 +48,14 @@ void multi_exact_demo() {
     std::cout << std::endl;
 }
 
-//multi hnsw demo
-void multi_hnsw_demo() {
+//multivec hnsw demo
+void multivec_hnsw_demo() {
     // initialise an index
     size_t modalities = 2;
     std::vector<size_t> dims = {1, 2};
     std::vector<std::string> distance_metrics = {"euclidean", "euclidean"};
     std::vector<float> weights = {0.5f, 0.5f};
-    MultiHNSW index(modalities, dims, distance_metrics, {}, 1.0f, 32, 32, 200, 50, 20);
+    MultiVecHNSW index(modalities, dims, distance_metrics, {}, 1.0f, 32, 32, 200, 50, 20);
 
     // print properties of the index
     std::cout << "Number of modalities: " << index.getNumModalities() << std::endl;
@@ -69,7 +69,7 @@ void multi_hnsw_demo() {
 
 int main() {
 
-    multi_hnsw_demo();
+    multivec_hnsw_demo();
 
     return 0;
 }

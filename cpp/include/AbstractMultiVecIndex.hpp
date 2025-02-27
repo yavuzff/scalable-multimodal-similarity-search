@@ -1,13 +1,13 @@
-#ifndef MULTIINDEX_HPP
-#define MULTIINDEX_HPP
+#ifndef ABSTRACTMULTIVECINDEX_HPP
+#define ABSTRACTMULTIVECINDEX_HPP
 
 #include <vector>
 #include <span>
 
 #include "DistanceMetrics.hpp"
 
-// Abstract class for Multi vector K-NN index
-class AbstractMultiIndex {
+// abstract class for multi-vector K-NN index
+class AbstractMultiVecIndex {
 protected:
     size_t numModalities;
     std::vector<size_t> dimensions;
@@ -23,12 +23,12 @@ protected:
 
 public:
     // Constructor: take parameters in by value to gain ownership
-    AbstractMultiIndex(size_t theModalities,
+    AbstractMultiVecIndex(size_t theModalities,
         std::vector<size_t> dims,
         std::vector<std::string> distMetrics = {},
         std::vector<float> ws = {});
 
-    virtual ~AbstractMultiIndex() = default;
+    virtual ~AbstractMultiVecIndex() = default;
 
     // add multiple entities - note that the inner vector is flattened for performance
     // To add n entities with k modalities, provide a vector of length k,
@@ -60,4 +60,4 @@ public:
 
 };
 
-#endif //MULTIINDEX_HPP
+#endif //ABSTRACTMULTIVECINDEX_HPP

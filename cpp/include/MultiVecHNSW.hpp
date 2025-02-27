@@ -1,12 +1,12 @@
-#ifndef MULTIHNSW_HPP
-#define MULTIHNSW_HPP
+#ifndef MULTIVECHNSW_HPP
+#define MULTIVECHNSW_HPP
 
 #include <queue>
 #include <random>
 
-#include "AbstractMultiIndex.hpp"
+#include "AbstractMultiVecIndex.hpp"
 
-class MultiHNSW : public AbstractMultiIndex {
+class MultiVecHNSW : public AbstractMultiVecIndex {
 public:
     using entity_id_t = u_int32_t;
 
@@ -58,11 +58,11 @@ private:
 
     void addAndPruneEdgesForExistingNodes(entity_id_t newEntityId, const std::vector<std::pair<float, entity_id_t>> &connectedNeighbours, size_t layer);
 
-    friend class MultiHNSWTest;  // grant access to the test class
+    friend class MultiVecHNSWTest;  // grant access to the test class
     // Stats: number of edges traversed, number of distances computed, number of nodes visited
 
 public:
-    MultiHNSW(size_t numModalities,
+    MultiVecHNSW(size_t numModalities,
                     std::vector<size_t> dims,
                     std::vector<std::string> distanceMetrics = {},
                     std::vector<float> weights = {},
@@ -86,7 +86,7 @@ public:
         Builder& setEfSearch(size_t val);
         Builder& setSeed(size_t val);
 
-        [[nodiscard]] MultiHNSW build() const;
+        [[nodiscard]] MultiVecHNSW build() const;
 
     private:
         size_t numModalities;

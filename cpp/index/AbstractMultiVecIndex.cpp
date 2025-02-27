@@ -1,4 +1,4 @@
-#include "../include/AbstractMultiIndex.hpp"
+#include "../include/AbstractMultiVecIndex.hpp"
 #include "../include/utils.hpp"
 
 #include <iostream>
@@ -8,7 +8,7 @@
 #include "../include/common.hpp"
 
 // Constructor: take parameters in by value to gain ownership
-AbstractMultiIndex::AbstractMultiIndex(size_t theModalities,
+AbstractMultiVecIndex::AbstractMultiVecIndex(size_t theModalities,
         std::vector<size_t> dims,
         std::vector<std::string> distMetrics,
         std::vector<float> ws)
@@ -48,14 +48,14 @@ AbstractMultiIndex::AbstractMultiIndex(size_t theModalities,
     totalDimensions = std::accumulate(dimensions.begin(), dimensions.end(), 0);
 
     // print out what we just initialised:
-    debug_printf("Created MultiIndex with %zu modalities\n", numModalities);
+    debug_printf("Created MultiVecIndex with %zu modalities\n", numModalities);
     for (size_t i = 0; i < numModalities; ++i) {
         debug_printf("Modality %zu has dimension %zu, distance metric %s and weight %f\n", i, dimensions[i], distanceMetricToString(distanceMetrics[i]).c_str(), indexWeights[i]);
     }
     }
 
 //private function to validate input entities and return the number of entities
-size_t AbstractMultiIndex::validateEntities(const std::vector<std::span<const float>>& entities) const {
+size_t AbstractMultiVecIndex::validateEntities(const std::vector<std::span<const float>>& entities) const {
     if (entities.size() != numModalities) {
         throw std::invalid_argument("Entity must have the same number of modalities as the index");
     }
@@ -86,7 +86,7 @@ size_t AbstractMultiIndex::validateEntities(const std::vector<std::span<const fl
     return numNewEntities.value();
 }
 
-void AbstractMultiIndex::validateQuery(const std::vector<std::span<const float>> &query, size_t k) const {
+void AbstractMultiVecIndex::validateQuery(const std::vector<std::span<const float>> &query, size_t k) const {
     // validate the query entity and k
     if (k < 1) {
         throw std::invalid_argument("k must be at least 1");
@@ -98,22 +98,22 @@ void AbstractMultiIndex::validateQuery(const std::vector<std::span<const float>>
 }
 
     // getter implementations
-    [[nodiscard]] size_t AbstractMultiIndex::getNumModalities() const {
+    [[nodiscard]] size_t AbstractMultiVecIndex::getNumModalities() const {
         return numModalities;
     }
 
-    [[nodiscard]] const std::vector<size_t>& AbstractMultiIndex::getDimensions() const {
+    [[nodiscard]] const std::vector<size_t>& AbstractMultiVecIndex::getDimensions() const {
         return dimensions;
     }
 
-    [[nodiscard]] const std::vector<std::string>& AbstractMultiIndex::getDistanceMetrics() const {
+    [[nodiscard]] const std::vector<std::string>& AbstractMultiVecIndex::getDistanceMetrics() const {
         return strDistanceMetrics;
     }
 
-    [[nodiscard]] const std::vector<float>& AbstractMultiIndex::getWeights() const {
+    [[nodiscard]] const std::vector<float>& AbstractMultiVecIndex::getWeights() const {
         return indexWeights;
     }
 
-    [[nodiscard]] size_t AbstractMultiIndex::getNumEntities() const {
+    [[nodiscard]] size_t AbstractMultiVecIndex::getNumEntities() const {
         return numEntities;
     }

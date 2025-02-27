@@ -133,13 +133,13 @@ class CMakeBuild(build_ext):
 # The information here can also be placed in setup.cfg - better separation of
 # logic and declaration, and simpler if you include description/version in a file.
 setup(
-    name="multimodal_cpp_index",  # this is the name of the package for pip install
+    name="multivec_cpp_index",  # this is the name of the package for pip install
     version="0.0.1",
     author="Dean Moldovan",
     author_email="dean0x7d@gmail.com",
     description="A test project using pybind11 and CMake",
     long_description="",
-    ext_modules=[CMakeExtension("multimodal_index")], # this should be the name of the .so file/module name in binder
+    ext_modules=[CMakeExtension("multivec_index")], # this should be the name of the .so file/module name in binder
     cmdclass={"build_ext": CMakeBuild},
     zip_safe=False,
     extras_require={"test": ["pytest>=6.0"]},

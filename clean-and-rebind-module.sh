@@ -13,7 +13,7 @@ if [[ "$CWD" != *"scalable-multimodal-similarity-search" ]]; then
 fi
 
 # delete where the module is stored so that python has to reimport it
-rm -rf ./.venv/lib/python3.11/site-packages/multimodal_cpp_index-0.0.1-py3.11-macosx-14-x86_64.egg/
+rm -rf ./.venv/lib/python3.11/site-packages/multivec_cpp_index-0.0.1-py3.11-macosx-14-x86_64.egg/
 
 cd cpp || exit
 python3 pybinding/setup.py install

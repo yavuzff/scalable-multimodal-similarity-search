@@ -17,7 +17,7 @@ esac
 # compile and set up bindings
 cd cpp
 cmake -S . -B cmake-build-debug -DCMAKE_BUILD_TYPE=Debug #Release
-cmake --build cmake-build-debug -j 6 --target multimodal_index
+cmake --build cmake-build-debug -j 6 --target multivec_index
 python3 pybinding/setup.py install
 
 # run end-to-end python tests

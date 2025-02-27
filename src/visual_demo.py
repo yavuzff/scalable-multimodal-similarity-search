@@ -2,13 +2,13 @@ import gradio as gr
 import pandas as pd
 
 from src.load_dataset import load_vectors_from_dataset_base_path, load_image
-from multimodal_index import ExactMultiIndex
+from multivec_index import ExactMultiVecIndex
 from src.embedding_generators.text_embeddings import SentenceTransformerEmbeddingGenerator
 from src.embedding_generators.image_embeddings import HFImageEmbeddingGenerator
 
 class IndexWrapper:
     def __init__(self):
-        self.index: ExactMultiIndex = None
+        self.index: ExactMultiVecIndex = None
         self.dataset_path = None
         self.dataset_metadata = None
         self.image_embedding_generator = None
@@ -40,7 +40,7 @@ class IndexWrapper:
         metrics = [text_metric, image_metric]
         dataset = [text_vectors, image_vectors]
 
-        exact_index = ExactMultiIndex(modalities, [text_vectors.shape[1], image_vectors.shape[1]], metrics, weights)
+        exact_index = ExactMultiVecIndex(modalities, [text_vectors.shape[1], image_vectors.shape[1]], metrics, weights)
         exact_index.add_entities(dataset)
 
         self.index = exact_index
@@ -111,7 +111,6 @@ with gr.Blocks() as demo:
         with gr.Row():
             query_image_input = gr.Image(label="Query Image", type="filepath")
             query_text_input = gr.Textbox(label="Query Text", placeholder="Enter text query")
-        #k_input = gr.Slider(1, 10, step=1, value=5, label="Number of Neighbors (k)")
         k_input = gr.Number(value=5, label="Number of Neighbours (k)", precision=0)
 
         search_button = gr.Button("Search")

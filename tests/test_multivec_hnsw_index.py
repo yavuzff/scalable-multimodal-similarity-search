@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from multimodal_index import MultiHNSW
+from multivec_index import MultiVecHNSW
 
 def eq(array1, array2):
     return np.all(np.equal(array1, array2))
@@ -8,8 +8,8 @@ def eq(array1, array2):
 def eq2(array1, array2):
     return np.all(np.isclose(array1, array2, atol=1e-6))
 
-def test_multi_hnsw_index_initialisation():
-    index = MultiHNSW(2, dimensions=[1, 2], distance_metrics=["euclidean", "euclidean"], weights=[0.3, 0.7],
+def test_multivec_hnsw_index_initialisation():
+    index = MultiVecHNSW(2, dimensions=[1, 2], distance_metrics=["euclidean", "euclidean"], weights=[0.3, 0.7],
                       ef_construction=100, distribution_scale_factor=1.0)
 
     assert index.num_modalities == 2
@@ -25,9 +25,9 @@ def test_multi_hnsw_index_initialisation():
     assert index.seed == 42
 
 
-def test_searching_multi_hnsw_single_dim_single_modality():
+def test_searching_multivec_hnsw_single_dim_single_modality():
     # test single modality, single vector
-    index = MultiHNSW(1, dimensions=np.array([1]), distance_metrics=["euclidean"], weights=[1])
+    index = MultiVecHNSW(1, dimensions=np.array([1]), distance_metrics=["euclidean"], weights=[1])
 
     # add 1 modality, 8 vectors each of 1 dimension
     index.add_entities([[[-2],[-1],[0],[1],[2],[3],[4],[5]]])
@@ -46,8 +46,8 @@ def test_searching_multi_hnsw_single_dim_single_modality():
     assert eq(index.search(query3, 2), [1,0])
     assert eq(index.search(query3, 3), [1,0,2])
 
-def test_searching_multi_hnsw_single_modality_multiple_dim():
-    index = MultiHNSW(1, dimensions=np.array([3]), distance_metrics=["euclidean"], weights=[1])
+def test_searching_multivec_hnsw_single_modality_multiple_dim():
+    index = MultiVecHNSW(1, dimensions=np.array([3]), distance_metrics=["euclidean"], weights=[1])
 
     # adding with 1 modality, 4 entities with 3 dimensions for the modality
     index.add_entities([[  #single modality so we have 1 outer array
@@ -70,8 +70,8 @@ def test_searching_multi_hnsw_single_modality_multiple_dim():
     assert eq(index.search(query3, 2), [2,1])
 
 
-def test_searching_multi_hnsw_multiple_modalities_multiple_dim():
-    index = MultiHNSW(2, dimensions=np.array([2, 3]), distance_metrics=["euclidean", "euclidean"], weights=[0.5,0.5])
+def test_searching_multivec_hnsw_multiple_modalities_multiple_dim():
+    index = MultiVecHNSW(2, dimensions=np.array([2, 3]), distance_metrics=["euclidean", "euclidean"], weights=[0.5,0.5])
 
     # add 2 modality, 4 entities with dimensions 2, 3 for the modalities
     index.add_entities([
@@ -113,8 +113,8 @@ def test_searching_multi_hnsw_multiple_modalities_multiple_dim():
     assert eq(index.search(query4, 4, [1.2, 1.8]), [2,1,3,0])
     assert eq(index.search(query4, 10000, [1.2, 1.8]), [2,1,3,0])
 
-def test_invalid_multi_hnsw_searches():
-    index = MultiHNSW(2, dimensions=np.array([2, 3]), distance_metrics=["euclidean", "euclidean"], weights=[0.5,0.5])
+def test_invalid_multivec_hnsw_searches():
+    index = MultiVecHNSW(2, dimensions=np.array([2, 3]), distance_metrics=["euclidean", "euclidean"], weights=[0.5,0.5])
 
     # add 2 modality, 4 entities with dimensions 2, 3 for the modalities
     index.add_entities([
@@ -171,9 +171,9 @@ def test_invalid_multi_hnsw_searches():
         index.search([[1,2],[1,2,3]], -1)
 
 def test_distance_metrics_single_modality():
-    euclidean_index = MultiHNSW(1, dimensions=np.array([3]), distance_metrics=["euclidean"])
-    manhattan_index = MultiHNSW(1, dimensions=np.array([3]), distance_metrics=["manhattan"])
-    cosine_index = MultiHNSW(1, dimensions=np.array([3]), distance_metrics=["cosine"])
+    euclidean_index = MultiVecHNSW(1, dimensions=np.array([3]), distance_metrics=["euclidean"])
+    manhattan_index = MultiVecHNSW(1, dimensions=np.array([3]), distance_metrics=["manhattan"])
+    cosine_index = MultiVecHNSW(1, dimensions=np.array([3]), distance_metrics=["cosine"])
 
     # adding with 1 modality, 3 entities with 3 dimensions for the modality
     entities = [[  #single modality so we have 1 outer array
@@ -193,9 +193,9 @@ def test_distance_metrics_single_modality():
     assert eq(cosine_index.search(query1, 3), [0,1,2])
 
 
-    euclidean_index = MultiHNSW(1, dimensions=np.array([3]), distance_metrics=["euclidean"])
-    manhattan_index = MultiHNSW(1, dimensions=np.array([3]), distance_metrics=["manhattan"])
-    cosine_index = MultiHNSW(1, dimensions=np.array([3]), distance_metrics=["cosine"])
+    euclidean_index = MultiVecHNSW(1, dimensions=np.array([3]), distance_metrics=["euclidean"])
+    manhattan_index = MultiVecHNSW(1, dimensions=np.array([3]), distance_metrics=["manhattan"])
+    cosine_index = MultiVecHNSW(1, dimensions=np.array([3]), distance_metrics=["cosine"])
 
     # adding with 1 modality, 3 entities with 3 dimensions for the modality
     entities = [[  #single modality so we have 1 outer array
@@ -215,8 +215,8 @@ def test_distance_metrics_single_modality():
     assert eq(manhattan_index.search(query2, 3), [0,1,2])
     assert eq(cosine_index.search(query2, 3), [1,0,2])
 
-def test_combined_metric_multi_hnsw_search():
-    index = MultiHNSW(2, dimensions=np.array([3, 3]), distance_metrics=["euclidean", "manhattan"], weights=[0.5,0.5])
+def test_combined_metric_multivec_hnsw_search():
+    index = MultiVecHNSW(2, dimensions=np.array([3, 3]), distance_metrics=["euclidean", "manhattan"], weights=[0.5,0.5])
 
     # add 2 modality, 2 entities with dimensions 3, 3 for the modalities
     entities = [
@@ -241,8 +241,8 @@ def test_combined_metric_multi_hnsw_search():
     assert eq(index.search(query1, 1, [0.019,0.981]), [0])  #(2.985485291572496, 2.9858290263333127)
     assert eq(index.search(query1, 1, [0,1]), [0]) # (3,3.01)
 
-def test_manhattan_cosine_multi_hnsw_search():
-    index = MultiHNSW(2, dimensions=np.array([3, 3]), distance_metrics=["cosine", "manhattan"], weights=[0.5,0.5])
+def test_manhattan_cosine_multivec_hnsw_search():
+    index = MultiVecHNSW(2, dimensions=np.array([3, 3]), distance_metrics=["cosine", "manhattan"], weights=[0.5,0.5])
 
     # add 2 modality, 2 entities with dimensions 3, 3 for the modalities
     entities = [

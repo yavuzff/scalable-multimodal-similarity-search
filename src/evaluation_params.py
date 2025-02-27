@@ -14,7 +14,7 @@ class Params:
         self.k = k
         self.query_ids = query_ids
 
-class MultiHNSWConstructionParams:
+class MultiVecHNSWConstructionParams:
     def __init__(self, target_degree: int, max_degree: int, ef_construction: int, seed: int):
         # distributionScaleFactor ignored - set to default - 1/ln(M)
         self.target_degree = target_degree
@@ -22,7 +22,7 @@ class MultiHNSWConstructionParams:
         self.ef_construction = ef_construction
         self.seed = seed
 
-class MultiHNSWSearchParams:
+class MultiVecHNSWSearchParams:
     def __init__(self, k:int, ef_search: int):
         self.k = k
         self.ef_search = ef_search

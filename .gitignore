@@ -44,9 +44,16 @@
 
 # cpp folders
 cpp/build/
-cpp/multimodal_cpp_index.egg-info/
+cpp/multivec_cpp_index.egg-info/
 cpp/dist/
 cpp/cmake-build-debug/
+
+# experiments
+experiments/construction/
+experiments/exact_results/
+experiments/rerank_construction/
+experiments/rerank_search/
+experiments/search/
 
 # profiling results
 fil-result/
