@@ -15,6 +15,7 @@ import datetime
 import shutil
 import argparse
 from img2dataset import download
+from tqdm import tqdm
 
 
 def parse_arguments():
@@ -97,7 +98,7 @@ def move_files(images_path):
     """Rename and move files across shards for continuous indexing."""
     files = glob.glob(os.path.join(images_path, "*/*.jpg"))
     files.sort()
-    for i, file_path in enumerate(files):
+    for i, file_path in enumerate(tqdm(files)):
         shard = str(i // 10000).zfill(5)
         index = str(i % 10000).zfill(4)
         new_image_path = os.path.join(images_path, shard, f"{shard}{index}.jpg")
