@@ -6,13 +6,18 @@ from multivec_index import ExactMultiVecIndex
 from src.embedding_generators.text_embeddings import SentenceTransformerEmbeddingGenerator
 from src.embedding_generators.image_embeddings import HFImageEmbeddingGenerator
 
+
 class IndexWrapper:
+    """
+    Wrapper for the index to be called by the Gradio interface.
+    """
     def __init__(self):
         self.index: ExactMultiVecIndex = None
         self.dataset_path = None
         self.dataset_metadata = None
         self.image_embedding_generator = None
         self.text_embedding_generator = None
+
     def build_index(self, dataset_folder, text_weight, image_weight, text_metric, image_metric):
         self.dataset_path = dataset_folder
 
@@ -81,7 +86,7 @@ class IndexWrapper:
 index_wrapper = IndexWrapper()
 
 # main interface
-with gr.Blocks() as demo:
+with gr.Blocks(title="Multimodal Similarity Search Demo") as demo:
     gr.Markdown("# Demonstration of the Multimodal Similarity Search Framework")
 
     # build index section
