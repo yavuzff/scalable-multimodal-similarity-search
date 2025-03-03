@@ -14,8 +14,8 @@ def main():
     text_vectors_all, image_vectors_all = load_dataset()
 
     # define subset for indexing and querying
-    NUM_INDEXED_ENTITIES = 500_000
-    NUM_QUERY_ENTITIES = 100
+    NUM_INDEXED_ENTITIES = 10_000
+    NUM_QUERY_ENTITIES = 1000
     index_text_vectors = text_vectors_all[:NUM_INDEXED_ENTITIES]
     index_image_vectors = image_vectors_all[:NUM_INDEXED_ENTITIES]
     query_text_vectors = text_vectors_all[-NUM_QUERY_ENTITIES:]
@@ -36,7 +36,6 @@ def main():
 
     # evaluate inserting to the index
     entities = [index_text_vectors, index_image_vectors]
-    print(f"Inserting {NUM_INDEXED_ENTITIES} entities to the index.")
     insertion_time, memory_consumption = index_evaluator.evaluate_add_entities(entities)
     print(f"Insertion Time: {insertion_time:.3f} seconds.")
     print(f"Insertion Memory: {memory_consumption / 1024 / 1024} MiB.")
@@ -46,7 +45,7 @@ def main():
     search_times, recall_scores, memory_consumption = index_evaluator.evaluate_search(queries, K)
 
     print(
-        f"Average search time: {np.mean(search_times):.6f} seconds. Variance: {np.var(search_times):.6f}. Min: {np.min(search_times):.6f}. Max: {np.max(search_times):.6f}.")
+        f"Average search time: {np.mean(search_times)*1000:.3f}ms. Variance: {np.var(search_times)*1000*1000:.3f}ms^2. Min: {np.min(search_times)*1000:.3f}ms. Max: {np.max(search_times)*1000:.3f}ms.")
     print(
         f"Average recall: {np.mean(recall_scores):.3f}. Variance: {np.var(recall_scores):.3f}. Min: {np.min(recall_scores):.3f}. Max: {np.max(recall_scores):.3f}.")
     print(
@@ -152,7 +151,8 @@ def evaluate_parameter_space():
     #for index_size in reversed([10_000, 25_000, 50_000, 75_000, 100_000, 250_000, 375_000, 500_000, 625_000, 750_000, 875_000, 1_000_000]):
     #for index_size in [1000, 10_000]:
     #for index_size in [500_000, 625_000, 750_000, 875_000, 1_000_000]:
-    for index_size in [10_000, 25_000, 50_000, 75_000, 100_000, 150_000, 200_000, 250_000, 375_000]:
+    #for index_size in [10_000, 25_000, 50_000, 75_000, 100_000, 150_000, 200_000, 250_000, 375_000]:
+    for index_size in [1000]:
         params.index_size = index_size
 
         for k in [50]:
@@ -242,7 +242,7 @@ def evaluate_rerank_hnsw(index_sizes):
         time.sleep(index_size/5000) # sleep to avoid overloading the system
 
 if __name__ == "__main__":
-    #main()
+    main()
     #save_image_vectors_to_32(IMAGE_VECTORS_PATH.replace("image_vectors.npy", "image_vectors64.npy"))
 
     #run_exact_results()
@@ -250,11 +250,10 @@ if __name__ == "__main__":
     #evaluate_search()
     #print("Starting parameter space evaluation...")
     #evaluate_parameter_space()
-    print("Starting rerank evaluation for the previous parameter space...")
-    ##evaluate_rerank_hnsw([500_000, 625_000, 750_000, 875_000, 1_000_000])
+    #print("Starting rerank evaluation for the previous parameter space...")
+    #evaluate_rerank_hnsw([500_000, 625_000, 750_000, 875_000, 1_000_000])
 
-    ##evaluate_parameter_space()
-
-    ##evaluate_rerank_hnsw([10_000, 25_000, 50_000, 75_000, 100_000, 150_000, 200_000, 250_000, 375_000, 500_000, 625_000, 750_000, 875_000, 1_000_000])
+    #evaluate_parameter_space()
+    #evaluate_rerank_hnsw([10_000, 25_000, 50_000, 75_000, 100_000, 150_000, 200_000, 250_000, 375_000, 500_000, 625_000, 750_000, 875_000, 1_000_000])
 
     #main()

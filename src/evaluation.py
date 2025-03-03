@@ -8,7 +8,7 @@ from multivec_index import ExactMultiVecIndex, MultiVecHNSW
 from src.evaluation_params import Params, MultiVecHNSWConstructionParams, MultiVecHNSWSearchParams
 from src.load_dataset import load_dataset
 
-EXPERIMENTS_DIR = "experiments/"
+EXPERIMENTS_DIR = "experiments/clean/"
 EXACT_RESULTS_DIR = EXPERIMENTS_DIR + "exact_results/"
 CONSTRUCTION_DIR = EXPERIMENTS_DIR + "construction/"
 SEARCH_DIR = EXPERIMENTS_DIR + "search/"
