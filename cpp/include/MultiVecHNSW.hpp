@@ -34,6 +34,11 @@ private:
 
     mutable std::mt19937 generator;
 
+    // stats - TODO: only keep track of these in debug mode
+    mutable unsigned long long num_compute_distance_calls;
+    mutable unsigned long long num_lazy_distance_calls;
+    mutable unsigned long long num_lazy_distance_cutoff;
+
     // private methods
     void validateParameters() const;
     void addToEntityStorage(const std::vector<std::span<const float>>& entities, size_t num_entities);
@@ -44,6 +49,7 @@ private:
     std::span<const float> getEntityModalityFromEntityId(entity_id_t entityId, size_t modality) const;
 
     float computeDistance(std::span<const float> entity1,  std::span<const float> entity2, const std::vector<float>& weights) const;
+    float computeDistanceLazy(std::span<const float> entity1,  std::span<const float> entity2, const std::vector<float>& weights, float upperBound) const;
 
     [[nodiscard]] size_t generateRandomLevel() const;
     void addEntityToGraph(entity_id_t entityId);
@@ -59,7 +65,6 @@ private:
     void addAndPruneEdgesForExistingNodes(entity_id_t newEntityId, const std::vector<std::pair<float, entity_id_t>> &connectedNeighbours, size_t layer);
 
     friend class MultiVecHNSWTest;  // grant access to the test class
-    // Stats: number of edges traversed, number of distances computed, number of nodes visited
 
 public:
     MultiVecHNSW(size_t numModalities,

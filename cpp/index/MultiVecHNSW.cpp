@@ -29,6 +29,11 @@ MultiVecHNSW::MultiVecHNSW(size_t numModalities,
     }
     // initialise storage
     entityStorageByModality.resize(numModalities);
+
+    // initialise stats
+    num_compute_distance_calls = 0;
+    num_lazy_distance_calls = 0;
+    num_lazy_distance_cutoff = 0;
 }
 
 void MultiVecHNSW::validateParameters() const {
@@ -71,6 +76,8 @@ void MultiVecHNSW::addEntities(const vector<span<const float>>& entities) {
         addEntityToGraph(entityId);
     }
     numEntities = finalNumEntities;
+
+    std::cout << "num_compute_distance_calls: " << num_compute_distance_calls << " num_lazy_distance_calls: " << num_lazy_distance_calls << " num_lazy_distance_cutoff: " << num_lazy_distance_cutoff << std::endl;
 }
 
 void MultiVecHNSW::addToEntityStorageByModality(const vector<span<const float>>& entities, size_t numNewEntities) {
@@ -131,6 +138,9 @@ float MultiVecHNSW::computeDistance(const std::span<const float> entity1,  const
     assert(entity1.size() == totalDimensions);
     assert(entity2.size() == totalDimensions);
 
+    // incremented for tracking stats
+    num_compute_distance_calls++;
+
     float dist = 0.0f;
     size_t modalityStartIndex = 0;
     for (size_t modality = 0; modality < numModalities; ++modality) {
@@ -148,7 +158,7 @@ float MultiVecHNSW::computeDistance(const std::span<const float> entity1,  const
                 break;
                 case DistanceMetric::Cosine:
                     // vectors are already normalised
-                        modalityDistance = cosine(vector1, vector2);
+                    modalityDistance = cosine(vector1, vector2);
                 break;
                 default:
                     throw invalid_argument("Invalid distance metric. You should not be seeing this message.");
@@ -166,6 +176,52 @@ float MultiVecHNSW::computeDistance(const std::span<const float> entity1,  const
     return dist;
 }
 
+float MultiVecHNSW::computeDistanceLazy(const std::span<const float> entity1,  const std::span<const float> entity2, const std::vector<float>& weights, const float upperBound) const {
+    assert(entity1.size() == totalDimensions);
+    assert(entity2.size() == totalDimensions);
+
+    num_lazy_distance_calls++; // track stats
+
+    float dist = 0.0f;
+    size_t modalityStartIndex = 0;
+    for (size_t modality = 0; modality < numModalities; ++modality) {
+        if (weights[modality] != 0) {
+            span<const float> vector1 = entity1.subspan(modalityStartIndex, dimensions[modality]);
+            span<const float> vector2 = entity2.subspan(modalityStartIndex, dimensions[modality]);
+
+            float modalityDistance;
+            switch(distanceMetrics[modality]){
+                case DistanceMetric::Euclidean:
+                    modalityDistance = euclidean(vector1, vector2);
+                break;
+                case DistanceMetric::Manhattan:
+                    modalityDistance = manhattan(vector1, vector2);
+                break;
+                case DistanceMetric::Cosine:
+                    // vectors are already normalised
+                    modalityDistance = cosine(vector1, vector2);
+                break;
+                default:
+                    throw invalid_argument("Invalid distance metric. You should not be seeing this message.");
+            }
+            // check modalityDistance >= 0 with tolerance of 1e-6
+            assert(modalityDistance >= -1e-6);
+
+            // aggregate distance by summing modalityDistance*weight
+            dist += weights[modality] * modalityDistance;
+
+            // terminate early if the distance exceeds the upper bound
+            if (dist >= upperBound) {
+                if (modality < numModalities - 1) num_lazy_distance_cutoff++; // track stat if actually avoided computation
+                return dist;
+            }
+        }
+        modalityStartIndex += dimensions[modality];
+    }
+    // check distance >= 0 with tolerance of 1e-6
+    assert(dist >= -1e-6);
+    return dist;
+}
 
 vector<size_t> MultiVecHNSW::search(const vector<span<const float>>& query, size_t k, const vector<float>& queryWeights) {
     validateQuery(query, k);
@@ -402,9 +458,9 @@ vector<entity_id_t> MultiVecHNSW::internalSearch(const vector<span<const float>>
     assert(layer <= maxLevel);
     // set of visited elements initialised to entryPoints
     unordered_set<entity_id_t> visited(entryPoints.begin(), entryPoints.end());
-    // min priority queue of candidates, stores negative dist
+    // min priority queue of candidates (achieved by storing negative dist)
     priority_queue<pair<float, entity_id_t>> candidates;
-    // fixed-size priority queue of nearest neighbours found so far (ef size)
+    // fixed-size (ef) priority queue of nearest neighbours found so far, max heap
     priority_queue<pair<float, entity_id_t>> nearestNeighbours;
 
     // populate the priority queues
@@ -432,12 +488,20 @@ vector<entity_id_t> MultiVecHNSW::internalSearch(const vector<span<const float>>
             if (!visited.contains(neighbourId)) {
                 visited.insert(neighbourId);
                 const std::span<const float> neighbour = getEntityFromEntityId(neighbourId);
-                const float newDist = computeDistance(neighbour, entity, weights);
-                auto [_worstNeighbourDist, _worstNeighbour] = nearestNeighbours.top();
-                if (newDist < _worstNeighbourDist || nearestNeighbours.size() < ef) {
+
+                // lazy compute distance and update the priority queues
+                if (nearestNeighbours.size() < ef) {
+                    // we will insert this neighbour, no matter the computed distance
+                    const float newDist = computeDistance(neighbour, entity, weights);
                     candidates.emplace(-newDist, neighbourId);
                     nearestNeighbours.emplace(newDist, neighbourId);
-                    if (nearestNeighbours.size() > ef) {
+                } else {
+                    // we will lazy compute the distance and insert only if it is better than the worst neighbour
+                    auto [_worstNeighbourDist, _worstNeighbour] = nearestNeighbours.top();
+                    const float newDist = computeDistanceLazy(neighbour, entity, weights, _worstNeighbourDist);
+                    if (newDist < _worstNeighbourDist) {
+                        candidates.emplace(-newDist, neighbourId);
+                        nearestNeighbours.emplace(newDist, neighbourId);
                         nearestNeighbours.pop();
                     }
                 }
@@ -474,15 +538,25 @@ priority_queue<pair<float, entity_id_t>> MultiVecHNSW::selectNearestCandidates(e
     priority_queue<pair<float, entity_id_t>> maxHeap;
     for (const entity_id_t candidate : candidates) {
         assert(candidate != targetEntityId);
-        const float dist = computeDistance(
+
+        // add candidate using lazy distance computation
+        if (maxHeap.size() < numSelected) {
+            const float dist = computeDistance(
             getEntityFromEntityId(targetEntityId),
             getEntityFromEntityId(candidate),
             weights);
-        if (maxHeap.size() < numSelected) {
             maxHeap.emplace(dist, candidate);
-        } else if (dist < maxHeap.top().first) {
-            maxHeap.pop();
-            maxHeap.emplace(dist, candidate);
+        } else {
+            const float upperBound = maxHeap.top().first;
+            const float dist = computeDistanceLazy(
+                getEntityFromEntityId(targetEntityId),
+                getEntityFromEntityId(candidate),
+                weights,
+                upperBound);
+            if (dist < upperBound) {
+                maxHeap.pop();
+                maxHeap.emplace(dist, candidate);
+            }
         }
     }
     assert(!maxHeap.empty() && maxHeap.size() <= numSelected);
@@ -517,10 +591,11 @@ void MultiVecHNSW::selectDiversifiedCandidates(priority_queue<pair<float, entity
         // add current candidate only if (for all s in selected: dist(current, query) < dist(current, s)).
         bool addCandidate = true;
         for (const pair<float, entity_id_t>& selected : selectedCandidates) {
-            const float distToSelected = computeDistance(
+            const float distToSelected = computeDistanceLazy(
                 getEntityFromEntityId(selected.second),
                 getEntityFromEntityId(candidate.second),
-                weights);
+                weights,
+                distToCandidate);
             if (distToCandidate >= distToSelected) {
                 addCandidate = false;
                 break;
