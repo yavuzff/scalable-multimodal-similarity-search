@@ -1,5 +1,8 @@
 """
 Find near-duplicate embeddings in the LAION dataset.
+
+Sample usage:
+python3 -m src.dataset_processing.find_duplicates --dataset_entity_count 150 --base_path /Users/yavuz/data
 """
 import numpy as np
 import argparse

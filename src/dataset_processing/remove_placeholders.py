@@ -1,5 +1,8 @@
 """
-Remove placeholder images from the dataset. Run this after computing duplicates/placeholder images.
+Remove placeholder images from the dataset. Run this after you run find_duplicates.py, which computes duplicates/placeholder images.
+
+Sample usage:
+python3 -m src.dataset_processing.remove_placeholders --dataset_entity_count 150 --base_path /Users/yavuz/data
 """
 import os
 import argparse

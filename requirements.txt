@@ -14,3 +14,6 @@ filprofiler==2024.11.2
 psutil==6.1.0
 matplotlib==3.10.0
 gradio==5.17.1
+accelerate==1.4.0
+diffusers==0.32.2
+scipy==1.15.1
