@@ -35,7 +35,7 @@ def parse_arguments():
         '--num_audio_files',
         type=int,
         default=-1,
-        help="Number entities to generate audio files for. (default: -1 which is all entities)"
+        help="Number of entities to generate audio files for. (default: -1 which is all entities)"
     )
     return parser.parse_args()
 
@@ -51,7 +51,7 @@ def get_audio_pipe():
 
 
 def generate_audio_from_text(text: str, pipe: AudioLDM2Pipeline):
-    prompt = "Sound associateed with: " + text
+    prompt = "Sound associated with: " + text
     negative_prompt = "Low quality."
 
     output = pipe(
