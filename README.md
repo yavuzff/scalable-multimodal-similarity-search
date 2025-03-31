@@ -138,7 +138,7 @@ fil-profile run -m src.main
 
 
 ### Running the visual demonstration of the multimodal similarity search framework:
-1. Ensure you have a valid dataset perpared through src/dataset_processing.
+1. Ensure you have a valid dataset prepared through src/dataset_processing.
 2. Run the following command from the project root:
     ```
     python3 -m src.visual_demo

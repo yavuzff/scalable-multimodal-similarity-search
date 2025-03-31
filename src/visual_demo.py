@@ -3,6 +3,7 @@ import pandas as pd
 
 from src.load_dataset import load_vectors_from_dataset_base_path, load_image
 from multivec_index import ExactMultiVecIndex
+from multivec_index import MultiVecHNSW
 from src.embedding_generators.text_embeddings import SentenceTransformerEmbeddingGenerator
 from src.embedding_generators.image_embeddings import HFImageEmbeddingGenerator
 
@@ -18,7 +19,7 @@ class IndexWrapper:
         self.image_embedding_generator = None
         self.text_embedding_generator = None
 
-    def build_index(self, dataset_folder, text_weight, image_weight, text_metric, image_metric):
+    def build_index(self, dataset_folder, text_weight, image_weight, text_metric, image_metric, index_type):
         self.dataset_path = dataset_folder
 
         # load vectors from dataset_folder
@@ -45,10 +46,15 @@ class IndexWrapper:
         metrics = [text_metric, image_metric]
         dataset = [text_vectors, image_vectors]
 
-        exact_index = ExactMultiVecIndex(modalities, [text_vectors.shape[1], image_vectors.shape[1]], metrics, weights)
-        exact_index.add_entities(dataset)
+        if index_type == "MultiVecHNSW":
+            self.index = MultiVecHNSW(modalities, [text_vectors.shape[1], image_vectors.shape[1]], metrics, weights)
+        elif index_type == "ExactMultiVecIndex":
+            self.index = ExactMultiVecIndex(modalities, [text_vectors.shape[1], image_vectors.shape[1]], metrics, weights)
+        else:
+            raise ValueError(f"Unknown index type: {index_type}")
 
-        self.index = exact_index
+        self.index.add_entities(dataset)
+
         return f"Index successfully built! You can now search the index."
 
     def search(self, query_image, query_text, k):
@@ -94,6 +100,8 @@ with gr.Blocks(title="Multimodal Similarity Search Demo") as demo:
         gr.Markdown("### Build the index from your dataset folder")
         with gr.Row():
             dataset_folder_input = gr.Textbox(label="Dataset Folder Path", placeholder="Enter the path to your dataset folder")
+            dataset_folder_input.value = "/Users/yavuz/data/LAION-20000"
+            index_type = gr.Dropdown(label="Index Type", choices=["ExactMultiVecIndex", "MultiVecHNSW"], value="ExactMultiVecIndex")
 
         with gr.Row():
             image_weight_slider = gr.Slider(0, 1, value=0.5, label="Image Weight")
@@ -107,7 +115,7 @@ with gr.Blocks(title="Multimodal Similarity Search Demo") as demo:
         build_status = gr.Textbox(label="Status", placeholder="Build status will be shown here")
 
         build_button.click(fn=index_wrapper.build_index,
-                           inputs=[dataset_folder_input, text_weight_slider, image_weight_slider, text_metric, image_metric],
+                           inputs=[dataset_folder_input, text_weight_slider, image_weight_slider, text_metric, image_metric, index_type],
                            outputs=build_status)
 
     # search index section
