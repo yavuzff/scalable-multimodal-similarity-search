@@ -12,8 +12,9 @@ class IndexWrapper:
     """
     Wrapper for the index to be called by the Gradio interface.
     """
+
     def __init__(self):
-        self.index: ExactMultiVecIndex = None
+        self.index = None
         self.dataset_path = None
         self.dataset_metadata = None
         self.image_embedding_generator = None
@@ -28,7 +29,8 @@ class IndexWrapper:
         except Exception as e:
             return f"Failed to load vectors from the dataset folder: {e}"
 
-        print(f"Loaded 32-bit vectors. Text vectors shape: {text_vectors.shape}. Image vectors shape: {image_vectors.shape}.")
+        print(
+            f"Loaded 32-bit vectors. Text vectors shape: {text_vectors.shape}. Image vectors shape: {image_vectors.shape}.")
 
         # load metadata from dataset_folder
         try:
@@ -49,7 +51,8 @@ class IndexWrapper:
         if index_type == "MultiVecHNSW":
             self.index = MultiVecHNSW(modalities, [text_vectors.shape[1], image_vectors.shape[1]], metrics, weights)
         elif index_type == "ExactMultiVecIndex":
-            self.index = ExactMultiVecIndex(modalities, [text_vectors.shape[1], image_vectors.shape[1]], metrics, weights)
+            self.index = ExactMultiVecIndex(modalities, [text_vectors.shape[1], image_vectors.shape[1]], metrics,
+                                            weights)
         else:
             raise ValueError(f"Unknown index type: {index_type}")
 
@@ -57,7 +60,7 @@ class IndexWrapper:
 
         return f"Index successfully built! You can now search the index."
 
-    def search(self, query_image, query_text, k):
+    def search(self, query_image, query_text, k, search_image_weight, search_text_weight):
         if self.index is None:
             return "Cannot search without building an index first. Please build the index.", None
 
@@ -73,7 +76,7 @@ class IndexWrapper:
         query = [query_text_vector, query_image_vector]
         # search the index
         try:
-            ids = self.index.search(query, k)
+            ids = self.index.search(query, k, query_weights=[search_text_weight, search_image_weight])
         except Exception as e:
             return f"Search failed with error: {e}", None
 
@@ -99,13 +102,16 @@ with gr.Blocks(title="Multimodal Similarity Search Demo") as demo:
     with gr.Tab("Build Multimodal Index"):
         gr.Markdown("### Build the index from your dataset folder")
         with gr.Row():
-            dataset_folder_input = gr.Textbox(label="Dataset Folder Path", placeholder="Enter the path to your dataset folder")
+            dataset_folder_input = gr.Textbox(label="Dataset Folder Path",
+                                              placeholder="Enter the path to your dataset folder")
             dataset_folder_input.value = "/Users/yavuz/data/LAION-20000"
-            index_type = gr.Dropdown(label="Index Type", choices=["ExactMultiVecIndex", "MultiVecHNSW"], value="ExactMultiVecIndex")
+            index_type = gr.Dropdown(label="Index Type", choices=["ExactMultiVecIndex", "MultiVecHNSW"],
+                                     value="ExactMultiVecIndex")
 
         with gr.Row():
             image_weight_slider = gr.Slider(0, 1, value=0.5, label="Image Weight")
-            image_metric = gr.Dropdown(label="Image Metric", choices=["cosine", "euclidean", "manhattan"], value="cosine")
+            image_metric = gr.Dropdown(label="Image Metric", choices=["cosine", "euclidean", "manhattan"],
+                                       value="cosine")
 
         with gr.Row():
             text_weight_slider = gr.Slider(0, 1, value=0.5, label="Text Weight")
@@ -115,7 +121,8 @@ with gr.Blocks(title="Multimodal Similarity Search Demo") as demo:
         build_status = gr.Textbox(label="Status", placeholder="Build status will be shown here")
 
         build_button.click(fn=index_wrapper.build_index,
-                           inputs=[dataset_folder_input, text_weight_slider, image_weight_slider, text_metric, image_metric, index_type],
+                           inputs=[dataset_folder_input, text_weight_slider, image_weight_slider, text_metric,
+                                   image_metric, index_type],
                            outputs=build_status)
 
     # search index section
@@ -124,8 +131,25 @@ with gr.Blocks(title="Multimodal Similarity Search Demo") as demo:
         with gr.Row():
             query_image_input = gr.Image(label="Query Image", type="filepath")
             query_text_input = gr.Textbox(label="Query Text", placeholder="Enter text query")
-        k_input = gr.Number(value=5, label="Number of Neighbours (k)", precision=0)
 
+        with gr.Row():
+            search_image_weight_slider = gr.Slider(0, 1, value=image_weight_slider.value, label="Image Weight for Search")
+            search_text_weight_slider = gr.Slider(0, 1, value=text_weight_slider.value, label="Text Weight for Search")
+
+            # add event listeners to update the search sliders whenever the index build sliders are updated
+            image_weight_slider.change(
+                fn=lambda x: x,
+                inputs=image_weight_slider,
+                outputs=search_image_weight_slider
+            )
+            text_weight_slider.change(
+                fn=lambda x: x,
+                inputs=text_weight_slider,
+                outputs=search_text_weight_slider
+            )
+
+        # k input and search button
+        k_input = gr.Number(value=5, label="Number of Neighbours (k)", precision=0)
         search_button = gr.Button("Search")
 
         # output components
@@ -135,16 +159,15 @@ with gr.Blocks(title="Multimodal Similarity Search Demo") as demo:
         result_containers = []
         for i in range(MAX_DISPLAYED_ENTITIES):
             with gr.Column(visible=False) as container:
-                gr.Markdown(f"### Entity {i+1}")
+                gr.Markdown(f"### Entity {i + 1}")
                 with gr.Row():
                     img = gr.Image(label="Image", type="pil")
                     txt = gr.Textbox(label="Text", interactive=False)
             result_containers.append((container, img, txt))
 
-
     # function to update the containers with search results
-    def display_search_results(query_image_path, query_text, k):
-        status, entity_results = index_wrapper.search(query_image_path, query_text, k)
+    def display_search_results(query_image_path, query_text, k, search_image_weight, search_text_weight):
+        status, entity_results = index_wrapper.search(query_image_path, query_text, k, search_image_weight, search_text_weight)
         updates = [status]
 
         # if search fails, display only the status message
@@ -168,10 +191,11 @@ with gr.Blocks(title="Multimodal Similarity Search Demo") as demo:
                 updates.extend([gr.update(visible=False), None, ""])
         return updates
 
+
     # for each container we have 3 components: container update, image and text.
     outputs = [search_status] + [comp for container in result_containers for comp in container]
     search_button.click(fn=display_search_results,
-                        inputs=[query_image_input, query_text_input, k_input],
+                        inputs=[query_image_input, query_text_input, k_input, search_image_weight_slider, search_text_weight_slider],
                         outputs=outputs)
 
 demo.launch()
