@@ -146,6 +146,7 @@ fil-profile run -m src.main
 3. Enter dataset path, weights and metrics to build the index.
 4. Search the index by selecting a query image and text, and k.
 
+Note: For 2 modality dataset (text, image), use `visual_demo.py`. For 4 modality dataset (text, image, audio, video), use `visual_demo_4_modalities.py`.
 
 ### Additional Information
 
