@@ -14,7 +14,7 @@ class IndexWrapper:
     """
 
     def __init__(self):
-        self.index = None
+        self.index: ExactMultiVecIndex = None
         self.dataset_path = None
         self.dataset_metadata = None
         self.image_embedding_generator = None
@@ -85,10 +85,10 @@ class IndexWrapper:
         # load image and text
         images_path = self.dataset_path + "/images"
         for entity_id in ids:
-            entity = (load_image(entity_id, images_path), self.dataset_metadata["TEXT"][entity_id])
+            entity = (entity_id, load_image(entity_id, images_path), self.dataset_metadata["TEXT"][entity_id])
             entity_results.append(entity)
 
-        return f"Search completed successfully.", entity_results
+        return f"Search completed successfully. Returned {len(ids)} entities.", entity_results
 
 
 # initialise the index wrapper that will be used through the demo
@@ -133,7 +133,8 @@ with gr.Blocks(title="Multimodal Similarity Search Demo") as demo:
             query_text_input = gr.Textbox(label="Query Text", placeholder="Enter text query")
 
         with gr.Row():
-            search_image_weight_slider = gr.Slider(0, 1, value=image_weight_slider.value, label="Image Weight for Search")
+            search_image_weight_slider = gr.Slider(0, 1, value=image_weight_slider.value,
+                                                   label="Image Weight for Search")
             search_text_weight_slider = gr.Slider(0, 1, value=text_weight_slider.value, label="Text Weight for Search")
 
             # add event listeners to update the search sliders whenever the index build sliders are updated
@@ -159,43 +160,46 @@ with gr.Blocks(title="Multimodal Similarity Search Demo") as demo:
         result_containers = []
         for i in range(MAX_DISPLAYED_ENTITIES):
             with gr.Column(visible=False) as container:
-                gr.Markdown(f"### Entity {i + 1}")
+                title = gr.Markdown(f"### Entity {i + 1}")
                 with gr.Row():
                     img = gr.Image(label="Image", type="pil")
                     txt = gr.Textbox(label="Text", interactive=False)
-            result_containers.append((container, img, txt))
+            result_containers.append((container, title, img, txt))
 
     # function to update the containers with search results
     def display_search_results(query_image_path, query_text, k, search_image_weight, search_text_weight):
-        status, entity_results = index_wrapper.search(query_image_path, query_text, k, search_image_weight, search_text_weight)
+        status, entity_results = index_wrapper.search(query_image_path, query_text, k, search_image_weight,
+                                                      search_text_weight)
         updates = [status]
 
         # if search fails, display only the status message
         if entity_results is None:
             for _ in range(MAX_DISPLAYED_ENTITIES):
-                updates.extend([gr.update(visible=False), None, ""])
+                updates.extend([gr.update(visible=False), None, None, ""])
             return updates
 
         # update the rows of the UI with search results
         k = len(entity_results)
-        for i in range(MAX_DISPLAYED_ENTITIES):  # Loop over max rows
+        for i in range(MAX_DISPLAYED_ENTITIES):
             if i < k:
                 # update the container to show the image and text
                 updates.extend([
                     gr.update(visible=True),
-                    entity_results[i][0],
-                    entity_results[i][1]
+                    gr.Markdown(f"### Entity {entity_results[i][0]}"),  # display retrieved entity id
+                    entity_results[i][1],  # image
+                    entity_results[i][2]  # text
                 ])
             else:
                 # hide the row and clear image and text for unused rows
-                updates.extend([gr.update(visible=False), None, ""])
+                updates.extend([gr.update(visible=False), None, None, ""])
         return updates
 
 
     # for each container we have 3 components: container update, image and text.
     outputs = [search_status] + [comp for container in result_containers for comp in container]
     search_button.click(fn=display_search_results,
-                        inputs=[query_image_input, query_text_input, k_input, search_image_weight_slider, search_text_weight_slider],
+                        inputs=[query_image_input, query_text_input, k_input, search_image_weight_slider,
+                                search_text_weight_slider],
                         outputs=outputs)
 
 demo.launch()
