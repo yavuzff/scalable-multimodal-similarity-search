@@ -8,9 +8,12 @@ from multivec_index import ExactMultiVecIndex
 from multivec_index import MultiVecHNSW
 from src.embedding_generators.text_embeddings import SentenceTransformerEmbeddingGenerator
 from src.embedding_generators.image_embeddings import HFImageEmbeddingGenerator
+from src.embedding_generators.audio_embeddings import AudioEmbeddingGenerator
+from src.embedding_generators.video_embeddings import VideoEmbeddingGenerator
 
-#  allow Gradio to access this folder for the demo
+# allow Gradio to access this folder for the demo
 ACCESSIBLE_DATA_PATH = "/Users/yavuz/data"
+USE_EMBEDDINGS_FROM_DATASET_IF_AVAILABLE = True  # if true, for the query audio/video, if the input is from the dataset, it will use the embedding from the dataset
 
 
 class LargeEntityIndexWrapper:
@@ -51,6 +54,8 @@ class LargeEntityIndexWrapper:
         # initialise the embedding generators (used only for the search)
         self.text_embedding_generator = SentenceTransformerEmbeddingGenerator()
         self.image_embedding_generator = HFImageEmbeddingGenerator()
+        self.audio_embedding_generator = AudioEmbeddingGenerator()
+        self.video_embedding_generator = VideoEmbeddingGenerator()
 
         # build index
         modalities = 4
@@ -70,8 +75,10 @@ class LargeEntityIndexWrapper:
 
         return f"Index successfully built! You can now search the index."
 
-    def search(self, query_image, query_text, query_audio, query_video, k, search_image_weight, search_text_weight, search_audio_weight, search_video_weight):
-        print(f"Searching for image: {query_image}, text: {query_text}, audio: {query_audio}, video: {query_video}, k: {k}")
+    def search(self, query_image, query_text, query_audio, query_video, k, search_image_weight, search_text_weight,
+               search_audio_weight, search_video_weight):
+        print(
+            f"Searching for image: {query_image}, text: {query_text}, audio: {query_audio}, video: {query_video}, k: {k}")
 
         if self.index is None:
             return "Cannot search without building an index first. Please build the index.", None
@@ -109,37 +116,42 @@ class LargeEntityIndexWrapper:
 
         if query_audio is not None:
             # check if the audio is part of the dataset and already has an embedding
-            query_audio_file = query_audio.split("/")[-1]
-            potential_path = self.dataset_path + "/audios/" + query_audio_file
-            print("Checking path for audio: ", potential_path)
-            if os.path.exists(potential_path):
+            query_audio_file_name = query_audio.split("/")[-1]
+            potential_path = self.dataset_path + "/audios/" + query_audio_file_name
+            if USE_EMBEDDINGS_FROM_DATASET_IF_AVAILABLE and os.path.exists(potential_path):
                 # load all vectors
                 dataset_audio_vectors = np.load(self.dataset_path + "/vectors-4-modalities/audio_vectors.npy")
-                query_audio_vector = dataset_audio_vectors[int(query_audio_file.split(".")[0])]
+                query_audio_vector = dataset_audio_vectors[int(query_audio_file_name.split(".")[0])]
+                print("Loaded audio embedding from dataset.")
             else:
-                return "Audio embedding generation not supported, please select audio from dataset", None
+                # load the audio file and generate the embedding
+                query_audio_vector = self.audio_embedding_generator.generate_audio_embedding(query_audio)
+                print("Generated audio embedding.")
         else:
             query_audio_vector = [-1] * dimensions[2]
 
         if query_video is not None:
             # check if the video is part of the dataset and already has an embedding
-            query_video_file = query_video.split("/")[-1]
-            potential_path = self.dataset_path + "/videos/" + query_video_file
-            print("Checking path for video: ", potential_path)
-            if os.path.exists(potential_path):
+            query_video_file_name = query_video.split("/")[-1]
+            potential_path = self.dataset_path + "/videos/" + query_video_file_name
+            if USE_EMBEDDINGS_FROM_DATASET_IF_AVAILABLE and os.path.exists(potential_path):
                 # load all vectors
                 dataset_video_vectors = np.load(self.dataset_path + "/vectors-4-modalities/video_vectors.npy")
-                query_video_vector = dataset_video_vectors[int(query_video_file.split(".")[0])]
+                query_video_vector = dataset_video_vectors[int(query_video_file_name.split(".")[0])]
+                print("Loaded video embedding from dataset.")
             else:
-                return "Video embedding generation not supported, please select video from dataset", None
+                # load the video file and generate the embedding
+                query_video_vector = self.video_embedding_generator.generate_video_embedding(query_video)
+                print("Generated video embedding.")
         else:
             query_video_vector = [-1] * dimensions[3]
-
 
         query = [query_text_vector, query_image_vector, query_audio_vector, query_video_vector]
         # search the index
         try:
-            ids = self.index.search(query, k, query_weights=[search_text_weight, search_image_weight, search_audio_weight, search_video_weight])
+            ids = self.index.search(query, k,
+                                    query_weights=[search_text_weight, search_image_weight, search_audio_weight,
+                                                   search_video_weight])
         except Exception as e:
             return f"Search failed with error: {e}", None
 
@@ -180,7 +192,8 @@ with gr.Blocks(title="Multimodal Similarity Search Demo") as demo:
 
         with gr.Row():
             image_weight_slider = gr.Slider(0, 1, value=0.5, label="Image Weight")
-            image_metric = gr.Dropdown(label="Image Metric", choices=["cosine", "euclidean", "manhattan"], value="cosine")
+            image_metric = gr.Dropdown(label="Image Metric", choices=["cosine", "euclidean", "manhattan"],
+                                       value="cosine")
         with gr.Row():
             text_weight_slider = gr.Slider(0, 1, value=0.5, label="Text Weight")
             text_metric = gr.Dropdown(label="Text Metric", choices=["cosine", "euclidean", "manhattan"], value="cosine")
@@ -267,9 +280,11 @@ with gr.Blocks(title="Multimodal Similarity Search Demo") as demo:
 
 
     # function to update the containers with search results
-    def display_search_results(query_image_path, query_text, query_audio_path, query_video_path, k, search_image_weight, search_text_weight, search_audio_weight, search_video_weight):
+    def display_search_results(query_image_path, query_text, query_audio_path, query_video_path, k, search_image_weight,
+                               search_text_weight, search_audio_weight, search_video_weight):
         status, entity_results = index_wrapper.search(query_image_path, query_text, query_audio_path, query_video_path,
-                                                      k, search_image_weight, search_text_weight, search_audio_weight, search_video_weight)
+                                                      k, search_image_weight, search_text_weight, search_audio_weight,
+                                                      search_video_weight)
         updates = [status]
 
         # if search fails, display only the status message
@@ -301,7 +316,8 @@ with gr.Blocks(title="Multimodal Similarity Search Demo") as demo:
     outputs = [search_status] + [comp for container in result_containers for comp in container]
     search_button.click(fn=display_search_results,
                         inputs=[query_image_input, query_text_input, query_audio_input, query_video_input, k_input,
-                                search_image_weight_slider, search_text_weight_slider, search_audio_weight_slider, search_video_weight_slider],
+                                search_image_weight_slider, search_text_weight_slider, search_audio_weight_slider,
+                                search_video_weight_slider],
                         outputs=outputs)
 
 demo.launch(allowed_paths=[ACCESSIBLE_DATA_PATH])

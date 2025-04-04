@@ -17,3 +17,4 @@ gradio==5.17.1
 accelerate==1.4.0
 diffusers==0.32.2
 scipy==1.15.1
+torchaudio==2.2.2
