@@ -20,7 +20,8 @@ class IndexWrapper:
         self.image_embedding_generator = None
         self.text_embedding_generator = None
 
-    def build_index(self, dataset_folder, text_weight, image_weight, text_metric, image_metric, index_type):
+    def build_index(self, dataset_folder, text_weight, image_weight, text_metric, image_metric, index_type,
+                    text_embedding_model, image_embedding_model):
         self.dataset_path = dataset_folder
 
         # load vectors from dataset_folder
@@ -39,8 +40,8 @@ class IndexWrapper:
             return "Failed to load metadata from the dataset folder. Please check the dataset path contains metadata.parquet: {e}"
 
         # initialise the embedding generators (used only for the search)
-        self.text_embedding_generator = SentenceTransformerEmbeddingGenerator()
-        self.image_embedding_generator = HFImageEmbeddingGenerator()
+        self.text_embedding_generator = SentenceTransformerEmbeddingGenerator(model_name=text_embedding_model)
+        self.image_embedding_generator = HFImageEmbeddingGenerator(model_name=image_embedding_model)
 
         # build index
         modalities = 2
@@ -109,20 +110,24 @@ with gr.Blocks(title="Multimodal Similarity Search Demo") as demo:
                                      value="ExactMultiVecIndex")
 
         with gr.Row():
+            image_embedding_model = gr.Textbox(label="Image Embedding Model",
+                                               value="google/vit-base-patch16-224-in21k")
             image_weight_slider = gr.Slider(0, 1, value=0.5, label="Image Weight")
-            image_metric = gr.Dropdown(label="Image Metric", choices=["cosine", "euclidean", "manhattan"],
+            image_metric = gr.Dropdown(label="Image Metric", choices=["cosine", "Euclidean", "Manhattan"],
                                        value="cosine")
 
         with gr.Row():
+            text_embedding_model = gr.Textbox(label="Text Embedding Model",
+                                              value="BAAI/bge-small-en-v1.5")
             text_weight_slider = gr.Slider(0, 1, value=0.5, label="Text Weight")
-            text_metric = gr.Dropdown(label="Text Metric", choices=["cosine", "euclidean", "manhattan"], value="cosine")
+            text_metric = gr.Dropdown(label="Text Metric", choices=["cosine", "Euclidean", "Manhattan"], value="cosine")
 
         build_button = gr.Button("Build Index")
         build_status = gr.Textbox(label="Status", placeholder="Build status will be shown here")
 
         build_button.click(fn=index_wrapper.build_index,
                            inputs=[dataset_folder_input, text_weight_slider, image_weight_slider, text_metric,
-                                   image_metric, index_type],
+                                   image_metric, index_type, text_embedding_model, image_embedding_model],
                            outputs=build_status)
 
     # search index section
