@@ -6,6 +6,8 @@
 
 #include "AbstractMultiVecIndex.hpp"
 
+#define TRACK_STATS false
+
 class MultiVecHNSW : public AbstractMultiVecIndex {
 public:
     using entity_id_t = u_int32_t;
@@ -34,10 +36,11 @@ private:
 
     mutable std::mt19937 generator;
 
-    // stats - TODO: only keep track of these in debug mode
+    // stats - only keep track if flag is set
     mutable unsigned long long num_compute_distance_calls;
     mutable unsigned long long num_lazy_distance_calls;
     mutable unsigned long long num_lazy_distance_cutoff;
+    mutable unsigned long long num_vectors_skipped_due_to_cutoff;
 
     // private methods
     void validateParameters() const;

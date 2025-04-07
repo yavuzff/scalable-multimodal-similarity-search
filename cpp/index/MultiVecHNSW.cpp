@@ -31,9 +31,12 @@ MultiVecHNSW::MultiVecHNSW(size_t numModalities,
     entityStorageByModality.resize(numModalities);
 
     // initialise stats
-    num_compute_distance_calls = 0;
-    num_lazy_distance_calls = 0;
-    num_lazy_distance_cutoff = 0;
+    if constexpr (TRACK_STATS) {
+        num_compute_distance_calls = 0;
+        num_lazy_distance_calls = 0;
+        num_lazy_distance_cutoff = 0;
+        num_vectors_skipped_due_to_cutoff = 0;
+    }
 }
 
 void MultiVecHNSW::validateParameters() const {
@@ -77,7 +80,11 @@ void MultiVecHNSW::addEntities(const vector<span<const float>>& entities) {
     }
     numEntities = finalNumEntities;
 
-    std::cout << "num_compute_distance_calls: " << num_compute_distance_calls << " num_lazy_distance_calls: " << num_lazy_distance_calls << " num_lazy_distance_cutoff: " << num_lazy_distance_cutoff << std::endl;
+    if constexpr (TRACK_STATS) {
+        std::cout << "num_compute_distance_calls: " << num_compute_distance_calls << " num_lazy_distance_calls: "
+        << num_lazy_distance_calls << " num_lazy_distance_cutoff: " << num_lazy_distance_cutoff
+        << " num_vectors_skipped_due_to_cutoff: " << num_vectors_skipped_due_to_cutoff <<  std::endl;
+    }
 }
 
 void MultiVecHNSW::addToEntityStorageByModality(const vector<span<const float>>& entities, size_t numNewEntities) {
@@ -139,7 +146,7 @@ float MultiVecHNSW::computeDistance(const std::span<const float> entity1,  const
     assert(entity2.size() == totalDimensions);
 
     // incremented for tracking stats
-    num_compute_distance_calls++;
+    if constexpr (TRACK_STATS) num_compute_distance_calls++;
 
     float dist = 0.0f;
     size_t modalityStartIndex = 0;
@@ -180,7 +187,7 @@ float MultiVecHNSW::computeDistanceLazy(const std::span<const float> entity1,  c
     assert(entity1.size() == totalDimensions);
     assert(entity2.size() == totalDimensions);
 
-    num_lazy_distance_calls++; // track stats
+    if constexpr (TRACK_STATS) num_lazy_distance_calls++;
 
     float dist = 0.0f;
     size_t modalityStartIndex = 0;
@@ -212,7 +219,12 @@ float MultiVecHNSW::computeDistanceLazy(const std::span<const float> entity1,  c
 
             // terminate early if the distance exceeds the upper bound
             if (dist >= upperBound) {
-                if (modality < numModalities - 1) num_lazy_distance_cutoff++; // track stat if actually avoided computation
+                if constexpr (TRACK_STATS) {
+                    if (modality < numModalities - 1) {
+                        num_lazy_distance_cutoff++; // track stat if actually avoided computation
+                        num_vectors_skipped_due_to_cutoff += (numModalities-1) - modality;
+                    }
+                }
                 return dist;
             }
         }
