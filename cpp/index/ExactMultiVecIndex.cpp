@@ -20,7 +20,7 @@ void ExactMultiVecIndex::addEntities(const std::vector<std::vector<float>> &enti
 }
 
 void ExactMultiVecIndex::addEntities(const std::vector<std::span<const float>>& entities) {
-    const size_t numNewEntities = validateEntities(entities);
+    const size_t numNewEntities = validateEntities(entities, dimensions);
     numEntities += numNewEntities;
     debug_printf("Adding %zu entities!\n", numNewEntities);
 
@@ -42,7 +42,7 @@ void ExactMultiVecIndex::addEntities(const std::vector<std::span<const float>>& 
 
 std::vector<size_t> ExactMultiVecIndex::search(const std::vector<std::span<const float>>& query, const size_t k,
                         const std::vector<float>& queryWeights) {
-    validateQuery(query, k);
+    validateQuery(query, k, dimensions);
     // copy weights as we will normalise them
     auto normalisedQueryWeights = std::vector(queryWeights);
     validateAndNormaliseWeights(normalisedQueryWeights, numModalities);
@@ -51,7 +51,7 @@ std::vector<size_t> ExactMultiVecIndex::search(const std::vector<std::span<const
 }
 
 std::vector<size_t> ExactMultiVecIndex::search(const std::vector<std::span<const float>>& query, const size_t k) {
-    validateQuery(query, k);
+    validateQuery(query, k, dimensions);
     return internalSearch(query, k, indexWeights);
 }
 

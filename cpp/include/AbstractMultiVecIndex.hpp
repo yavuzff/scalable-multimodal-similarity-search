@@ -18,8 +18,8 @@ protected:
     std::vector<size_t> toNormalise; // indices of modality vectors to normalise
     size_t totalDimensions; // sum of all dimensions
 
-    size_t validateEntities(const std::vector<std::span<const float>> &entities) const;
-    void validateQuery(const std::vector<std::span<const float>> &query, size_t k) const;
+    [[nodiscard]] size_t validateEntities(const std::vector<std::span<const float>> &entities, const std::vector<size_t>& expectedDimensions) const;
+    void validateQuery(const std::vector<std::span<const float>> &query, size_t k, const std::vector<size_t> &expectedDimensions) const;
 
 public:
     // Constructor: take parameters in by value to gain ownership
@@ -52,11 +52,11 @@ public:
 
     virtual void load(const std::string& path) = 0;
 
-    [[nodiscard]] size_t getNumModalities() const;
-    [[nodiscard]] const std::vector<size_t>& getDimensions() const;
-    [[nodiscard]] const std::vector<std::string>& getDistanceMetrics() const;
-    [[nodiscard]] const std::vector<float>& getWeights() const;
-    [[nodiscard]] size_t getNumEntities() const;
+    [[nodiscard]] virtual size_t getNumModalities() const;
+    [[nodiscard]] virtual const std::vector<size_t>& getDimensions() const;
+    [[nodiscard]] virtual const std::vector<std::string>& getDistanceMetrics() const;
+    [[nodiscard]] virtual const std::vector<float>& getWeights() const;
+    [[nodiscard]] virtual size_t getNumEntities() const;
 
 };
 

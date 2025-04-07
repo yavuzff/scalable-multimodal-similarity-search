@@ -55,7 +55,7 @@ AbstractMultiVecIndex::AbstractMultiVecIndex(size_t theModalities,
     }
 
 //private function to validate input entities and return the number of entities
-size_t AbstractMultiVecIndex::validateEntities(const std::vector<std::span<const float>>& entities) const {
+size_t AbstractMultiVecIndex::validateEntities(const std::vector<std::span<const float>>& entities, const std::vector<size_t>& expectedDimensions) const {
     if (entities.size() != numModalities) {
         throw std::invalid_argument("Entity must have the same number of modalities as the index");
     }
@@ -65,15 +65,15 @@ size_t AbstractMultiVecIndex::validateEntities(const std::vector<std::span<const
         const auto& modalityVectors = entities[i];
 
         // check that modality vectors is a multiple of the dimension count
-        if (modalityVectors.size() % dimensions[i] != 0) {
+        if (modalityVectors.size() % expectedDimensions[i] != 0) {
             throw std::invalid_argument(
                 "Modality " + std::to_string(i) + " has incorrect data size: " +
-                std::to_string(modalityVectors.size()) + " is not a multiple of the expected dimension " + std::to_string(dimensions[i])
+                std::to_string(modalityVectors.size()) + " is not a multiple of the expected dimension " + std::to_string(expectedDimensions[i])
                 );
         }
 
         // check that modality vectors contains the same number of entities
-        size_t numEntitiesThisModality = modalityVectors.size() / dimensions[i];
+        size_t numEntitiesThisModality = modalityVectors.size() / expectedDimensions[i];
         if (numNewEntities.has_value()) {
             if (numEntitiesThisModality != numNewEntities.value()) {
                 throw std::invalid_argument("Modality " + std::to_string(i) + " has a different number of entities than the other modalities, expected " + std::to_string(numNewEntities.value()) + " but got " + std::to_string(numEntitiesThisModality));
@@ -86,12 +86,12 @@ size_t AbstractMultiVecIndex::validateEntities(const std::vector<std::span<const
     return numNewEntities.value();
 }
 
-void AbstractMultiVecIndex::validateQuery(const std::vector<std::span<const float>> &query, size_t k) const {
+void AbstractMultiVecIndex::validateQuery(const std::vector<std::span<const float>> &query, size_t k, const std::vector<size_t>& expectedDimensions) const {
     // validate the query entity and k
     if (k < 1) {
         throw std::invalid_argument("k must be at least 1");
     }
-    size_t numNewEntities = validateEntities(query);
+    size_t numNewEntities = validateEntities(query, expectedDimensions);
     if (numNewEntities != 1) {
         throw std::invalid_argument("Query must contain exactly one entity, but got " + std::to_string(numNewEntities));
     }

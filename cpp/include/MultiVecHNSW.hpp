@@ -8,6 +8,7 @@
 
 constexpr bool TRACK_STATS = false;
 constexpr bool USE_LAZY_DISTANCE = false;
+constexpr bool REORDER_MODALITY_VECTORS = false; // reordering should be turned on only when USE_LAZY_DISTANCE is true
 
 class MultiVecHNSW : public AbstractMultiVecIndex {
 public:
@@ -23,8 +24,8 @@ private:
     size_t seed;
 
     // internal data structures
-    std::vector<std::vector<float>> entityStorageByModality;
     std::vector<float> entityStorage;
+    std::vector<std::vector<float>> entityStorageByModality; // not used in main index, and doesnt support reordering
 
     struct Node {
         std::vector<std::vector<entity_id_t>> neighboursPerLayer;
@@ -37,6 +38,12 @@ private:
 
     mutable std::mt19937 generator;
 
+    // reordering of modalities
+    std::vector<size_t> modalityReordering; // used to reorder the modalities for distance computation
+    std::vector<size_t> originalOrderedDimensions;
+    std::vector<std::string> originalOrderedStrDistanceMetrics;
+    std::vector<float> originalOrderedIndexWeights;
+
     // stats - only keep track if flag is set
     mutable unsigned long long num_compute_distance_calls;
     mutable unsigned long long num_lazy_distance_calls;
@@ -45,6 +52,8 @@ private:
 
     // private methods
     void validateParameters() const;
+    void reorderModalities();
+    std::vector<size_t> identifyModalityReordering() const;
     void addToEntityStorage(const std::vector<std::span<const float>>& entities, size_t num_entities);
     std::span<const float> getEntityFromEntityId(entity_id_t entityId) const;
 
@@ -133,6 +142,11 @@ public:
     [[nodiscard]] size_t getEfConstruction() const;
     [[nodiscard]] size_t getEfSearch() const;
     [[nodiscard]] size_t getSeed() const;
+
+    // override getters
+    [[nodiscard]] const std::vector<size_t>& getDimensions() const override;
+    [[nodiscard]] const std::vector<std::string>& getDistanceMetrics() const override;
+    [[nodiscard]] const std::vector<float>& getWeights() const override;
 
     void setEfSearch(size_t efSearch);
 

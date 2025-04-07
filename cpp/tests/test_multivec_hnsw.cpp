@@ -43,9 +43,19 @@ public:
         };
         hnsw.addToEntityStorage(getSpanViewOfVectors(entities), 2);
 
-        std::vector<float> expectedResults1 = {1.0f, 2.0f, 3.0f, 7.0f, 8.0f, 9.0f, 4.0f, 5.0f, 6.0f, 10.0f, 11.0f, 12.0f};
         REQUIRE(hnsw.entityStorage.size() == 12);
-        REQUIRE_THAT(hnsw.entityStorage, Catch::Matchers::RangeEquals(expectedResults1));
+
+        if constexpr (REORDER_MODALITY_VECTORS) {
+            //manhattan vectors should be before euclidean
+            std::vector<float> expectedResultsReordered = {7.0f, 8.0f, 9.0f, 1.0f, 2.0f, 3.0f, 10.0f, 11.0f, 12.0f, 4.0f, 5.0f, 6.0f};
+            REQUIRE_THAT(hnsw.entityStorage, Catch::Matchers::RangeEquals(expectedResultsReordered));
+        } else {
+            // check that the entity storage is in the correct order
+            std::vector<float> expectedResultsUnordered = {1.0f, 2.0f, 3.0f, 7.0f, 8.0f, 9.0f, 4.0f, 5.0f, 6.0f, 10.0f, 11.0f, 12.0f};
+            REQUIRE_THAT(hnsw.entityStorage, Catch::Matchers::RangeEquals(expectedResultsUnordered));
+
+        }
+
     }
 
     static void testGetEntityModalityFromEntityId1(MultiVecHNSW& hnsw) {
@@ -75,13 +85,23 @@ public:
         };
         hnsw.addToEntityStorage(getSpanViewOfVectors(entities), 2);
 
-        auto vector1 = hnsw.getEntityFromEntityId(0);
-        std::vector<float> expectedResults1 = {1.0f, 2.0f, 3.0f, 7.0f, 8.0f, 9.0f};
-        REQUIRE_THAT(vector1, Catch::Matchers::RangeEquals(expectedResults1));
+        if constexpr (!REORDER_MODALITY_VECTORS) {
+            auto vector1 = hnsw.getEntityFromEntityId(0);
+            std::vector<float> expectedResults1 = {1.0f, 2.0f, 3.0f, 7.0f, 8.0f, 9.0f};
+            REQUIRE_THAT(vector1, Catch::Matchers::RangeEquals(expectedResults1));
 
-        auto vector2 = hnsw.getEntityFromEntityId(1);
-        std::vector<float> expectedResults2 = {4.0f, 5.0f, 6.0f, 10.0f, 11.0f, 12.0f};
-        REQUIRE_THAT(vector2, Catch::Matchers::RangeEquals(expectedResults2));
+            auto vector2 = hnsw.getEntityFromEntityId(1);
+            std::vector<float> expectedResults2 = {4.0f, 5.0f, 6.0f, 10.0f, 11.0f, 12.0f};
+            REQUIRE_THAT(vector2, Catch::Matchers::RangeEquals(expectedResults2));
+        } else {
+            auto vector1 = hnsw.getEntityFromEntityId(0);
+            std::vector<float> expectedResults1 = {7.0f, 8.0f, 9.0f, 1.0f, 2.0f, 3.0f};
+            REQUIRE_THAT(vector1, Catch::Matchers::RangeEquals(expectedResults1));
+
+            auto vector2 = hnsw.getEntityFromEntityId(1);
+            std::vector<float> expectedResults2 = {10.0f, 11.0f, 12.0f, 4.0f, 5.0f, 6.0f};
+            REQUIRE_THAT(vector2, Catch::Matchers::RangeEquals(expectedResults2));
+        }
     }
 
     static void testComputeDistanceBetweenEntities1(MultiVecHNSW& hnsw) {
@@ -99,6 +119,11 @@ public:
     }
 
     static void testGetEntityModalityFromEntityId2() {
+        if constexpr (REORDER_MODALITY_VECTORS) {
+            std::cout << "Skipping testGetEntityModalityFromEntityId2 as REORDER_MODALITY_VECTORS is true" << std::endl;
+            return;
+        }
+
         MultiVecHNSW hnsw = MultiVecHNSW::Builder(3, {1, 2, 3})
             .setDistanceMetrics({"euclidean", "manhattan", "cosine"})
             .setWeights({0.3f, 0.5f, 0.2f})
@@ -147,22 +172,44 @@ public:
         };
         hnsw.addToEntityStorage(getSpanViewOfVectors(entities), 3);
 
-        std::vector<float> expectedStorage = {1.0f, 7.0f, 8.0f, 0.5352015302352019f, 0.5763708787148328f, 0.6175402271944638f,
-            2.0f, 9.0f, 10.0f, 0.5427628252422066f, 0.5766855018198446f, 0.6106081783974825f,
-            3.0f, 11.0f, 12.0f, 0.548026257310873f, 0.576869744537761f, 0.6057132317646491f};
-        REQUIRE_THAT(hnsw.entityStorage, Catch::Matchers::RangeEquals(expectedStorage));
+        if constexpr (!REORDER_MODALITY_VECTORS) {
+            std::vector<float> expectedStorage = {1.0f, 7.0f, 8.0f, 0.5352015302352019f, 0.5763708787148328f, 0.6175402271944638f,
+                2.0f, 9.0f, 10.0f, 0.5427628252422066f, 0.5766855018198446f, 0.6106081783974825f,
+                3.0f, 11.0f, 12.0f, 0.548026257310873f, 0.576869744537761f, 0.6057132317646491f};
+            REQUIRE_THAT(hnsw.entityStorage, Catch::Matchers::RangeEquals(expectedStorage));
+        } else {
+            std::vector<float> expectedStorage = {7.0f, 8.0f, 1.0f,0.5352015302352019f, 0.5763708787148328f, 0.6175402271944638f,
+            9.0f, 10.0f, 2.0f, 0.5427628252422066f, 0.5766855018198446f, 0.6106081783974825f,
+            11.0f, 12.0f, 3.0f, 0.548026257310873f, 0.576869744537761f, 0.6057132317646491f};
+            REQUIRE_THAT(hnsw.entityStorage, Catch::Matchers::RangeEquals(expectedStorage));
+        }
 
         auto vector0 = hnsw.getEntityFromEntityId(0);
-        std::vector<float> expectedVector0 = {1.0f, 7.0f, 8.0f, 0.5352015302352019f, 0.5763708787148328f, 0.6175402271944638f};
-        REQUIRE_THAT(vector0, Catch::Matchers::RangeEquals(expectedVector0));
+        if constexpr (!REORDER_MODALITY_VECTORS) {
+            std::vector<float> expectedVector0 = {1.0f, 7.0f, 8.0f, 0.5352015302352019f, 0.5763708787148328f, 0.6175402271944638f};
+            REQUIRE_THAT(vector0, Catch::Matchers::RangeEquals(expectedVector0));
+        } else {
+            std::vector<float> expectedVector0 = {7.0f, 8.0f, 1.0f, 0.5352015302352019f, 0.5763708787148328f, 0.6175402271944638f};
+            REQUIRE_THAT(vector0, Catch::Matchers::RangeEquals(expectedVector0));
+        }
 
         auto vector1 = hnsw.getEntityFromEntityId(1);
-        std::vector<float> expectedVector1 = {2.0f, 9.0f, 10.0f, 0.5427628252422066f, 0.5766855018198446f, 0.6106081783974825f};
-        REQUIRE_THAT(vector1, Catch::Matchers::RangeEquals(expectedVector1));
+        if constexpr (!REORDER_MODALITY_VECTORS) {
+            std::vector<float> expectedVector1 = {2.0f, 9.0f, 10.0f, 0.5427628252422066f, 0.5766855018198446f, 0.6106081783974825f};
+            REQUIRE_THAT(vector1, Catch::Matchers::RangeEquals(expectedVector1));
+        } else {
+            std::vector<float> expectedVector1 = {9.0f, 10.0f, 2.0f, 0.5427628252422066f, 0.5766855018198446f, 0.6106081783974825f};
+            REQUIRE_THAT(vector1, Catch::Matchers::RangeEquals(expectedVector1));
+        }
 
         auto vector2 = hnsw.getEntityFromEntityId(2);
-        std::vector<float> expectedVector2 = {3.0f, 11.0f, 12.0f, 0.548026257310873f, 0.576869744537761f, 0.6057132317646491f};
-        REQUIRE_THAT(vector2, Catch::Matchers::RangeEquals(expectedVector2));
+        if constexpr (!REORDER_MODALITY_VECTORS) {
+            std::vector<float> expectedVector2 = {3.0f, 11.0f, 12.0f, 0.548026257310873f, 0.576869744537761f, 0.6057132317646491f};
+            REQUIRE_THAT(vector2, Catch::Matchers::RangeEquals(expectedVector2));
+        } else {
+            std::vector<float> expectedVector2 = {11.0f, 12.0f, 3.0f, 0.548026257310873f, 0.576869744537761f, 0.6057132317646491f};
+            REQUIRE_THAT(vector2, Catch::Matchers::RangeEquals(expectedVector2));
+        }
     }
 
     static void testGenerateRandomLevel() {
@@ -381,11 +428,19 @@ public:
 
         index.addEntities(entities);
 
-        std::vector<float> expectedStorage = {
-            0.50709255283711f, 0.1690308509457033f, 0.8451542547285166f, 3.0, 1.0f, 5.0f,
-            0.3697881993120397f, 0.55746964720408f, 0.7432928629387733f, 1.99f, 3.0f, 4.0f
-        };
-        REQUIRE_THAT(index.entityStorage, Catch::Matchers::RangeEquals(expectedStorage));
+        if constexpr (!REORDER_MODALITY_VECTORS) {
+            std::vector<float> expectedStorage = {
+                0.50709255283711f, 0.1690308509457033f, 0.8451542547285166f, 3.0, 1.0f, 5.0f,
+                0.3697881993120397f, 0.55746964720408f, 0.7432928629387733f, 1.99f, 3.0f, 4.0f
+            };
+            REQUIRE_THAT(index.entityStorage, Catch::Matchers::RangeEquals(expectedStorage));
+        } else {
+            std::vector<float> expectedStorage = {
+                3.0f, 1.0f, 5.0f, 0.50709255283711f, 0.1690308509457033f, 0.8451542547285166f,
+                1.99f, 3.0f, 4.0f, 0.3697881993120397f, 0.55746964720408f, 0.7432928629387733f,
+            };
+            REQUIRE_THAT(index.entityStorage, Catch::Matchers::RangeEquals(expectedStorage));
+        }
 
         index.printGraph();
         std::vector<std::vector<float>> query = {
@@ -414,6 +469,246 @@ public:
             std::cout << "About to  assert: " << result[0] << std::endl;
             REQUIRE(result == std::vector<size_t>{0}); // (3, 3.01)
             std::cout << "END with with weights 0.0, 1.0. Returned: " << result[0] << std::endl;
+        }
+    }
+
+    static void testReordering() {
+
+        if constexpr (!REORDER_MODALITY_VECTORS) {
+            return ; // skip test if not reordering
+        }
+
+        SECTION("Test reordering manhattan < euclidean < cosine") {
+            MultiVecHNSW hnsw = MultiVecHNSW::Builder(3, {1, 2, 3})
+                .setDistanceMetrics({"euclidean", "manhattan", "cosine"})
+                .setWeights({0.3f, 0.5f, 0.2f})
+                .build();
+
+            std::vector<std::vector<float>> entities = {
+                {1.0f,                  2.0f,                   3.0f},
+                {7.0f, 8.0f,            9.0f, 10.0f,            11.0f, 12.0f},
+                {13.0f, 14.0f, 15.0f,   16.0f, 17.0f, 18.0f,    19.0f, 20.f, 21.0f}
+            };
+
+            std::vector<size_t> expectedReordering = {1, 0, 2};
+            std::vector<DistanceMetric> expectedDistanceMetrics = {DistanceMetric::Manhattan, DistanceMetric::Euclidean, DistanceMetric::Cosine};
+            std::vector<float> expectedWeights = {0.5f, 0.3f, 0.2f};
+            std::vector<size_t> expectedDimensions = {2, 1, 3};
+
+            REQUIRE(hnsw.modalityReordering == expectedReordering);
+            REQUIRE(hnsw.distanceMetrics == expectedDistanceMetrics);
+            REQUIRE(hnsw.indexWeights == expectedWeights);
+            REQUIRE(hnsw.dimensions == expectedDimensions);
+
+            hnsw.addEntities(entities);
+            std::vector<float> expectedStorage = {7.0f, 8.0f, 1.0f, 0.5352015302352019f, 0.5763708787148328f, 0.6175402271944638f,
+                 9.0f, 10.0f, 2.0f, 0.5427628252422066f, 0.5766855018198446f, 0.6106081783974825f,
+                 11.0f, 12.0f, 3.0f, 0.548026257310873f, 0.576869744537761f, 0.6057132317646491f};
+            REQUIRE_THAT(hnsw.entityStorage, Catch::Matchers::RangeEquals(expectedStorage));
+        }
+
+        SECTION("Test reordering metrics and weights") {
+            MultiVecHNSW hnsw = MultiVecHNSW::Builder(3, {1, 2, 3})
+                .setDistanceMetrics({"manhattan", "euclidean", "euclidean"})
+                .setWeights({0.3f, 0.2f, 0.5f})
+                .build();
+
+            std::vector<std::vector<float>> entities = {
+                {1.0f,                  2.0f,                   3.0f},
+                {7.0f, 8.0f,            9.0f, 10.0f,            11.0f, 12.0f},
+                {13.0f, 14.0f, 15.0f,   16.0f, 17.0f, 18.0f,    19.0f, 20.f, 21.0f}
+            };
+
+            std::vector<size_t> expectedReordering = {0, 2, 1};
+            std::vector<DistanceMetric> expectedDistanceMetrics = {DistanceMetric::Manhattan, DistanceMetric::Euclidean, DistanceMetric::Euclidean};
+            std::vector<float> expectedWeights = {0.3f, 0.5f, 0.2f};
+            std::vector<size_t> expectedDimensions = {1, 3, 2};
+
+            REQUIRE(hnsw.modalityReordering == expectedReordering);
+            REQUIRE(hnsw.distanceMetrics == expectedDistanceMetrics);
+            REQUIRE(hnsw.indexWeights == expectedWeights);
+            REQUIRE(hnsw.dimensions == expectedDimensions);
+
+            hnsw.addEntities(entities);
+            std::vector<float> expectedStorage = { 1.0f,  13.0f, 14.0f, 15.0f, 7.0f, 8.0f,
+                    2.0f, 16.0f, 17.0f, 18.0f, 9.0f, 10.0f,
+                  3.0f, 19.0f, 20.f, 21.0f, 11.0f, 12.0f,};
+            REQUIRE_THAT(hnsw.entityStorage, Catch::Matchers::RangeEquals(expectedStorage));
+        }
+
+        SECTION("Test reordering weights only") {
+            MultiVecHNSW hnsw = MultiVecHNSW::Builder(3, {1, 2, 3})
+                .setDistanceMetrics({"euclidean", "euclidean", "euclidean"})
+                .setWeights({0.5f, 0.2f, 0.3f})
+                .build();
+
+            std::vector<std::vector<float>> entities = {
+                {1.0f,                  2.0f,                   3.0f},
+                {7.0f, 8.0f,            9.0f, 10.0f,            11.0f, 12.0f},
+                {13.0f, 14.0f, 15.0f,   16.0f, 17.0f, 18.0f,    19.0f, 20.f, 21.0f}
+            };
+
+            std::vector<size_t> expectedReordering = {0, 2, 1};
+            std::vector<DistanceMetric> expectedDistanceMetrics = {DistanceMetric::Euclidean, DistanceMetric::Euclidean, DistanceMetric::Euclidean};
+            std::vector<float> expectedWeights = {0.5f, 0.3f, 0.2f};
+            std::vector<size_t> expectedDimensions = {1, 3, 2};
+
+            REQUIRE(hnsw.modalityReordering == expectedReordering);
+            REQUIRE(hnsw.distanceMetrics == expectedDistanceMetrics);
+            REQUIRE(hnsw.indexWeights == expectedWeights);
+            REQUIRE(hnsw.dimensions == expectedDimensions);
+
+            hnsw.addEntities(entities);
+            std::vector<float> expectedStorage = { 1.0f,  13.0f, 14.0f, 15.0f, 7.0f, 8.0f,
+                    2.0f, 16.0f, 17.0f, 18.0f, 9.0f, 10.0f,
+                  3.0f, 19.0f, 20.f, 21.0f, 11.0f, 12.0f,};
+            REQUIRE_THAT(hnsw.entityStorage, Catch::Matchers::RangeEquals(expectedStorage));
+        }
+
+        SECTION("Test reordering dimensions only") {
+            MultiVecHNSW hnsw = MultiVecHNSW::Builder(3, {1, 2, 3})
+                .setDistanceMetrics({"euclidean", "euclidean", "euclidean"})
+                .setWeights({0.2f, 0.2f, 0.2f})
+                .build();
+
+            std::vector<std::vector<float>> entities = {
+                {1.0f,                  2.0f,                   3.0f},
+                {7.0f, 8.0f,            9.0f, 10.0f,            11.0f, 12.0f},
+                {13.0f, 14.0f, 15.0f,   16.0f, 17.0f, 18.0f,    19.0f, 20.f, 21.0f}
+            };
+
+            std::vector<size_t> expectedReordering = {2, 1, 0};
+            std::vector<DistanceMetric> expectedDistanceMetrics = {DistanceMetric::Euclidean, DistanceMetric::Euclidean, DistanceMetric::Euclidean};
+            std::vector<float> expectedWeights = {0.333333313f, 0.333333313f, 0.333333313f};
+            std::vector<size_t> expectedDimensions = {3, 2, 1};
+
+            REQUIRE(hnsw.modalityReordering == expectedReordering);
+            REQUIRE(hnsw.distanceMetrics == expectedDistanceMetrics);
+            REQUIRE(hnsw.indexWeights == expectedWeights);
+            REQUIRE(hnsw.dimensions == expectedDimensions);
+
+            hnsw.addEntities(entities);
+            std::vector<float> expectedStorage = {13.0f, 14.0f, 15.0f, 7.0f, 8.0f, 1.0f,
+                        16.0f, 17.0f, 18.0f, 9.0f, 10.0f, 2.0f,
+                        19.0f, 20.f, 21.0f, 11.0f, 12.0f, 3.0f};
+            REQUIRE_THAT(hnsw.entityStorage, Catch::Matchers::RangeEquals(expectedStorage));
+        }
+
+
+        SECTION("Test reordering metric and dimensions") {
+            MultiVecHNSW hnsw = MultiVecHNSW::Builder(3, {1, 3, 2})
+                .setDistanceMetrics({"euclidean", "euclidean", "manhattan"})
+                .setWeights({0.2f, 0.2f, 0.2f})
+                .build();
+
+            std::vector<std::vector<float>> entities = {
+                {1.0f,                  2.0f,                   3.0f},
+                {13.0f, 14.0f, 15.0f,   16.0f, 17.0f, 18.0f,    19.0f, 20.f, 21.0f},
+                {7.0f, 8.0f,            9.0f, 10.0f,            11.0f, 12.0f},
+            };
+
+            std::vector<size_t> expectedReordering = {2, 1, 0};
+            std::vector<DistanceMetric> expectedDistanceMetrics = {DistanceMetric::Manhattan, DistanceMetric::Euclidean, DistanceMetric::Euclidean};
+            std::vector<float> expectedWeights = {0.333333313f, 0.333333313f, 0.333333313f};
+            std::vector<size_t> expectedDimensions = {2, 3, 1};
+
+            REQUIRE(hnsw.modalityReordering == expectedReordering);
+            REQUIRE(hnsw.distanceMetrics == expectedDistanceMetrics);
+            REQUIRE(hnsw.indexWeights == expectedWeights);
+            REQUIRE(hnsw.dimensions == expectedDimensions);
+
+            hnsw.addEntities(entities);
+            std::vector<float> expectedStorage = {7.0f, 8.0f, 13.0f, 14.0f, 15.0f, 1.0f,
+                        9.0f, 10.0f, 16.0f, 17.0f, 18.0f, 2.0f,
+                        11.0f, 12.0f, 19.0f, 20.f, 21.0f, 3.0f};
+            REQUIRE_THAT(hnsw.entityStorage, Catch::Matchers::RangeEquals(expectedStorage));
+        }
+
+        SECTION("Test reordering weights and dimensions") {
+            MultiVecHNSW hnsw = MultiVecHNSW::Builder(3, {3, 1, 2})
+                .setDistanceMetrics({"euclidean", "euclidean", "euclidean"})
+                .setWeights({0.2f, 0.4f, 0.4f})
+                .build();
+
+            std::vector<std::vector<float>> entities = {
+                {13.0f, 14.0f, 15.0f,   16.0f, 17.0f, 18.0f,    19.0f, 20.f, 21.0f},
+                {1.0f,                  2.0f,                   3.0f},
+                {7.0f, 8.0f,            9.0f, 10.0f,            11.0f, 12.0f},
+            };
+
+            std::vector<size_t> expectedReordering = {2, 1, 0};
+            std::vector<DistanceMetric> expectedDistanceMetrics = {DistanceMetric::Euclidean, DistanceMetric::Euclidean, DistanceMetric::Euclidean};
+            std::vector<float> expectedWeights = {0.4f, 0.4f, 0.2f};
+            std::vector<size_t> expectedDimensions = {2, 1, 3};
+
+            REQUIRE(hnsw.modalityReordering == expectedReordering);
+            REQUIRE(hnsw.distanceMetrics == expectedDistanceMetrics);
+            REQUIRE(hnsw.indexWeights == expectedWeights);
+            REQUIRE(hnsw.dimensions == expectedDimensions);
+
+            hnsw.addEntities(entities);
+            std::vector<float> expectedStorage = {7.0f, 8.0f, 1.0f, 13.0f, 14.0f, 15.0f,
+                        9.0f, 10.0f, 2.0f, 16.0f, 17.0f, 18.0f,
+                        11.0f, 12.0f, 3.0f, 19.0f, 20.f, 21.0f};
+            REQUIRE_THAT(hnsw.entityStorage, Catch::Matchers::RangeEquals(expectedStorage));
+        }
+
+        SECTION("Test reordering metrics no matter the weights") {
+            MultiVecHNSW hnsw = MultiVecHNSW::Builder(3, {1, 2, 3})
+                .setDistanceMetrics({"euclidean", "manhattan", "cosine"})
+                .setWeights({0.3f, 0.2f, 0.5f})
+                .build();
+
+            std::vector<std::vector<float>> entities = {
+                {1.0f,                  2.0f,                   3.0f},
+                {7.0f, 8.0f,            9.0f, 10.0f,            11.0f, 12.0f},
+                {13.0f, 14.0f, 15.0f,   16.0f, 17.0f, 18.0f,    19.0f, 20.f, 21.0f}
+            };
+
+            std::vector<size_t> expectedReordering = {1, 0, 2};
+            std::vector<DistanceMetric> expectedDistanceMetrics = {DistanceMetric::Manhattan, DistanceMetric::Euclidean, DistanceMetric::Cosine};
+            std::vector<float> expectedWeights = {0.2f, 0.3f, 0.5f};
+            std::vector<size_t> expectedDimensions = {2, 1, 3};
+
+            REQUIRE(hnsw.modalityReordering == expectedReordering);
+            REQUIRE(hnsw.distanceMetrics == expectedDistanceMetrics);
+            REQUIRE(hnsw.indexWeights == expectedWeights);
+            REQUIRE(hnsw.dimensions == expectedDimensions);
+
+            hnsw.addEntities(entities);
+            std::vector<float> expectedStorage = {7.0f, 8.0f, 1.0f, 0.5352015302352019f, 0.5763708787148328f, 0.6175402271944638f,
+                 9.0f, 10.0f, 2.0f, 0.5427628252422066f, 0.5766855018198446f, 0.6106081783974825f,
+                 11.0f, 12.0f, 3.0f, 0.548026257310873f, 0.576869744537761f, 0.6057132317646491f};
+            REQUIRE_THAT(hnsw.entityStorage, Catch::Matchers::RangeEquals(expectedStorage));
+        }
+
+        SECTION("Test reordering metrics no matter the dimensions") {
+            MultiVecHNSW hnsw = MultiVecHNSW::Builder(3, {2, 1, 3})
+                .setDistanceMetrics({"euclidean", "manhattan", "cosine"})
+                .setWeights({0.3f, 0.5f, 0.2f})
+                .build();
+
+            std::vector<std::vector<float>> entities = {
+                {7.0f, 8.0f,            9.0f, 10.0f,            11.0f, 12.0f},
+                {1.0f,                  2.0f,                   3.0f},
+                {13.0f, 14.0f, 15.0f,   16.0f, 17.0f, 18.0f,    19.0f, 20.f, 21.0f}
+            };
+
+            std::vector<size_t> expectedReordering = {1, 0, 2};
+            std::vector<DistanceMetric> expectedDistanceMetrics = {DistanceMetric::Manhattan, DistanceMetric::Euclidean, DistanceMetric::Cosine};
+            std::vector<float> expectedWeights = {0.5f, 0.3f, 0.2f};
+            std::vector<size_t> expectedDimensions = {1, 2, 3};
+
+            REQUIRE(hnsw.modalityReordering == expectedReordering);
+            REQUIRE(hnsw.distanceMetrics == expectedDistanceMetrics);
+            REQUIRE(hnsw.indexWeights == expectedWeights);
+            REQUIRE(hnsw.dimensions == expectedDimensions);
+
+            hnsw.addEntities(entities);
+            std::vector<float> expectedStorage = {1.0f, 7.0f, 8.0f, 0.5352015302352019f, 0.5763708787148328f, 0.6175402271944638f,
+                 2.0f, 9.0f, 10.0f, 0.5427628252422066f, 0.5766855018198446f, 0.6106081783974825f,
+                 3.0f, 11.0f, 12.0f, 0.548026257310873f, 0.576869744537761f, 0.6057132317646491f};
+            REQUIRE_THAT(hnsw.entityStorage, Catch::Matchers::RangeEquals(expectedStorage));
         }
     }
 };
@@ -485,4 +780,8 @@ TEST_CASE("MultiVecHNSW AddEntities", "[AddEntities]") {
 TEST_CASE("MultiVecHNSW Search", "[Search]") {
     MultiVecHNSWTest::testAddAndSearch1();
     MultiVecHNSWTest::testAddAndSearch2();
+}
+
+TEST_CASE("MultiVecHNSW testReordering", "[Reordering]") {
+    MultiVecHNSWTest::testReordering();
 }

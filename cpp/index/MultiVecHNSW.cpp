@@ -30,6 +30,8 @@ MultiVecHNSW::MultiVecHNSW(size_t numModalities,
     // initialise storage
     entityStorageByModality.resize(numModalities);
 
+    if constexpr (REORDER_MODALITY_VECTORS) reorderModalities();
+
     // initialise stats
     if constexpr (TRACK_STATS) {
         num_compute_distance_calls = 0;
@@ -58,12 +60,81 @@ void MultiVecHNSW::validateParameters() const {
     }
 }
 
+void MultiVecHNSW::reorderModalities() {
+    modalityReordering = identifyModalityReordering();
+
+    // initialise original ordered parameters, just like in a constructor
+    originalOrderedDimensions = dimensions;
+    originalOrderedStrDistanceMetrics = strDistanceMetrics;
+    originalOrderedIndexWeights = indexWeights;
+
+    // reorder the distance metrics, weights, and dimensions
+    std::vector<DistanceMetric> reorderedDistanceMetrics(numModalities);
+    std::vector<float> reorderedWeights(numModalities);
+    std::vector<size_t> reorderedDimensions(numModalities);
+    for (size_t i = 0; i < numModalities; ++i) {
+        reorderedDistanceMetrics[i] = distanceMetrics[modalityReordering[i]];
+        reorderedWeights[i] = indexWeights[modalityReordering[i]];
+        reorderedDimensions[i] = dimensions[modalityReordering[i]];
+    }
+    distanceMetrics = std::move(reorderedDistanceMetrics);
+    indexWeights = std::move(reorderedWeights);
+    dimensions = std::move(reorderedDimensions);
+
+    // print out the reordering
+    std::cout << "Reordered modalities: ";
+    for (size_t i = 0; i < numModalities; ++i) {
+        std::cout << modalityReordering[i] << " ";
+    }
+    std::cout << std::endl;
+}
+
+vector<size_t> MultiVecHNSW::identifyModalityReordering() const {
+    // identify the reordering of the modalities based on the distance metrics, weights, and dimensions
+    // returns a vector of indices that represent the new order of the modalities
+    vector<size_t> modalityIndices(numModalities);
+    iota(modalityIndices.begin(), modalityIndices.end(), 0);
+
+    // manhattan < euclidean < cosine
+    auto metricRank = [](DistanceMetric m) {
+        switch (m) {
+            case DistanceMetric::Manhattan: return 0;
+            case DistanceMetric::Euclidean: return 1;
+            case DistanceMetric::Cosine:    return 2;
+            default: throw invalid_argument("Invalid distance metric");
+        }
+    };
+
+    std::sort(modalityIndices.begin(), modalityIndices.end(), [this, metricRank](size_t a, size_t b) {
+        // sort by distance metric first
+        if (distanceMetrics[a] != distanceMetrics[b]) {
+            return metricRank(distanceMetrics[a]) < metricRank(distanceMetrics[b]);
+        }
+
+        // largest weight first
+        if (indexWeights[a] != indexWeights[b]) {
+            return indexWeights[a] > indexWeights[b];
+        }
+
+        // largest dimension first
+        return dimensions[a] > dimensions[b];
+
+    });
+    return modalityIndices;
+}
+
 void MultiVecHNSW::addEntities(const vector<vector<float>>& entities) {
     addEntities(getSpanViewOfVectors(entities));
 }
 
 void MultiVecHNSW::addEntities(const vector<span<const float>>& entities) {
-    const size_t numNewEntities = validateEntities(entities);
+    // validate entities on the original dimensions
+    size_t numNewEntities;
+    if constexpr (REORDER_MODALITY_VECTORS) {
+        numNewEntities = validateEntities(entities, originalOrderedDimensions);
+    } else {
+        numNewEntities = validateEntities(entities, dimensions);
+    }
 
     std::cout << "Adding " << numNewEntities << " entities to MultiVecHNSW" << std::endl;
     //debug_printf("Adding %zu entities to MultiVecHNSW!\n", numNewEntities);
@@ -95,7 +166,7 @@ void MultiVecHNSW::addToEntityStorageByModality(const vector<span<const float>>&
 
         // if the modality uses cosine distance, normalise the inserted vectors for this modality
         if (distanceMetrics[i] == DistanceMetric::Cosine) {
-            cout << "Storing normalised vectors for modality " << i << " to efficiently compute cosine distance" << endl;
+            debug_printf("Storing normalised vectors for modality %zu to efficiently compute cosine distance\n", i);
             for (size_t j = 0; j < numNewEntities; ++j) {
                 l2NormalizeVector(span(entityStorageByModality[i]).subspan(j * dimensions[i], dimensions[i]));
             }
@@ -112,10 +183,19 @@ void MultiVecHNSW::addToEntityStorage(const vector<span<const float>>& entities,
     // copy the flattened input entities into entityStorage
     for (size_t i = 0; i < numNewEntities; ++i) {
         for (size_t modality = 0; modality < numModalities; ++modality) {
-            size_t offset = i * dimensions[modality]; // offset to the start of the modality vectors
-            entityStorage.insert(entityStorage.end(),
+            size_t offset = i * dimensions[modality]; // offset to the start of the modality vectors in the input
+            if constexpr (!REORDER_MODALITY_VECTORS) {
+                // the input is in the correct order so insert
+                entityStorage.insert(entityStorage.end(),
                                  entities[modality].begin() + offset,
                                  entities[modality].begin() + offset + dimensions[modality]);
+            } else {
+                // e.g. modalityReordering is 1,0,2. Insert using this.
+                size_t modalityIndexInInput = modalityReordering[modality]; // modality 0 comes from input 1
+                entityStorage.insert(entityStorage.end(),
+                                     entities[modalityIndexInInput].begin() + offset,
+                                     entities[modalityIndexInInput].begin() + offset + dimensions[modality]);
+            }
         }
     }
 
@@ -236,18 +316,37 @@ float MultiVecHNSW::computeDistanceLazy(const std::span<const float> entity1,  c
 }
 
 vector<size_t> MultiVecHNSW::search(const vector<span<const float>>& query, size_t k, const vector<float>& queryWeights) {
-    validateQuery(query, k);
+    // validate query on the original dimensions
+    if constexpr (REORDER_MODALITY_VECTORS) {
+        validateQuery(query, k, originalOrderedDimensions);
+    } else {
+        validateQuery(query, k, dimensions);
+    }
     debug_printf("Searching MultiVecHNSW with query weights with k=%lu\n", k);
     // copy weights as we will normalise them
     auto normalisedQueryWeights = std::vector(queryWeights);
     validateAndNormaliseWeights(normalisedQueryWeights, numModalities);
+
+    // reorder the query weights to match the modality reordering
+    if constexpr (REORDER_MODALITY_VECTORS) {
+        std::vector<float> reorderedQueryWeights(numModalities);
+        for (size_t i = 0; i < numModalities; ++i) {
+            reorderedQueryWeights[i] = normalisedQueryWeights[modalityReordering[i]];
+        }
+        normalisedQueryWeights = std::move(reorderedQueryWeights);
+    }
 
     vector<entity_id_t> result = internalSearch(query, k, normalisedQueryWeights);
     return {result.begin(), result.end()};
 }
 
 vector<size_t> MultiVecHNSW::search(const vector<span<const float>>& query, size_t k) {
-    validateQuery(query, k);
+    // validate query on the original dimensions
+    if constexpr (REORDER_MODALITY_VECTORS) {
+        validateQuery(query, k, originalOrderedDimensions);
+    } else {
+        validateQuery(query, k, dimensions);
+    }
     debug_printf("Searching MultiVecHNSW without query weights with k=%lu\n", k);
     vector<entity_id_t> result = internalSearch(query, k, indexWeights);
     return {result.begin(), result.end()};
@@ -425,13 +524,21 @@ vector<entity_id_t> MultiVecHNSW::internalSearch(const vector<span<const float>>
     // copy and flatten the userQuery vectors into a single vector
     vector<float> flattenedQueryData;
     flattenedQueryData.reserve(totalDimensions);
-    for (size_t i = 0; i < numModalities; ++i) {
+    for (size_t modality = 0; modality < numModalities; ++modality) {
         // copy vector into flattenedQueryData
-        flattenedQueryData.insert(flattenedQueryData.end(), userQuery[i].begin(), userQuery[i].end());
-        if (distanceMetrics[i] == DistanceMetric::Cosine) {
+        if constexpr (REORDER_MODALITY_VECTORS) {
+            // reorder while inserting. e.g. modalityReordering is 1,0,2.
+            size_t modalityIndexInInput = modalityReordering[modality];
+            assert (userQuery[modalityIndexInInput].size() == dimensions[modality]);
+            flattenedQueryData.insert(flattenedQueryData.end(), userQuery[modalityIndexInInput].begin(), userQuery[modalityIndexInInput].end());
+        } else {
+            assert (userQuery[modality].size() == dimensions[modality]);
+            flattenedQueryData.insert(flattenedQueryData.end(), userQuery[modality].begin(), userQuery[modality].end());
+        }
+
+        if (distanceMetrics[modality] == DistanceMetric::Cosine) {
             // normalise query vector if this modality is using cosine distance
-            assert(userQuery[i].size() == dimensions[i]);
-            l2NormalizeVector(span(flattenedQueryData).subspan(flattenedQueryData.size() - dimensions[i], dimensions[i]));
+            l2NormalizeVector(span(flattenedQueryData).subspan(flattenedQueryData.size() - dimensions[modality], dimensions[modality]));
         }
     }
 
@@ -709,4 +816,27 @@ void MultiVecHNSW::setEfSearch(size_t efSearch) {
         throw invalid_argument("efSearch must be at least 1");
     }
     this->efSearch = efSearch;
+}
+
+
+// overwrite getters from AbstractMultiVecIndex to handle reordering
+const vector<size_t>& MultiVecHNSW::getDimensions() const {
+    if constexpr (REORDER_MODALITY_VECTORS) {
+        return originalOrderedDimensions;
+    }
+    return dimensions;
+}
+
+const vector<string>& MultiVecHNSW::getDistanceMetrics() const {
+    if constexpr (REORDER_MODALITY_VECTORS) {
+        return originalOrderedStrDistanceMetrics;
+    }
+    return strDistanceMetrics;
+}
+
+const vector<float>& MultiVecHNSW::getWeights() const {
+    if constexpr (REORDER_MODALITY_VECTORS) {
+        return originalOrderedIndexWeights;
+    }
+    return indexWeights;
 }
