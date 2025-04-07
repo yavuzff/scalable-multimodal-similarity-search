@@ -510,7 +510,13 @@ vector<entity_id_t> MultiVecHNSW::internalSearch(const vector<span<const float>>
                 } else {
                     // we will lazy compute the distance and insert only if it is better than the worst neighbour
                     auto [_worstNeighbourDist, _worstNeighbour] = nearestNeighbours.top();
-                    const float newDist = computeDistanceLazy(neighbour, entity, weights, _worstNeighbourDist);
+
+                    float newDist;
+                    if constexpr (USE_LAZY_DISTANCE) {
+                        newDist = computeDistanceLazy(neighbour, entity, weights, _worstNeighbourDist);
+                    } else {
+                        newDist = computeDistance(neighbour, entity, weights);
+                    }
                     if (newDist < _worstNeighbourDist) {
                         candidates.emplace(-newDist, neighbourId);
                         nearestNeighbours.emplace(newDist, neighbourId);
@@ -560,11 +566,19 @@ priority_queue<pair<float, entity_id_t>> MultiVecHNSW::selectNearestCandidates(e
             maxHeap.emplace(dist, candidate);
         } else {
             const float upperBound = maxHeap.top().first;
-            const float dist = computeDistanceLazy(
-                getEntityFromEntityId(targetEntityId),
-                getEntityFromEntityId(candidate),
-                weights,
-                upperBound);
+            float dist;
+            if constexpr (USE_LAZY_DISTANCE) {
+                dist = computeDistanceLazy(
+                    getEntityFromEntityId(targetEntityId),
+                    getEntityFromEntityId(candidate),
+                    weights,
+                    upperBound);
+            } else {
+                dist = computeDistance(
+                    getEntityFromEntityId(targetEntityId),
+                    getEntityFromEntityId(candidate),
+                    weights);
+            }
             if (dist < upperBound) {
                 maxHeap.pop();
                 maxHeap.emplace(dist, candidate);
@@ -603,11 +617,19 @@ void MultiVecHNSW::selectDiversifiedCandidates(priority_queue<pair<float, entity
         // add current candidate only if (for all s in selected: dist(current, query) < dist(current, s)).
         bool addCandidate = true;
         for (const pair<float, entity_id_t>& selected : selectedCandidates) {
-            const float distToSelected = computeDistanceLazy(
-                getEntityFromEntityId(selected.second),
-                getEntityFromEntityId(candidate.second),
-                weights,
-                distToCandidate);
+            float distToSelected;
+            if constexpr (USE_LAZY_DISTANCE) {
+                distToSelected = computeDistanceLazy(
+                    getEntityFromEntityId(selected.second),
+                    getEntityFromEntityId(candidate.second),
+                    weights,
+                    distToCandidate);
+            } else {
+                distToSelected = computeDistance(
+                    getEntityFromEntityId(selected.second),
+                    getEntityFromEntityId(candidate.second),
+                    weights);
+            }
             if (distToCandidate >= distToSelected) {
                 addCandidate = false;
                 break;

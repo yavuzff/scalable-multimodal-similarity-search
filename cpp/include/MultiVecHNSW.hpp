@@ -6,7 +6,8 @@
 
 #include "AbstractMultiVecIndex.hpp"
 
-#define TRACK_STATS false
+constexpr bool TRACK_STATS = false;
+constexpr bool USE_LAZY_DISTANCE = false;
 
 class MultiVecHNSW : public AbstractMultiVecIndex {
 public:
