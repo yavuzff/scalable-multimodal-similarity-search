@@ -138,7 +138,7 @@ def evaluate_search():
                                                                  search_params)
 
 
-def evaluate_parameter_space():
+def evaluate_parameter_space(index_sizes):
     """
     Evaluate a range of values in the parameter space for the MultiVecHSNW index construction and search.
     """
@@ -147,12 +147,13 @@ def evaluate_parameter_space():
     search_params = get_search_params(params)
     NUM_QUERY_ENTITIES = 1000
 
-    #for index_size in [10_000, 25_000, 50_000, 75_000, 100_000, 250_000, 375_000, 500_000, 625_000, 750_000, 875_000, 1_000_000]:
+    experiment_seed = 1
+
+    #for index_size in [10_000, 25_000, 50_000, 75_000, 100_000, 150_000, 200_000, 250_000, 375_000, 500_000, 625_000, 750_000, 875_000, 1_000_000]:
     #for index_size in reversed([10_000, 25_000, 50_000, 75_000, 100_000, 250_000, 375_000, 500_000, 625_000, 750_000, 875_000, 1_000_000]):
-    #for index_size in [1000, 10_000]:
-    #for index_size in [500_000, 625_000, 750_000, 875_000, 1_000_000]:
     #for index_size in [10_000, 25_000, 50_000, 75_000, 100_000, 150_000, 200_000, 250_000, 375_000]:
-    for index_size in [1000]:
+    #for index_size in [1000]:
+    for index_size in index_sizes:
         params.index_size = index_size
 
         for k in [50]:
@@ -173,7 +174,7 @@ def evaluate_parameter_space():
             #         for ef_construction in [100]:
             #             #for seed in [1,2,3,4,5]:
             #             for seed in [1]:
-            for target_degree, max_degree, ef_construction, seed in [(16, 16, 100, 1), (32, 32, 200, 1)]:
+            for target_degree, max_degree, ef_construction, seed in [(16, 16, 100, experiment_seed), (32, 32, 200, experiment_seed)]:
                             construction_params.target_degree = target_degree
                             construction_params.max_degree = max_degree
                             construction_params.ef_construction = ef_construction
@@ -181,8 +182,8 @@ def evaluate_parameter_space():
 
                             index, index_path = evaluate_index_construction(params, construction_params)
 
-                            # try 20 values for ef_search, starting from ef_search=k
-                            for ef_search in range(k, k + 200, 10):
+                            # try 20 values for ef_search, starting from ef_search=k-10
+                            for ef_search in range(k-10, k + 200, 10):
                                 search_params.ef_search = ef_search
                                 results, search_times, recall_scores = evaluate_index_search(index, index_path,
                                                                                              exact_results, params,
@@ -202,6 +203,8 @@ def evaluate_rerank_hnsw(index_sizes):
     construction_params = get_construction_params()
     search_params = get_search_params(params)
     NUM_QUERY_ENTITIES = 1000
+
+    experiment_seed = 1
 
     #for index_size in reversed([10_000, 25_000, 50_000, 75_000, 100_000, 250_000, 375_000, 500_000, 625_000, 750_000, 875_000, 1_000_000]):
     #for index_size in [10_000, 25_000, 50_000, 75_000, 100_000, 250_000, 375_000, 500_000, 625_000, 750_000, 875_000, 1_000_000]:
@@ -225,7 +228,7 @@ def evaluate_rerank_hnsw(index_sizes):
             print("Query_ids:", params.query_ids)
 
             # construct indexes
-            for target_degree, max_degree, ef_construction, seed in [(16, 16, 100, 1), (32, 32, 200, 1)]:
+            for target_degree, max_degree, ef_construction, seed in [(16, 16, 100, experiment_seed), (32, 32, 200, experiment_seed)]:
                 construction_params.target_degree = target_degree
                 construction_params.max_degree = max_degree
                 construction_params.ef_construction = ef_construction
@@ -248,12 +251,10 @@ if __name__ == "__main__":
     #run_exact_results()
     #evaluate_construction()
     #evaluate_search()
-    #print("Starting parameter space evaluation...")
-    #evaluate_parameter_space()
-    #print("Starting rerank evaluation for the previous parameter space...")
-    #evaluate_rerank_hnsw([500_000, 625_000, 750_000, 875_000, 1_000_000])
 
-    #evaluate_parameter_space()
-    #evaluate_rerank_hnsw([10_000, 25_000, 50_000, 75_000, 100_000, 150_000, 200_000, 250_000, 375_000, 500_000, 625_000, 750_000, 875_000, 1_000_000])
 
-    #main()
+#    all_index_sizes = [10_000, 25_000, 50_000, 75_000, 100_000, 150_000, 200_000, 250_000, 375_000, 500_000, 625_000, 750_000, 875_000, 1_000_000]
+#    print("Starting parameter space evaluation...")
+#    evaluate_parameter_space([1_000_000])
+#    print("Starting rerank evaluation for the previous parameter space...")
+#    evaluate_rerank_hnsw(all_index_sizes)

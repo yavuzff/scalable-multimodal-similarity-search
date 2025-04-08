@@ -8,7 +8,7 @@ from multivec_index import ExactMultiVecIndex, MultiVecHNSW
 from src.evaluation_params import Params, MultiVecHNSWConstructionParams, MultiVecHNSWSearchParams
 from src.load_dataset import load_dataset
 
-EXPERIMENTS_DIR = "experiments/clean/"
+EXPERIMENTS_DIR = "experiments/"
 EXACT_RESULTS_DIR = EXPERIMENTS_DIR + "exact_results/"
 CONSTRUCTION_DIR = EXPERIMENTS_DIR + "construction/"
 SEARCH_DIR = EXPERIMENTS_DIR + "search/"
@@ -28,7 +28,13 @@ def compute_exact_results(p: Params, cache=True):
     if cache and os.path.exists(save_folder):
         # iterate over every folder in save_folder
         for folder in os.listdir(save_folder):
-            cached_query_ids = np.load(save_folder + folder + "/query_ids.npy")
+            # check folder is actually a folder
+            if not os.path.isdir(save_folder + folder):
+                continue
+            query_path = save_folder + folder + "/query_ids.npy"
+            if not os.path.exists(query_path):
+                print(f"Warning: {query_path} not found, skipping")
+            cached_query_ids = np.load(query_path)
             if np.array_equal(p.query_ids, cached_query_ids):
                 print(f"Loading cached results from {save_folder + folder}")
                 data = np.load(save_folder + folder + "/results.npz")
