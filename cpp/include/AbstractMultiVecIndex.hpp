@@ -21,6 +21,9 @@ protected:
     [[nodiscard]] size_t validateEntities(const std::vector<std::span<const float>> &entities, const std::vector<size_t>& expectedDimensions) const;
     void validateQuery(const std::vector<std::span<const float>> &query, size_t k, const std::vector<size_t> &expectedDimensions) const;
 
+    virtual void serialize(std::ostream& os) const;
+    virtual void deserialize(std::istream& is);
+
 public:
     // Constructor: take parameters in by value to gain ownership
     AbstractMultiVecIndex(size_t theModalities,
@@ -29,6 +32,8 @@ public:
         std::vector<float> ws = {});
 
     virtual ~AbstractMultiVecIndex() = default;
+
+    bool operator==(const AbstractMultiVecIndex& other) const;
 
     // add multiple entities - note that the inner vector is flattened for performance
     // To add n entities with k modalities, provide a vector of length k,

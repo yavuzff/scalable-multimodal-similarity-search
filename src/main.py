@@ -40,6 +40,15 @@ def main():
     print(f"Insertion Time: {insertion_time:.3f} seconds.")
     print(f"Insertion Memory: {memory_consumption / 1024 / 1024} MiB.")
 
+    # swap out the index for loaded version
+    test_save_load = False
+    if test_save_load:
+        path = "index.dat"
+        index_evaluator.index.save(path)
+        loaded_index = MultiVecHNSW(1, [1])
+        loaded_index.load(path)
+        index_evaluator.index = loaded_index
+
     # evaluate search performance
     queries = [query_text_vectors, query_image_vectors]
     search_times, recall_scores, memory_consumption = index_evaluator.evaluate_search(queries, K)
@@ -47,7 +56,7 @@ def main():
     print(
         f"Average search time: {np.mean(search_times)*1000:.3f}ms. Variance: {np.var(search_times)*1000*1000:.3f}ms^2. Min: {np.min(search_times)*1000:.3f}ms. Max: {np.max(search_times)*1000:.3f}ms.")
     print(
-        f"Average recall: {np.mean(recall_scores):.3f}. Variance: {np.var(recall_scores):.3f}. Min: {np.min(recall_scores):.3f}. Max: {np.max(recall_scores):.3f}.")
+        f"Average recall: {np.mean(recall_scores):.6f}. Variance: {np.var(recall_scores):.6f}. Min: {np.min(recall_scores):.6f}. Max: {np.max(recall_scores):.6f}.")
     print(
         f"Average memory consumption: {np.mean(memory_consumption):.3f} bytes. Variance: {np.var(memory_consumption):.3f}. Min: {np.min(memory_consumption):.3f}. Max: {np.max(memory_consumption):.3f}.")
 
@@ -252,9 +261,9 @@ if __name__ == "__main__":
     #evaluate_construction()
     #evaluate_search()
 
-
-#    all_index_sizes = [10_000, 25_000, 50_000, 75_000, 100_000, 150_000, 200_000, 250_000, 375_000, 500_000, 625_000, 750_000, 875_000, 1_000_000]
-#    print("Starting parameter space evaluation...")
-#    evaluate_parameter_space([1_000_000])
-#    print("Starting rerank evaluation for the previous parameter space...")
-#    evaluate_rerank_hnsw(all_index_sizes)
+    #
+    # all_index_sizes = [10_000, 25_000, 50_000, 75_000, 100_000, 150_000, 200_000, 250_000, 375_000, 500_000, 625_000, 750_000, 875_000, 1_000_000]
+    # print("Starting parameter space evaluation...")
+    # evaluate_parameter_space([1_000_000])
+    # print("Starting rerank evaluation for the previous parameter space...")
+    # evaluate_rerank_hnsw(all_index_sizes)

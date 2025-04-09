@@ -1,6 +1,7 @@
 import pytest
 import numpy as np
 from multivec_index import MultiVecHNSW
+import os
 
 def eq(array1, array2):
     return np.all(np.equal(array1, array2))
@@ -265,5 +266,41 @@ def test_manhattan_cosine_multivec_hnsw_search():
     assert eq(index.search(query1, 1, [0.45,0.55]), [1]) # (1.67836125, 1.6781638)
     assert eq(index.search(query1, 1, [0.44,0.56]), [0])  #(1.707731, 1.707760)
     assert eq(index.search(query1, 1, [0,1]), [0]) # (3,3.01)
+
+def test_saving_and_loading_index():
+    index = MultiVecHNSW(2, dimensions=np.array([2, 3]), distance_metrics=["euclidean", "euclidean"], weights=[0.5,0.5])
+
+    # add 2 modality, 4 entities with dimensions 2, 3 for the modalities
+    index.add_entities([
+        [[1,1], [2,2], [3,3], [4,4]], #modality 1: shape (4, 2)
+        [[1,1,1], [2,2,2], [3,3,3], [4,4,4]]  #modality 2: shape (4, 3)
+    ])
+
+    # save index to a file
+    index.save("test_index.bin")
+
+    # load index from the file
+    loaded_index = MultiVecHNSW(1, dimensions=np.array([2]))
+    loaded_index.load("test_index.bin")
+
+    # delete the file after loading
+    os.remove("test_index.bin")
+
+    # check if the loaded index has the same number of entities
+    assert loaded_index.num_entities == 4
+    assert loaded_index.dimensions == index.dimensions
+    assert loaded_index.distance_metrics == index.distance_metrics
+    assert eq(loaded_index.weights, index.weights)
+    assert loaded_index.ef_construction == index.ef_construction
+    assert loaded_index.num_entities == index.num_entities
+    assert loaded_index.distribution_scale_factor == index.distribution_scale_factor
+    assert loaded_index.target_degree == index.target_degree
+    assert loaded_index.max_degree == index.max_degree
+    assert loaded_index.ef_search == index.ef_search
+    assert loaded_index.seed == index.seed
+
+    # check search results are the same
+    query = [[1,1],[1,1,1]]
+    assert eq(index.search(query, 1), loaded_index.search(query, 1))
 
 # potentially add tests covering efConstruction, efSearch, maxDegree, Degree, Seed etc.

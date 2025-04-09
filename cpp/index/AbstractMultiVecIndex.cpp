@@ -54,6 +54,17 @@ AbstractMultiVecIndex::AbstractMultiVecIndex(size_t theModalities,
     }
     }
 
+bool AbstractMultiVecIndex::operator==(const AbstractMultiVecIndex& other) const {
+    return numModalities == other.numModalities &&
+           dimensions == other.dimensions &&
+           distanceMetrics == other.distanceMetrics &&
+           strDistanceMetrics == other.strDistanceMetrics &&
+           indexWeights == other.indexWeights &&
+           numEntities == other.numEntities &&
+           toNormalise == other.toNormalise &&
+           totalDimensions == other.totalDimensions;
+}
+
 //private function to validate input entities and return the number of entities
 size_t AbstractMultiVecIndex::validateEntities(const std::vector<std::span<const float>>& entities, const std::vector<size_t>& expectedDimensions) const {
     if (entities.size() != numModalities) {

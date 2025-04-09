@@ -2,12 +2,14 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/matchers/catch_matchers_range_equals.hpp>
+#include <filesystem>
 
 #include "../include/MultiVecHNSW.hpp"
 #include "../include/utils.hpp"
 #include "../include/common.hpp"
 
 using namespace std;
+namespace fs = std::filesystem;
 
 float getRandomFloat() {
     return static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
@@ -711,6 +713,370 @@ public:
             REQUIRE_THAT(hnsw.entityStorage, Catch::Matchers::RangeEquals(expectedStorage));
         }
     }
+
+    static void testEquality() {
+        SECTION("Test equality of identical HNSWs") {
+            MultiVecHNSW hnsw1 = MultiVecHNSW::Builder(3, {1, 2, 3})
+                    .setDistanceMetrics({"euclidean", "manhattan", "cosine"})
+                    .setWeights({0.3f, 0.5f, 0.2f})
+                    .build();
+
+            MultiVecHNSW hnsw2 = MultiVecHNSW::Builder(3, {1, 2, 3})
+                    .setDistanceMetrics({"euclidean", "manhattan", "cosine"})
+                    .setWeights({0.3f, 0.5f, 0.2f})
+                    .build();
+
+            hnsw1.addEntities({
+                {1.0f,                  2.0f,                   3.0f},
+                {7.0f, 8.0f,            9.0f, 10.0f,            11.0f, 12.0f},
+                {13.0f, 14.0f, 15.0f,   16.0f, 17.0f, 18.0f,    19.0f, 20.f, 21.0f}
+            });
+            hnsw2.addEntities({
+                {1.0f,                  2.0f,                   3.0f},
+                {7.0f, 8.0f,            9.0f, 10.0f,            11.0f, 12.0f},
+                {13.0f, 14.0f, 15.0f,   16.0f, 17.0f, 18.0f,    19.0f, 20.f, 21.0f}
+            });
+
+            REQUIRE(hnsw1 == hnsw2);
+        }
+
+        SECTION("Test equality with different distance metrics") {
+            MultiVecHNSW hnsw1 = MultiVecHNSW::Builder(3, {1, 2, 3})
+                    .setDistanceMetrics({"euclidean", "manhattan", "cosine"})
+                    .setWeights({0.3f, 0.5f, 0.2f})
+                    .build();
+
+            MultiVecHNSW hnsw2 = MultiVecHNSW::Builder(3, {1, 2, 3})
+                    .setDistanceMetrics({"euclidean", "euclidean", "cosine"})
+                    .setWeights({0.3f, 0.5f, 0.2f})
+                    .build();
+
+            hnsw1.addEntities({
+                {1.0f,                  2.0f,                   3.0f},
+                {7.0f, 8.0f,            9.0f, 10.0f,            11.0f, 12.0f},
+                {13.0f, 14.0f, 15.0f,   16.0f, 17.0f, 18.0f,    19.0f, 20.f, 21.0f}
+            });
+            hnsw2.addEntities({
+                {1.0f,                  2.0f,                   3.0f},
+                {7.0f, 8.0f,            9.0f, 10.0f,            11.0f, 12.0f},
+                {13.0f, 14.0f, 15.0f,   16.0f, 17.0f, 18.0f,    19.0f, 20.f, 21.0f}
+            });
+
+            REQUIRE(hnsw1 != hnsw2);
+        }
+
+        SECTION("Test equality with different weights") {
+            MultiVecHNSW hnsw1 = MultiVecHNSW::Builder(3, {1, 2, 3})
+                    .setDistanceMetrics({"euclidean", "manhattan", "cosine"})
+                    .setWeights({0.3f, 0.5f, 0.2f})
+                    .build();
+
+            MultiVecHNSW hnsw2 = MultiVecHNSW::Builder(3, {1, 2, 3})
+                    .setDistanceMetrics({"euclidean", "manhattan", "cosine"})
+                    .setWeights({0.4f, 0.5f, 0.2f})
+                    .build();
+
+            hnsw1.addEntities({
+                {1.0f,                  2.0f,                   3.0f},
+                {7.0f, 8.0f,            9.0f, 10.0f,            11.0f, 12.0f},
+                {13.0f, 14.0f, 15.0f,   16.0f, 17.0f, 18.0f,    19.0f, 20.f, 21.0f}
+            });
+            hnsw2.addEntities({
+                {1.0f,                  2.0f,                   3.0f},
+                {7.0f, 8.0f,            9.0f, 10.0f,            11.0f, 12.0f},
+                {13.0f, 14.0f, 15.0f,   16.0f, 17.0f, 18.0f,    19.0f, 20.f, 21.0f}
+            });
+
+            REQUIRE(hnsw1 != hnsw2);
+        }
+
+        SECTION("Test equality with different modality reordering") {
+            MultiVecHNSW hnsw1 = MultiVecHNSW::Builder(3, {1, 2, 3})
+                    .setDistanceMetrics({"euclidean", "manhattan", "cosine"})
+                    .setWeights({0.3f, 0.5f, 0.2f})
+                    .build();
+
+            MultiVecHNSW hnsw2 = MultiVecHNSW::Builder(3, {1, 2, 3})
+                    .setDistanceMetrics({"euclidean", "manhattan", "cosine"})
+                    .setWeights({0.3f, 0.5f, 0.2f})
+                    .build();
+            hnsw2.modalityReordering = {2, 1, 0};
+
+            REQUIRE(hnsw1 != hnsw2);
+        }
+
+        SECTION("Test equality with different entities") {
+            MultiVecHNSW hnsw1 = MultiVecHNSW::Builder(3, {1, 2, 3})
+                    .setDistanceMetrics({"euclidean", "manhattan", "cosine"})
+                    .setWeights({0.3f, 0.5f, 0.2f})
+                    .build();
+
+            MultiVecHNSW hnsw2 = MultiVecHNSW::Builder(3, {1, 2, 3})
+                    .setDistanceMetrics({"euclidean", "manhattan", "cosine"})
+                    .setWeights({0.3f, 0.5f, 0.2f})
+                    .build();
+
+            hnsw1.addEntities({
+                {1.0f,                  2.0f,                   3.0f},
+                {7.0f, 8.0f,            9.0f, 10.0f,            11.0f, 12.0f},
+                {13.0f, 14.0f, 15.0f,   16.0f, 17.0f, 18.0f,    19.0f, 20.f, 21.0f}
+            });
+            hnsw2.addEntities({
+                {1.0f,                  2.0f,                   3.0f},
+                {7.0f, 9.0f,            9.0f, 10.0f,            11.0f, 12.0f}, // the second item here is different
+                {13.0f, 14.0f, 15.0f,   16.0f, 17.0f, 18.0f,    19.0f, 20.f, 21.0f}
+            });
+
+            REQUIRE(hnsw1 != hnsw2);
+        }
+
+        SECTION("Test equality with identical but different storage order") {
+            MultiVecHNSW hnsw1 = MultiVecHNSW::Builder(3, {1, 2, 3})
+                    .setDistanceMetrics({"euclidean", "manhattan", "cosine"})
+                    .setWeights({0.3f, 0.5f, 0.2f})
+                    .build();
+
+            MultiVecHNSW hnsw2 = MultiVecHNSW::Builder(3, {1, 2, 3})
+                    .setDistanceMetrics({"euclidean", "manhattan", "cosine"})
+                    .setWeights({0.3f, 0.5f, 0.2f})
+                    .build();
+
+            hnsw1.addEntities({
+                {1.0f,                  2.0f,                   3.0f},
+                {7.0f, 8.0f,            9.0f, 10.0f,            11.0f, 12.0f},
+                {13.0f, 14.0f, 15.0f,   16.0f, 17.0f, 18.0f,    19.0f, 20.f, 21.0f}
+            });
+            hnsw2.addEntities({
+                {1.0f,                  2.0f,                   3.0f},
+                {7.0f, 8.0f,            9.0f, 10.0f,            11.0f, 12.0f},
+                {13.0f, 14.0f, 15.0f,   16.0f, 17.0f, 18.0f,    19.0f, 20.f, 21.0f}
+            });
+
+            // should be unequal due to different storage order
+            std::reverse(hnsw2.entityStorage.begin(), hnsw2.entityStorage.end());
+
+            REQUIRE(hnsw1 != hnsw2);
+        }
+
+        SECTION("Test equality with identical but different internal state") {
+            MultiVecHNSW hnsw1 = MultiVecHNSW::Builder(3, {1, 2, 3})
+                    .setDistanceMetrics({"euclidean", "manhattan", "cosine"})
+                    .setWeights({0.3f, 0.5f, 0.2f})
+                    .build();
+
+            MultiVecHNSW hnsw2 = MultiVecHNSW::Builder(3, {1, 2, 3})
+                    .setDistanceMetrics({"euclidean", "manhattan", "cosine"})
+                    .setWeights({0.3f, 0.5f, 0.2f})
+                    .build();
+
+            hnsw1.addEntities({
+                {1.0f,                  2.0f,                   3.0f},
+                {7.0f, 8.0f,            9.0f, 10.0f,            11.0f, 12.0f},
+                {13.0f, 14.0f, 15.0f,   16.0f, 17.0f, 18.0f,    19.0f, 20.f, 21.0f}
+            });
+            hnsw2.addEntities({
+                {1.0f,                  2.0f,                   3.0f},
+                {7.0f, 8.0f,            9.0f, 10.0f,            11.0f, 12.0f},
+                {13.0f, 14.0f, 15.0f,   16.0f, 17.0f, 18.0f,    19.0f, 20.f, 21.0f}
+            });
+
+            // change hnsw1's internal data to simulate a difference
+            hnsw1.distributionScaleFactor = 99.0f;
+
+            REQUIRE(hnsw1 != hnsw2);
+        }
+    }
+
+    static void testSerializationAndDeserialization() {
+        SECTION("Test serialization and deserialization of identical HNSWs") {
+            MultiVecHNSW hnsw1 = MultiVecHNSW::Builder(3, {1, 2, 3})
+                    .setDistanceMetrics({"euclidean", "manhattan", "cosine"})
+                    .setWeights({0.3f, 0.5f, 0.2f})
+                    .build();
+
+            hnsw1.addEntities({
+                {1.0f, 2.0f, 3.0f},
+                {7.0f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f},
+                {13.0f, 14.0f, 15.0f, 16.0f, 17.0f, 18.0f, 19.0f, 20.f, 21.0f}
+            });
+
+            // serialise to stringstream
+            std::stringstream ss;
+            hnsw1.serialize(ss);
+
+            // deserialise back into a new object
+            MultiVecHNSW hnsw2 = MultiVecHNSW::Builder(1, {2}).build();
+            hnsw2.deserialize(ss);
+
+            REQUIRE(hnsw1 == hnsw2);
+        }
+
+        SECTION("Test deserialization of HNSW with different internal state") {
+            MultiVecHNSW hnsw1 = MultiVecHNSW::Builder(3, {1, 2, 3})
+                    .setDistanceMetrics({"euclidean", "manhattan", "cosine"})
+                    .setWeights({0.3f, 0.5f, 0.2f})
+                    .build();
+
+            hnsw1.addEntities({
+                {1.0f, 2.0f, 3.0f},
+                {7.0f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f},
+                {13.0f, 14.0f, 15.0f, 16.0f, 17.0f, 18.0f, 19.0f, 20.f, 21.0f}
+            });
+
+            std::stringstream ss;
+            hnsw1.serialize(ss);
+
+            // modify internal state of hnsw1 after serialisation
+            hnsw1.distributionScaleFactor = 99.0f;
+
+            MultiVecHNSW hnsw2 = MultiVecHNSW::Builder(1, {2}).build();
+            hnsw2.deserialize(ss);
+
+            REQUIRE(hnsw1 != hnsw2);
+        }
+
+        SECTION("Test deserialization failure due to corrupted data") {
+            MultiVecHNSW hnsw1 = MultiVecHNSW::Builder(3, {1, 2, 3})
+                    .setDistanceMetrics({"euclidean", "manhattan", "cosine"})
+                    .setWeights({0.3f, 0.5f, 0.2f})
+                    .build();
+
+            hnsw1.addEntities({
+                {1.0f, 2.0f, 3.0f},
+                {7.0f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f},
+                {13.0f, 14.0f, 15.0f, 16.0f, 17.0f, 18.0f, 19.0f, 20.f, 21.0f}
+            });
+
+            std::stringstream ss;
+            hnsw1.serialize(ss);
+
+            // corrupt the stream by writing extra bytes to the start
+            std::string corruptedData = "corrupted_data";
+            ss.seekp(0);
+            ss.write(corruptedData.c_str(), corruptedData.size());
+            ss.seekg(0);
+
+            MultiVecHNSW hnsw2 = MultiVecHNSW::Builder(1, {2}).build();
+            hnsw2.deserialize(ss);
+
+            // assert different
+            REQUIRE(hnsw1 != hnsw2);
+        }
+    }
+
+    static void testLoadAndSave() {
+        const std::string testDir = "./tests/";
+
+        SECTION("Test saving to a valid path") {
+            MultiVecHNSW hnsw = MultiVecHNSW::Builder(3, {1, 2, 3})
+                .setDistanceMetrics({"euclidean", "manhattan", "cosine"})
+                .setWeights({0.3f, 0.5f, 0.2f})
+                .build();
+
+            hnsw.addEntities({
+                {1.0f, 2.0f, 3.0f},
+                {7.0f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f},
+                {13.0f, 14.0f, 15.0f, 16.0f, 17.0f, 18.0f, 19.0f, 20.f, 21.0f}
+            });
+
+            std::string filePath = testDir + "hnsw_test.bin";
+            REQUIRE_NOTHROW(hnsw.save(filePath));
+
+            // verify the file exists
+            REQUIRE(fs::exists(filePath));
+
+            // cleanup
+            fs::remove(filePath);
+        }
+
+        SECTION("Test saving to a non-existent directory") {
+            MultiVecHNSW hnsw = MultiVecHNSW::Builder(3, {1, 2, 3})
+                .setDistanceMetrics({"euclidean", "manhattan", "cosine"})
+                .setWeights({0.3f, 0.5f, 0.2f})
+                .build();
+
+            hnsw.addEntities({
+                {1.0f, 2.0f, 3.0f},
+                {7.0f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f},
+                {13.0f, 14.0f, 15.0f, 16.0f, 17.0f, 18.0f, 19.0f, 20.f, 21.0f}
+            });
+
+            std::string filePath = testDir + "new_directory/hnsw_test.bin";
+
+            REQUIRE_NOTHROW(hnsw.save(filePath));
+
+            // verify the file exists and the directory was created
+            REQUIRE(fs::exists(filePath));
+            REQUIRE(fs::exists(testDir + "new_directory"));
+
+            // cleanup
+            fs::remove(filePath);
+            fs::remove_all(testDir + "new_directory");
+        }
+
+        SECTION("Test loading from a valid file") {
+            MultiVecHNSW hnsw = MultiVecHNSW::Builder(3, {1, 2, 3})
+                .setDistanceMetrics({"euclidean", "manhattan", "cosine"})
+                .setWeights({0.3f, 0.5f, 0.2f})
+                .build();
+
+            hnsw.addEntities({
+                {1.0f, 2.0f, 3.0f},
+                {7.0f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f},
+                {13.0f, 14.0f, 15.0f, 16.0f, 17.0f, 18.0f, 19.0f, 20.f, 21.0f}
+            });
+
+            std::string filePath = testDir + "hnsw_test.bin";
+            hnsw.save(filePath);
+
+            MultiVecHNSW loadedHNSW = MultiVecHNSW::Builder(1, {2}).build();
+            REQUIRE_NOTHROW(loadedHNSW.load(filePath));
+
+            // verify that the loaded object matches the original
+            REQUIRE(hnsw == loadedHNSW);
+
+            // cleanup
+            fs::remove(filePath);
+        }
+
+        SECTION("Test loading from a non-existent file") {
+            std::string filePath = testDir + "non_existent_file.bin";
+            MultiVecHNSW hnsw = MultiVecHNSW::Builder(1, {2}).build();
+
+            REQUIRE_THROWS_AS(hnsw.load(filePath), std::runtime_error);
+        }
+
+        SECTION("Test loading index using loadIndex") {
+            MultiVecHNSW hnsw = MultiVecHNSW::Builder(3, {1, 2, 3})
+                .setDistanceMetrics({"euclidean", "manhattan", "cosine"})
+                .setWeights({0.3f, 0.5f, 0.2f})
+                .build();
+
+            hnsw.addEntities({
+                {1.0f, 2.0f, 3.0f},
+                {7.0f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f},
+                {13.0f, 14.0f, 15.0f, 16.0f, 17.0f, 18.0f, 19.0f, 20.f, 21.0f}
+            });
+
+            std::string filePath = testDir + "index_test.bin";
+            hnsw.save(filePath);
+
+            MultiVecHNSW loadedHNSW = MultiVecHNSW::loadIndex(filePath);
+
+            // verify that the loaded index is as expected
+            REQUIRE(hnsw == loadedHNSW);
+
+            // cleanup
+            fs::remove(filePath);
+        }
+
+        SECTION("Test loading index from a non-existent file") {
+            std::string filePath = testDir + "non_existent_index.bin";
+            REQUIRE_THROWS_AS(MultiVecHNSW::loadIndex(filePath), std::runtime_error);
+        }
+
+    }
+
 };
 
 TEST_CASE("MultiVecHNSWBuilder builds", "[MultiVecHNSWBuilder]") {
@@ -784,4 +1150,16 @@ TEST_CASE("MultiVecHNSW Search", "[Search]") {
 
 TEST_CASE("MultiVecHNSW testReordering", "[Reordering]") {
     MultiVecHNSWTest::testReordering();
+}
+
+TEST_CASE("MultiVecHNSW testEquality", "[Equality]") {
+    MultiVecHNSWTest::testEquality();
+}
+
+TEST_CASE("MultiVecHNSW testSerDe", "[SerDe]") {
+    MultiVecHNSWTest::testSerializationAndDeserialization();
+}
+
+TEST_CASE("MultiVecHNSW testLoadAndSave", "[LoadAndSave]") {
+    MultiVecHNSWTest::testLoadAndSave();
 }

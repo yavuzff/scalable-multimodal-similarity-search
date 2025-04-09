@@ -29,6 +29,9 @@ private:
 
     struct Node {
         std::vector<std::vector<entity_id_t>> neighboursPerLayer;
+        bool operator==(const Node& other) const {
+            return neighboursPerLayer == other.neighboursPerLayer;
+        }
     };
     std::vector<Node> nodes;
 
@@ -77,6 +80,14 @@ private:
 
     void addAndPruneEdgesForExistingNodes(entity_id_t newEntityId, const std::vector<std::pair<float, entity_id_t>> &connectedNeighbours, size_t layer);
 
+    // serialisation helpers
+    static void serializeNode(std::ostream& os, const Node& node);
+    static void deserializeNode(std::istream& is, Node& node);
+
+    // serialisation methods
+    void serialize(std::ostream& os) const override;
+    void deserialize(std::istream& is) override;
+
     friend class MultiVecHNSWTest;  // grant access to the test class
 
 public:
@@ -90,6 +101,9 @@ public:
                     size_t efConstruction = 200,
                     size_t efSearch = 50,
                     size_t seed = 42);
+
+    // static method to load the index from a file
+    static MultiVecHNSW loadIndex(const std::string& path);
 
     class Builder {
     public:
@@ -119,6 +133,8 @@ public:
         size_t seed = 42;
     };
 
+    // equality operator
+    bool operator==(const MultiVecHNSW& other) const;
 
     void addEntities(const std::vector<std::vector<float>>& entities) override;
 
@@ -133,7 +149,6 @@ public:
     std::vector<size_t> search(const std::vector<std::span<const float>>& query, size_t k) override;
 
     void save(const std::string& path) const override;
-
     void load(const std::string& path) override;
 
     [[nodiscard]] float getDistributionScaleFactor() const;
@@ -152,7 +167,6 @@ public:
 
     void printGraph() const;
 };
-
 
 
 #endif

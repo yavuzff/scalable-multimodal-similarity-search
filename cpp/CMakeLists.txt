@@ -52,6 +52,8 @@ add_library(multivec-index STATIC
         index/ExactMultiVecIndex.cpp
         index/MultiVecHNSW.cpp
         index/MultiVecHNSWBuilder.cpp
+        index/serde/serdeAbstractMultiVecIndex.cpp
+        index/serde/serdeMultiVecHNSW.cpp
 )
 set_target_properties(multivec-index PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_include_directories(multivec-index PUBLIC ${EIGEN_PATH})

@@ -5,6 +5,8 @@
 #include <iostream>
 #include <random>
 #include <unordered_set>
+#include <fstream>
+#include <filesystem>
 
 using namespace std;
 using entity_id_t = MultiVecHNSW::entity_id_t;
@@ -29,6 +31,9 @@ MultiVecHNSW::MultiVecHNSW(size_t numModalities,
     }
     // initialise storage
     entityStorageByModality.resize(numModalities);
+
+    // initialise entrypoint, although this value should not be used, and overwritten
+    entryPoint = 0;
 
     if constexpr (REORDER_MODALITY_VECTORS) reorderModalities();
 
@@ -166,7 +171,7 @@ void MultiVecHNSW::addToEntityStorageByModality(const vector<span<const float>>&
 
         // if the modality uses cosine distance, normalise the inserted vectors for this modality
         if (distanceMetrics[i] == DistanceMetric::Cosine) {
-            debug_printf("Storing normalised vectors for modality %zu to efficiently compute cosine distance\n", i);
+            debug_printf("MultiVecHNSW: Storing normalised vectors for modality %zu to efficiently compute cosine distance\n", i);
             for (size_t j = 0; j < numNewEntities; ++j) {
                 l2NormalizeVector(span(entityStorageByModality[i]).subspan(j * dimensions[i], dimensions[i]));
             }
@@ -778,15 +783,77 @@ void MultiVecHNSW::printGraph() const {
     }
 }
 
-void MultiVecHNSW::save(const string& path) const {
-    cout << "Saving MultiVecHNSW to " << path << endl;
+
+void MultiVecHNSW::save(const std::string& path) const {
+    // ensure the directory exists
+    std::filesystem::path filePath(path);
+    std::filesystem::path dirPath = filePath.parent_path();
+
+    // if there is a directory given, create the directory if it does not exist
+    if (!dirPath.empty() && !std::filesystem::exists(dirPath)) {
+        std::filesystem::create_directories(dirPath);
+    }
+
+    // open file as binary
+    std::ofstream ofs(path, std::ios::binary);
+    if (!ofs.is_open()) {
+        throw std::runtime_error("Error opening file for saving: " + path);
+    }
+    //serialise and close file
+    serialize(ofs);
+    ofs.close();
+    cout << "MultiVecHNSW saved successfully to " << path << endl;
 }
 
-void MultiVecHNSW::load(const string& path) {
-    cout << "Loading index from " << path << endl;
+
+void MultiVecHNSW::load(const std::string& path) {
+    // check if file exists
+    if (!std::filesystem::exists(path)) {
+        throw std::runtime_error(
+            "Error: File does not exist for loading: " + path);
+    }
+    // open file as binary
+    std::ifstream ifs(path, std::ios::binary);
+    if (!ifs.is_open()) {
+        throw std::runtime_error("Error opening file for loading: " + path);
+    }
+    // deserialize and close
+    deserialize(ifs);
+    ifs.close();
+    cout << "MultiVecHNSW loaded successfully from " << path << endl;
 }
 
-//implement getters and setters
+MultiVecHNSW MultiVecHNSW::loadIndex(const std::string& path) {
+    // check if file exists
+    if (!std::filesystem::exists(path)) {
+        throw std::runtime_error("Error: File does not exist for loading: " + path);
+    }
+    // open file as binary
+    std::ifstream ifs(path, std::ios::binary);
+    if (!ifs.is_open()) {
+        throw std::runtime_error("Error opening file for loading: " + path);
+    }
+
+    // create a default MultiVecHNSW instance
+    MultiVecHNSW hnsw = Builder(1, {1})
+        .build();
+
+    // deserialise the file contents into the MultiVecHNSW instance
+    try {
+        hnsw.deserialize(ifs);
+    } catch (const std::exception& e) {
+        ifs.close();
+        throw std::runtime_error("Deserialization failed for " + path + ": " + e.what());
+    }
+
+    // close the file
+    ifs.close();
+
+    std::cout << "MultiVecHNSW loaded successfully from " << path << std::endl;
+    return hnsw;
+}
+
+// getters and setters
 float MultiVecHNSW::getDistributionScaleFactor() const {
     return distributionScaleFactor;
 }
@@ -839,4 +906,45 @@ const vector<float>& MultiVecHNSW::getWeights() const {
         return originalOrderedIndexWeights;
     }
     return indexWeights;
+}
+
+
+bool MultiVecHNSW::operator==(const MultiVecHNSW& other) const {
+    // check equality of the base class
+    if (!(static_cast<const AbstractMultiVecIndex&>(*this) == static_cast<const AbstractMultiVecIndex&>(other))) {
+        cout << "Base class not equal!" << endl;
+        return false;
+    }
+    if (!
+        (distributionScaleFactor == other.distributionScaleFactor &&
+        targetDegree == other.targetDegree &&
+        maxDegree == other.maxDegree &&
+        efConstruction == other.efConstruction &&
+        efSearch == other.efSearch &&
+        seed == other.seed &&
+        entityStorage == other.entityStorage &&
+        entityStorageByModality == other.entityStorageByModality &&
+        entryPoint == other.entryPoint &&
+        maxLevel == other.maxLevel &&
+        maxDegreeLayer0 == other.maxDegreeLayer0 &&
+        //generator == other.generator &&  // we do not compare the generator
+        modalityReordering == other.modalityReordering &&
+        originalOrderedDimensions == other.originalOrderedDimensions &&
+        originalOrderedStrDistanceMetrics == other.originalOrderedStrDistanceMetrics &&
+        originalOrderedIndexWeights == other.originalOrderedIndexWeights &&
+        nodes == other.nodes)) {
+        return false;
+    }
+    // check equality of the stats
+    if constexpr (TRACK_STATS) {
+        if (!
+            (num_compute_distance_calls == other.num_compute_distance_calls &&
+        num_lazy_distance_calls == other.num_lazy_distance_calls &&
+        num_lazy_distance_cutoff == other.num_lazy_distance_cutoff &&
+        num_vectors_skipped_due_to_cutoff == other.num_vectors_skipped_due_to_cutoff)) {
+            cout << "Stats not equal!" << endl;
+            return false;
+        }
+    }
+    return true;
 }

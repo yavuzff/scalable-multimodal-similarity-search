@@ -32,7 +32,7 @@ void ExactMultiVecIndex::addEntities(const std::vector<std::span<const float>>& 
 
         // if the modality uses cosine distance, normalise the inserted vectors for this modality
         if (distanceMetrics[i] == DistanceMetric::Cosine) {
-            std::cout << "Storing normalised vectors for modality " << i << " to efficiently compute cosine distance" << std::endl;
+            debug_printf("ExactMultiVecIndex: Storing normalised vectors for modality %zu to efficiently compute cosine distance\n", i);
             for (size_t j = 0; j < numNewEntities; ++j) {
                 l2NormalizeVector(std::span(storedEntities[i]).subspan(j * dimensions[i], dimensions[i]));
             }
@@ -143,12 +143,11 @@ std::vector<size_t> ExactMultiVecIndex::internalSearch(const std::vector<std::sp
 }
 
 void ExactMultiVecIndex::save(const std::string& path) const {
-    std::cout << "Saving index to " << path << std::endl;
-    std::cout << "Index properties: " << numModalities << ", Num Entities: " << numEntities << std::endl;
+    throw std::runtime_error("ExactMultiVecIndex::save not implemented. You can simply rebuild the index from the data, instead of saving to " + path);
 }
 
 void ExactMultiVecIndex::load(const std::string& path) {
-    std::cout << "Loading index from " << path << std::endl;
+    throw std::runtime_error("ExactMultiVecIndex::load not implemented. You can simply rebuild the index from the data, instead of loading from " + path);
 }
 
 void ExactMultiVecIndex::outputEntities() const {
