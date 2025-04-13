@@ -147,7 +147,7 @@ def evaluate_search():
                                                                  search_params)
 
 
-def evaluate_parameter_space(index_sizes):
+def evaluate_parameter_space(index_sizes, experiment_seed):
     """
     Evaluate a range of values in the parameter space for the MultiVecHSNW index construction and search.
     """
@@ -156,7 +156,6 @@ def evaluate_parameter_space(index_sizes):
     search_params = get_search_params(params)
     NUM_QUERY_ENTITIES = 1000
 
-    experiment_seed = 1
 
     #for index_size in [10_000, 25_000, 50_000, 75_000, 100_000, 150_000, 200_000, 250_000, 375_000, 500_000, 625_000, 750_000, 875_000, 1_000_000]:
     #for index_size in reversed([10_000, 25_000, 50_000, 75_000, 100_000, 250_000, 375_000, 500_000, 625_000, 750_000, 875_000, 1_000_000]):
@@ -201,11 +200,11 @@ def evaluate_parameter_space(index_sizes):
         time.sleep(index_size/5000) # sleep to avoid overloading the system
 
 
-def evaluate_rerank_hnsw(index_sizes):
+def evaluate_rerank_hnsw(index_sizes, experiment_seed):
     """
     Evaluate a range of values in the parameter space for the MultiVecHSNW index construction and search.
     """
-    from src.evaluation import EXACT_RESULTS_DIR, sanitise_path_string
+    from src.evaluation import EXACT_RESULTS_DIR, SEARCH_DIR, sanitise_path_string
     import os
 
     params = get_params()
@@ -213,7 +212,6 @@ def evaluate_rerank_hnsw(index_sizes):
     search_params = get_search_params(params)
     NUM_QUERY_ENTITIES = 1000
 
-    experiment_seed = 1
 
     #for index_size in reversed([10_000, 25_000, 50_000, 75_000, 100_000, 250_000, 375_000, 500_000, 625_000, 750_000, 875_000, 1_000_000]):
     #for index_size in [10_000, 25_000, 50_000, 75_000, 100_000, 250_000, 375_000, 500_000, 625_000, 750_000, 875_000, 1_000_000]:
@@ -224,25 +222,36 @@ def evaluate_rerank_hnsw(index_sizes):
             params.k = k
             search_params.k = k
 
-            save_folder = EXACT_RESULTS_DIR + sanitise_path_string(
-                f"{params.modalities}_{params.dimensions}_{params.metrics}_{params.weights}_{params.index_size}_{params.k}/")
-
-            # read save_folder and get the folder with the date/time that is the latest
-            sub_folders = [f for f in os.listdir(save_folder) if os.path.isdir(save_folder + f)]
-            last_sub_folder = sorted(sub_folders)[-1]
-            print("Reading query ids and results from folder:", save_folder+ last_sub_folder)
-            # read query_ids.npy from last_sub_folder
-            params.query_ids = np.load(save_folder + last_sub_folder + "/query_ids.npy")
-            exact_results = np.load(save_folder + last_sub_folder + "/results.npz")["results"]
-            print("Query_ids:", params.query_ids)
-
             # construct indexes
-            for target_degree, max_degree, ef_construction, seed in [(16, 16, 100, experiment_seed), (32, 32, 200, experiment_seed)]:
+            #for target_degree, max_degree, ef_construction, seed in [(16, 16, 100, experiment_seed), (32, 32, 200, experiment_seed)]:
+            for target_degree, max_degree, ef_construction, seed in [(16, 16, 100, experiment_seed)]:
                 construction_params.target_degree = target_degree
                 construction_params.max_degree = max_degree
                 construction_params.ef_construction = ef_construction
                 construction_params.seed = seed
 
+
+                # read query ids from the last subfolder for multivechnsw
+                multivechnsw_search_folder = SEARCH_DIR + sanitise_path_string(
+                    f"{params.modalities}_{params.dimensions}_{params.metrics}_{params.weights}_{params.index_size}/") + \
+                                             f"{construction_params.target_degree}_{construction_params.max_degree}_{construction_params.ef_construction}_{construction_params.seed}/"
+                search_sub_folders = [f for f in os.listdir(multivechnsw_search_folder) if os.path.isdir(multivechnsw_search_folder + f)]
+                last_search_sub_folder = sorted(search_sub_folders)[-1] + "/"
+
+                print("Last search subfolder:", multivechnsw_search_folder + last_search_sub_folder)
+                # get any folder in last_search_sub_folder and then get "/query_ids.npy"
+                ef_subfolders = [ef for ef in os.listdir(multivechnsw_search_folder + last_search_sub_folder) if os.path.isdir(multivechnsw_search_folder + last_search_sub_folder + ef)]
+                print(ef_subfolders)
+
+                print("Reading query ids and results from folder:", multivechnsw_search_folder + last_search_sub_folder + ef_subfolders[0])
+                params.query_ids = np.load(multivechnsw_search_folder + last_search_sub_folder + ef_subfolders[0] + "/query_ids.npy")
+                print("Query_ids:", params.query_ids)
+
+                # read exact results for these query ids
+                exact_results, _ = compute_exact_results(params, cache=True, recompute=False)  # will cache these when possible
+
+
+                # construct index
                 rerank_hnsw_indexes, index_path = evaluate_hnsw_rerank_construction(params, construction_params)
 
                 # try values for ef_search=k', starting from ef_search=k

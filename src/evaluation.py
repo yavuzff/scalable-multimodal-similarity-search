@@ -17,7 +17,7 @@ SEARCH_DIR = EXPERIMENTS_DIR + "search/"
 RERANK_CONSTRUCTION_DIR = EXPERIMENTS_DIR + "rerank_construction/"
 RERANK_SEARCH_DIR = EXPERIMENTS_DIR + "rerank_search/"
 
-def compute_exact_results(p: Params, cache=True):
+def compute_exact_results(p: Params, cache=True, recompute=True):
     """
     Return exact results for this set of inputs, caching if needed.
     """
@@ -40,6 +40,9 @@ def compute_exact_results(p: Params, cache=True):
                 print(f"Loading cached results from {save_folder + folder}")
                 data = np.load(save_folder + folder + "/results.npz")
                 return data["results"], data["search_times"]
+
+    if not recompute:
+        assert False, "No cached results found, and recompute is set to False. Exiting."
 
     # create directory where we will save our results
     current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f")[:-3]  # get up to millisecond
