@@ -3,7 +3,7 @@ import pandas as pd
 import os
 import numpy as np
 
-from src.load_dataset import load_vectors_from_4_modalities_dataset_base_path, load_image, load_audio
+from src.common.load_dataset import load_vectors_from_4_modalities_dataset_base_path, load_image, load_audio
 from multivec_index import ExactMultiVecIndex
 from multivec_index import MultiVecHNSW
 from src.embedding_generators.text_embeddings import SentenceTransformerEmbeddingGenerator

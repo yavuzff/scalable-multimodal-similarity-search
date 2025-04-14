@@ -3,11 +3,11 @@ import numpy as np
 import random
 import time
 
-from src.load_dataset import load_dataset
-from src.evaluation import IndexEvaluator, compute_exact_results, evaluate_index_construction, evaluate_index_search
-from src.evaluation import evaluate_hnsw_rerank_construction, evaluate_hnsw_rerank_search
-from src.evaluation_params import Params, MultiVecHNSWConstructionParams, MultiVecHNSWSearchParams
-
+from src.common.load_dataset import load_dataset
+from src.evaluation.evaluation import IndexEvaluator, compute_exact_results, evaluate_index_construction, evaluate_index_search
+from src.evaluation.evaluation import evaluate_hnsw_rerank_construction, evaluate_hnsw_rerank_search
+from src.evaluation.evaluation_params import Params, MultiVecHNSWConstructionParams, MultiVecHNSWSearchParams
+from src.evaluation.evaluation_params import get_params, get_construction_params, get_search_params
 
 def main():
     # load dataset
@@ -61,51 +61,6 @@ def main():
         f"Average memory consumption: {np.mean(memory_consumption):.3f} bytes. Variance: {np.var(memory_consumption):.3f}. Min: {np.min(memory_consumption):.3f}. Max: {np.max(memory_consumption):.3f}.")
 
 
-def get_params():
-    """
-    Get the parameters for the exact index setup.
-    """
-    text_vectors_all, image_vectors_all = load_dataset()
-    dataset = [text_vectors_all, image_vectors_all]
-
-    INDEX_SIZE = 1000
-
-    MODALITIES = 2
-    DIMENSIONS = [text_vectors_all.shape[1], image_vectors_all.shape[1]]
-    DISTANCE_METRICS = ["cosine", "cosine"]
-    WEIGHTS = [0.5, 0.5]
-
-    K = 50
-
-    NUM_QUERY_ENTITIES = 100
-
-    # set query_ids to last NUM_QUERY_ENTITIES
-    query_ids = list(range(len(dataset[0]) - NUM_QUERY_ENTITIES, len(dataset[0])))
-
-    return Params(MODALITIES, DIMENSIONS, DISTANCE_METRICS, WEIGHTS, dataset, INDEX_SIZE, K, query_ids)
-
-
-def get_construction_params():
-    """
-    Get the parameters for the HNSW index construction.
-    """
-    TARGET_DEGREE = 32
-    MAX_DEGREE = 64
-    EF_CONSTRUCTION = 20
-    SEED = 2
-
-    return MultiVecHNSWConstructionParams(TARGET_DEGREE, MAX_DEGREE, EF_CONSTRUCTION, SEED)
-
-
-def get_search_params(params: Params):
-    """
-    Get the parameters for the HNSW index search.
-    """
-    EF_SEARCH = 20
-
-    return MultiVecHNSWSearchParams(params.k, EF_SEARCH)
-
-
 def run_exact_results():
     """
     Evaluate the exact results search.
@@ -147,7 +102,7 @@ def evaluate_search():
                                                                  search_params)
 
 
-def evaluate_parameter_space(index_sizes, experiment_seed):
+def evaluate_parameter_space(index_sizes, experiment_seed, experiment_construction_params):
     """
     Evaluate a range of values in the parameter space for the MultiVecHSNW index construction and search.
     """
@@ -182,13 +137,13 @@ def evaluate_parameter_space(index_sizes, experiment_seed):
             #         for ef_construction in [100]:
             #             #for seed in [1,2,3,4,5]:
             #             for seed in [1]:
-            for target_degree, max_degree, ef_construction, seed in [(16, 16, 100, experiment_seed), (32, 32, 200, experiment_seed)]:
+            for target_degree, max_degree, ef_construction, seed in experiment_construction_params:
                             construction_params.target_degree = target_degree
                             construction_params.max_degree = max_degree
                             construction_params.ef_construction = ef_construction
                             construction_params.seed = seed
 
-                            index, index_path = evaluate_index_construction(params, construction_params)
+                            index, index_path = evaluate_index_construction(params, construction_params, save_index=False)
 
                             # try 20 values for ef_search, starting from ef_search=k-10
                             for ef_search in range(k-10, k + 200, 10):
@@ -200,11 +155,11 @@ def evaluate_parameter_space(index_sizes, experiment_seed):
         time.sleep(index_size/5000) # sleep to avoid overloading the system
 
 
-def evaluate_rerank_hnsw(index_sizes, experiment_seed):
+def evaluate_rerank_hnsw(index_sizes, experiment_seed, experiment_construction_params):
     """
     Evaluate a range of values in the parameter space for the MultiVecHSNW index construction and search.
     """
-    from src.evaluation import EXACT_RESULTS_DIR, SEARCH_DIR, sanitise_path_string
+    from src.evaluation.evaluation import EXACT_RESULTS_DIR, SEARCH_DIR, sanitise_path_string
     import os
 
     params = get_params()
@@ -224,7 +179,7 @@ def evaluate_rerank_hnsw(index_sizes, experiment_seed):
 
             # construct indexes
             #for target_degree, max_degree, ef_construction, seed in [(16, 16, 100, experiment_seed), (32, 32, 200, experiment_seed)]:
-            for target_degree, max_degree, ef_construction, seed in [(16, 16, 100, experiment_seed)]:
+            for target_degree, max_degree, ef_construction, seed in experiment_construction_params:
                 construction_params.target_degree = target_degree
                 construction_params.max_degree = max_degree
                 construction_params.ef_construction = ef_construction
@@ -238,10 +193,8 @@ def evaluate_rerank_hnsw(index_sizes, experiment_seed):
                 search_sub_folders = [f for f in os.listdir(multivechnsw_search_folder) if os.path.isdir(multivechnsw_search_folder + f)]
                 last_search_sub_folder = sorted(search_sub_folders)[-1] + "/"
 
-                print("Last search subfolder:", multivechnsw_search_folder + last_search_sub_folder)
                 # get any folder in last_search_sub_folder and then get "/query_ids.npy"
                 ef_subfolders = [ef for ef in os.listdir(multivechnsw_search_folder + last_search_sub_folder) if os.path.isdir(multivechnsw_search_folder + last_search_sub_folder + ef)]
-                print(ef_subfolders)
 
                 print("Reading query ids and results from folder:", multivechnsw_search_folder + last_search_sub_folder + ef_subfolders[0])
                 params.query_ids = np.load(multivechnsw_search_folder + last_search_sub_folder + ef_subfolders[0] + "/query_ids.npy")
@@ -270,9 +223,12 @@ if __name__ == "__main__":
     #evaluate_construction()
     #evaluate_search()
 
-    #
-    # all_index_sizes = [10_000, 25_000, 50_000, 75_000, 100_000, 150_000, 200_000, 250_000, 375_000, 500_000, 625_000, 750_000, 875_000, 1_000_000]
-    # print("Starting parameter space evaluation...")
-    # evaluate_parameter_space([1_000_000])
-    # print("Starting rerank evaluation for the previous parameter space...")
-    # evaluate_rerank_hnsw(all_index_sizes)
+
+    all_index_sizes = [10_000, 25_000, 50_000, 75_000, 100_000, 150_000, 200_000, 250_000, 375_000, 500_000, 625_000, 750_000, 875_000, 1_000_000]
+
+    #print("Starting parameter space evaluation...")
+
+    experiment_construction_params = [(32, 32, 200, 9)]
+    #evaluate_parameter_space(all_index_sizes, 9, experiment_construction_params)
+    #print("Starting rerank evaluation for the previous parameter space...")
+    #evaluate_rerank_hnsw(all_index_sizes, 9, experiment_construction_params)

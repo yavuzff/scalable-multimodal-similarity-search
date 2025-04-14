@@ -5,14 +5,15 @@ import os
 from datetime import datetime
 
 from multivec_index import ExactMultiVecIndex, MultiVecHNSW
-from src.evaluation_params import Params, MultiVecHNSWConstructionParams, MultiVecHNSWSearchParams
-from src.load_dataset import load_dataset
+from src.evaluation.evaluation_params import Params, MultiVecHNSWConstructionParams, MultiVecHNSWSearchParams
+from src.common.load_dataset import load_dataset
 
 EXPERIMENTS_DIR = "experiments/"
 EXACT_RESULTS_DIR = EXPERIMENTS_DIR + "exact_results/"
 CONSTRUCTION_DIR = EXPERIMENTS_DIR + "construction/"
 SAVED_INDEX_DIR = EXPERIMENTS_DIR + "saved_index/"
 SEARCH_DIR = EXPERIMENTS_DIR + "search/"
+SEARCH_WEIGHTS_DIR = EXPERIMENTS_DIR + "search_weights_exps/"
 
 RERANK_CONSTRUCTION_DIR = EXPERIMENTS_DIR + "rerank_construction/"
 RERANK_SEARCH_DIR = EXPERIMENTS_DIR + "rerank_search/"
@@ -23,8 +24,9 @@ def compute_exact_results(p: Params, cache=True, recompute=True):
     """
     assert p.modalities == len(p.dataset)
 
+    rounded_weights = [round(w, 5) for w in p.weights]
     save_folder = EXACT_RESULTS_DIR + sanitise_path_string(
-        f"{p.modalities}_{p.dimensions}_{p.metrics}_{p.weights}_{p.index_size}_{p.k}/")
+        f"{p.modalities}_{p.dimensions}_{p.metrics}_{rounded_weights}_{p.index_size}_{p.k}/")
 
     if cache and os.path.exists(save_folder):
         # iterate over every folder in save_folder
@@ -73,6 +75,21 @@ def compute_exact_results(p: Params, cache=True, recompute=True):
     print(f"Saved exact results.npz and query_ids.npy to {save_folder}")
 
     return np.array(results), np.array(search_times)
+
+def load_multivec_index_from_params(params: Params, construction_params: MultiVecHNSWConstructionParams):
+    index_string = sanitise_path_string(f"{params.modalities}_{params.dimensions}_{params.metrics}_{params.weights}_{params.index_size}/") + \
+                   f"{construction_params.target_degree}_{construction_params.max_degree}_{construction_params.ef_construction}_{construction_params.seed}/"
+
+    index_save_folder = SAVED_INDEX_DIR + index_string
+    # load the latest file in the folder
+    index_files = [f for f in os.listdir(index_save_folder) if f.startswith("index-")]
+    assert len(index_files) > 0, f"No index files found in {index_save_folder}"
+    index_file = index_files[-1]
+
+    loaded_index = MultiVecHNSW(1, [1])
+    loaded_index.load(index_save_folder+index_file)
+
+    return loaded_index, index_file
 
 
 def evaluate_index_construction(p: Params, specific_params: MultiVecHNSWConstructionParams, save_index=True):

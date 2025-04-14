@@ -1,7 +1,7 @@
 import gradio as gr
 import pandas as pd
 
-from src.load_dataset import load_vectors_from_dataset_base_path, load_image
+from src.common.load_dataset import load_vectors_from_dataset_base_path, load_image
 from multivec_index import ExactMultiVecIndex
 from multivec_index import MultiVecHNSW
 from src.embedding_generators.text_embeddings import SentenceTransformerEmbeddingGenerator
