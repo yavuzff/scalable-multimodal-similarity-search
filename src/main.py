@@ -229,6 +229,7 @@ def evaluate_weighted_and_tracked_index_building(index_size, seeds):
             print(f"Running weights experiments for dataset size, seed, search weights: {params.index_size}, {construction_params.seed} {params.weights}")
 
             index, index_path = evaluate_index_construction(params, construction_params, save_index=True)
+            time.sleep(index_size/10000)
 
 
 if __name__ == "__main__":
@@ -248,5 +249,5 @@ if __name__ == "__main__":
 
     # weighted index construction experiments
     index_size = 10000
-    seeds = [60, 61, 62]
+    seeds = [60, 61]
     evaluate_weighted_and_tracked_index_building(index_size, seeds)

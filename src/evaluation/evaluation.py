@@ -9,6 +9,8 @@ from src.evaluation.evaluation_params import Params, MultiVecHNSWConstructionPar
 from src.common.load_dataset import load_dataset
 
 EXPERIMENTS_DIR = "experiments/stats-experiments/"
+PATH_CONNECTOR_SYMBOL = "-" # or ":". This is used to replace [ or ] symbols in path string.
+
 EXACT_RESULTS_DIR = EXPERIMENTS_DIR + "exact_results/"
 CONSTRUCTION_DIR = EXPERIMENTS_DIR + "construction/"
 SAVED_INDEX_DIR = EXPERIMENTS_DIR + "saved_index/"
@@ -326,7 +328,7 @@ def sanitise_path_string(path):
     """
     Replace invalid characters in a path string.
     """
-    return path.replace(" ", "").replace("'", "").replace("[", ":").replace("]", ":")
+    return path.replace(" ", "").replace("'", "").replace("[", PATH_CONNECTOR_SYMBOL).replace("]", PATH_CONNECTOR_SYMBOL)
 
 
 class IndexEvaluator:
