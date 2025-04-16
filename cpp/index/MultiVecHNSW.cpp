@@ -87,11 +87,10 @@ void MultiVecHNSW::reorderModalities() {
     dimensions = std::move(reorderedDimensions);
 
     // print out the reordering
-    std::cout << "Reordered modalities: ";
+    debug_printf("Reordered modalities: ");
     for (size_t i = 0; i < numModalities; ++i) {
-        std::cout << modalityReordering[i] << " ";
+        debug_printf("%zu ", modalityReordering[i]);
     }
-    std::cout << std::endl;
 }
 
 vector<size_t> MultiVecHNSW::identifyModalityReordering() const {
@@ -157,9 +156,8 @@ void MultiVecHNSW::addEntities(const vector<span<const float>>& entities) {
     numEntities = finalNumEntities;
 
     if constexpr (TRACK_STATS) {
-        std::cout << "num_compute_distance_calls: " << num_compute_distance_calls << " num_lazy_distance_calls: "
-        << num_lazy_distance_calls << " num_lazy_distance_cutoff: " << num_lazy_distance_cutoff
-        << " num_vectors_skipped_due_to_cutoff: " << num_vectors_skipped_due_to_cutoff <<  std::endl;
+        debug_printf("num_compute_distance_calls: %llu num_lazy_distance_calls: %llu num_lazy_distance_cutoff: %llu num_vectors_skipped_due_to_cutoff: %llu\n",
+                     num_compute_distance_calls, num_lazy_distance_calls, num_lazy_distance_cutoff, num_vectors_skipped_due_to_cutoff);
     }
 }
 

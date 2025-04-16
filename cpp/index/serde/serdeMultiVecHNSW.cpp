@@ -1,5 +1,6 @@
 #include <iostream>
 
+#include "../../include/common.hpp"
 #include "../../include/MultiVecHNSW.hpp"
 #include "../../include/serde/serdeUtils.hpp"
 
@@ -15,7 +16,7 @@ void MultiVecHNSW::deserializeNode(std::istream& is, Node& node) {
 
 
 void MultiVecHNSW::serialize(std::ostream& os) const {
-    std::cout << "Serializing MultiVecHNSW index..." << std::endl;
+    debug_printf("Serializing MultiVecHNSW index...\n");
     // note: we do not serialise the generator
 
     AbstractMultiVecIndex::serialize(os);
@@ -72,7 +73,7 @@ void MultiVecHNSW::serialize(std::ostream& os) const {
 }
 
 void MultiVecHNSW::deserialize(std::istream& is) {
-    std::cout << "Deserializing MultiVecHNSW index..." << std::endl;
+    debug_printf("Deserializing MultiVecHNSW index...\n");
     // note: we do not deserialise the generator
     AbstractMultiVecIndex::deserialize(is);
 

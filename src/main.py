@@ -215,20 +215,38 @@ def evaluate_rerank_hnsw(index_sizes, experiment_seed, experiment_construction_p
 
         time.sleep(index_size/5000) # sleep to avoid overloading the system
 
+def evaluate_weighted_and_tracked_index_building(index_size, seeds):
+    text_weights = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+
+    params = get_params()
+    params.index_size = index_size
+    construction_params = MultiVecHNSWConstructionParams(target_degree=16, max_degree=16, ef_construction=100, seed=60)
+
+    for seed in seeds:
+        construction_params.seed = seed
+        for text_weight in text_weights:
+            params.weights = [text_weight, round(1 - text_weight, 5)]
+            print(f"Running weights experiments for dataset size, seed, search weights: {params.index_size}, {construction_params.seed} {params.weights}")
+
+            index, index_path = evaluate_index_construction(params, construction_params, save_index=True)
+
+
 if __name__ == "__main__":
-    main()
+    #main()
     #save_image_vectors_to_32(IMAGE_VECTORS_PATH.replace("image_vectors.npy", "image_vectors64.npy"))
 
     #run_exact_results()
     #evaluate_construction()
     #evaluate_search()
 
-
-    all_index_sizes = [10_000, 25_000, 50_000, 75_000, 100_000, 150_000, 200_000, 250_000, 375_000, 500_000, 625_000, 750_000, 875_000, 1_000_000]
-
+    #all_index_sizes = [10_000, 25_000, 50_000, 75_000, 100_000, 150_000, 200_000, 250_000, 375_000, 500_000, 625_000, 750_000, 875_000, 1_000_000]
     #print("Starting parameter space evaluation...")
-
-    experiment_construction_params = [(32, 32, 200, 9)]
+    #experiment_construction_params = [(32, 32, 200, 9)]
     #evaluate_parameter_space(all_index_sizes, 9, experiment_construction_params)
     #print("Starting rerank evaluation for the previous parameter space...")
     #evaluate_rerank_hnsw(all_index_sizes, 9, experiment_construction_params)
+
+    # weighted index construction experiments
+    index_size = 10000
+    seeds = [60, 61, 62]
+    evaluate_weighted_and_tracked_index_building(index_size, seeds)

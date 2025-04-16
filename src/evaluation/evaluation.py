@@ -8,7 +8,7 @@ from multivec_index import ExactMultiVecIndex, MultiVecHNSW
 from src.evaluation.evaluation_params import Params, MultiVecHNSWConstructionParams, MultiVecHNSWSearchParams
 from src.common.load_dataset import load_dataset
 
-EXPERIMENTS_DIR = "experiments/"
+EXPERIMENTS_DIR = "experiments/stats-experiments/"
 EXACT_RESULTS_DIR = EXPERIMENTS_DIR + "exact_results/"
 CONSTRUCTION_DIR = EXPERIMENTS_DIR + "construction/"
 SAVED_INDEX_DIR = EXPERIMENTS_DIR + "saved_index/"
@@ -117,7 +117,12 @@ def evaluate_index_construction(p: Params, specific_params: MultiVecHNSWConstruc
 
     os.makedirs(os.path.dirname(save_folder), exist_ok=True)
     save_file = save_folder + current_time + ".npz"
-    np.savez(save_file, time=[total_time])
+    np.savez(save_file, time=[total_time],
+             num_compute_distance_calls=multivec_hnsw.num_compute_distance_calls,
+             num_lazy_distance_calls=multivec_hnsw.num_lazy_distance_calls,
+             num_lazy_distance_cutoff=multivec_hnsw.num_lazy_distance_cutoff,
+             num_vectors_skipped_due_to_cutoff=multivec_hnsw.num_vectors_skipped_due_to_cutoff)
+    print("Saved stats:", multivec_hnsw.num_compute_distance_calls, multivec_hnsw.num_lazy_distance_calls, multivec_hnsw.num_lazy_distance_cutoff, multivec_hnsw.num_vectors_skipped_due_to_cutoff)
 
     if save_index:
         os.makedirs(os.path.dirname(index_save_folder), exist_ok=True)
