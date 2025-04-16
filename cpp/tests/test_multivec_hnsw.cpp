@@ -1077,6 +1077,121 @@ public:
 
     }
 
+    static void testStats() {
+        if constexpr (!TRACK_STATS) {
+            return;
+        }
+
+        SECTION("Test stats increase") {
+            MultiVecHNSW hnsw = MultiVecHNSW::Builder(3, {1, 2, 3})
+                .setDistanceMetrics({"euclidean", "manhattan", "cosine"})
+                .setWeights({0.3f, 0.5f, 0.2f})
+                .setEfConstruction(1)
+                .build();
+
+            hnsw.addEntities({
+                {1.0f, 2.0f, 3.0f},
+                {7.0f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f},
+                {13.0f, 14.0f, 15.0f, 16.0f, 17.0f, 18.0f, 19.0f, 20.f, 21.0f}
+            });
+
+            REQUIRE(hnsw.getNumComputeDistanceCalls() > 0);
+            REQUIRE(hnsw.getNumLazyDistanceCalls() > 0);
+            REQUIRE(hnsw.getNumLazyDistanceCutoff() >= 0);
+            REQUIRE(hnsw.getNumVectorsSkippedDueToCutoff() >= 0);
+        }
+
+        SECTION("Test cutoff stats") {
+            MultiVecHNSW hnsw = MultiVecHNSW::Builder(3, {1, 2, 3})
+                .setDistanceMetrics({"euclidean", "manhattan", "cosine"})
+                .setWeights({0.1f, 0.9f, 0.1f})
+                .setEfConstruction(1)
+                .build();
+
+            hnsw.addEntities({
+                {1.0f, 2.0f, 3.0f, 1.0f, 2.0f, 3.0f},
+                {7.0f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f, 8.0f},
+                {13.0f, 14.0f, 15.0f, 16.0f, 17.0f, 18.0f, 19.0f, 20.f, 21.0f, 16.0f, 17.0f, 18.0f, 14.0f, 15.0f, 16.0f, 17.0f, 18.0f, 19.0f}
+            });
+
+            REQUIRE(hnsw.getNumComputeDistanceCalls() > 0);
+            REQUIRE(hnsw.getNumLazyDistanceCalls() > 0);
+            REQUIRE(hnsw.getNumLazyDistanceCutoff() > 0);
+            REQUIRE(hnsw.getNumVectorsSkippedDueToCutoff() > 0);
+        }
+
+        SECTION("Test stats reset") {
+            MultiVecHNSW hnsw = MultiVecHNSW::Builder(3, {1, 2, 3})
+                .setDistanceMetrics({"euclidean", "manhattan", "cosine"})
+                .setWeights({0.1f, 0.9f, 0.1f})
+                .build();
+
+            hnsw.addEntities({
+                {1.0f, 2.0f, 3.0f},
+                {7.0f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f},
+                {13.0f, 14.0f, 15.0f, 16.0f, 17.0f, 18.0f, 19.0f, 20.f, 21.0f}
+            });
+
+            hnsw.resetStats();
+            REQUIRE(hnsw.getNumComputeDistanceCalls() == 0);
+            REQUIRE(hnsw.getNumLazyDistanceCalls() == 0);
+            REQUIRE(hnsw.getNumLazyDistanceCutoff() == 0);
+            REQUIRE(hnsw.getNumVectorsSkippedDueToCutoff() == 0);
+        }
+
+        SECTION("Test stats search increase") {
+            MultiVecHNSW hnsw = MultiVecHNSW::Builder(3, {1, 2, 3})
+                .setDistanceMetrics({"cosine", "manhattan", "cosine"})
+                .setWeights({0.1f, 0.9f, 0.1f})
+                .setEfConstruction(1)
+                .setEfSearch(1)
+                .build();
+
+            hnsw.addEntities({
+                {1.0f, 2.0f, 3.0f, 1.0f, 2.0f, 3.0f},
+                {7.0f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f, 8.0f},
+                {13.0f, 14.0f, 15.0f, 16.0f, 17.0f, 18.0f, 19.0f, 20.f, 21.0f, 16.0f, 17.0f, 18.0f, 14.0f, 15.0f, 16.0f, 17.0f, 18.0f, 19.0f}
+            });
+
+            hnsw.resetStats();
+
+            std::vector<std::vector<float>> query = {{1.0f}, {2.0f, 3.0f}, {4.0,5.0f,6.0f}};
+
+            hnsw.search(query, 5);
+
+            REQUIRE(hnsw.getNumComputeDistanceCalls() > 0);
+            REQUIRE(hnsw.getNumLazyDistanceCalls() > 0);
+            REQUIRE(hnsw.getNumLazyDistanceCutoff() >= 0);
+            REQUIRE(hnsw.getNumVectorsSkippedDueToCutoff() >= 0);
+        }
+
+        SECTION("Test stats search cutoff") {
+            MultiVecHNSW hnsw = MultiVecHNSW::Builder(3, {1, 2, 3})
+              .setDistanceMetrics({"euclidean", "manhattan", "cosine"})
+              .setWeights({0.1f, 0.9f, 0.1f})
+              .setEfConstruction(1)
+              .setEfSearch(1)
+              .build();
+
+            hnsw.addEntities({
+                {1.0f, 2.0f, 3.0f, 1.0f, 2.0f, 3.0f},
+                {7.0f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f, 8.0f},
+                {13.0f, 14.0f, 15.0f, 16.0f, 17.0f, 18.0f, 19.0f, 20.f, 21.0f, 16.0f, 17.0f, 18.0f, 14.0f, 15.0f, 16.0f, 17.0f, 18.0f, 19.0f}
+            });
+
+            hnsw.resetStats();
+
+            std::vector<std::vector<float>> query = {{1.0f}, {99.0f, 98.0f}, {4.0,5.0f,6.0f}};
+
+            hnsw.search(query, 1);
+
+            REQUIRE(hnsw.getNumComputeDistanceCalls() > 0);
+            REQUIRE(hnsw.getNumLazyDistanceCalls() > 0);
+            REQUIRE(hnsw.getNumLazyDistanceCutoff() > 0);
+            REQUIRE(hnsw.getNumVectorsSkippedDueToCutoff() > 0);
+        }
+    }
+
 };
 
 TEST_CASE("MultiVecHNSWBuilder builds", "[MultiVecHNSWBuilder]") {
@@ -1162,4 +1277,8 @@ TEST_CASE("MultiVecHNSW testSerDe", "[SerDe]") {
 
 TEST_CASE("MultiVecHNSW testLoadAndSave", "[LoadAndSave]") {
     MultiVecHNSWTest::testLoadAndSave();
+}
+
+TEST_CASE("MultiVecHNSW testStats", "[Stats]") {
+    MultiVecHNSWTest::testStats();
 }

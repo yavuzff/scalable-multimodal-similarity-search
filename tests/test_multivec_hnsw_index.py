@@ -303,4 +303,33 @@ def test_saving_and_loading_index():
     query = [[1,1],[1,1,1]]
     assert eq(index.search(query, 1), loaded_index.search(query, 1))
 
-# potentially add tests covering efConstruction, efSearch, maxDegree, Degree, Seed etc.
+def test_stats_tracking():
+    index = MultiVecHNSW(2, dimensions=np.array([2, 3]), distance_metrics=["manhattan", "euclidean"], weights=[0.99,0.01], ef_construction=2)
+    index.set_ef_search(1)
+
+    assert index.num_compute_distance_calls == 0
+    assert index.num_lazy_distance_calls == 0
+    assert index.num_lazy_distance_cutoff == 0
+    assert index.num_vectors_skipped_due_to_cutoff == 0
+
+    # add 2 modality, 4 entities with dimensions 2, 3 for the modalities
+    index.add_entities([
+        [[1,1], [2,2], [3,3], [4,4], [52,3], [42,43]], #modality 1: shape (6, 2)
+        [[1,1,1], [2,2,2], [3,3,3], [4,4,4], [34,21,4], [2,5,1]]  #modality 2: shape (6, 3)
+    ])
+
+    if index.num_compute_distance_calls > 0:
+        index.reset_stats()
+        assert index.num_compute_distance_calls == 0
+        assert index.num_lazy_distance_calls == 0
+        assert index.num_lazy_distance_cutoff == 0
+        assert index.num_vectors_skipped_due_to_cutoff == 0
+
+        query = [[1,1],[1,1,1]]
+
+        index.search(query, 1)
+
+        assert index.num_compute_distance_calls > 0
+        assert index.num_lazy_distance_calls > 0
+        assert index.num_lazy_distance_cutoff > 0
+        assert index.num_vectors_skipped_due_to_cutoff > 0

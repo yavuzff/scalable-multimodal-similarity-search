@@ -246,6 +246,27 @@ public:
         return index.getSeed();
     }
 
+    [[nodiscard]] unsigned long long num_compute_distance_calls() const {
+        return index.getNumComputeDistanceCalls();
+    }
+
+    [[nodiscard]] unsigned long long num_lazy_distance_calls() const {
+        return index.getNumLazyDistanceCalls();
+    }
+
+    [[nodiscard]] unsigned long long num_lazy_distance_cutoff() const {
+        return index.getNumLazyDistanceCutoff();
+    }
+
+    [[nodiscard]] unsigned long long num_vectors_skipped_due_to_cutoff() const {
+        return index.getNumVectorsSkippedDueToCutoff();
+    }
+
+    void resetStats() {
+        index.resetStats();
+    }
+
+
 };
 
 
@@ -292,6 +313,8 @@ PYBIND11_MODULE(multivec_index, m) {
         .def("save", &MultiVecHNSWPyWrapper::save, "Method to save index", py::arg("path"))
         .def("load", &MultiVecHNSWPyWrapper::load, "Method to load index", py::arg("path"))
 
+        .def("reset_stats", &MultiVecHNSWPyWrapper::resetStats, "Reset the statistics of the index")
+
         // read-only attributes
         .def_property_readonly("num_modalities", &MultiVecHNSWPyWrapper::numModalities)
         .def_property_readonly("dimensions", &MultiVecHNSWPyWrapper::dimensions)
@@ -303,5 +326,10 @@ PYBIND11_MODULE(multivec_index, m) {
         .def_property_readonly("max_degree", &MultiVecHNSWPyWrapper::maxDegree)
         .def_property_readonly("ef_construction", &MultiVecHNSWPyWrapper::efConstruction)
         .def_property_readonly("ef_search", &MultiVecHNSWPyWrapper::efSearch)
-        .def_property_readonly("seed", &MultiVecHNSWPyWrapper::seed);
+        .def_property_readonly("seed", &MultiVecHNSWPyWrapper::seed)
+        // add methods for stats
+        .def_property_readonly("num_compute_distance_calls", &MultiVecHNSWPyWrapper::num_compute_distance_calls)
+        .def_property_readonly("num_lazy_distance_calls", &MultiVecHNSWPyWrapper::num_lazy_distance_calls)
+        .def_property_readonly("num_lazy_distance_cutoff", &MultiVecHNSWPyWrapper::num_lazy_distance_cutoff)
+        .def_property_readonly("num_vectors_skipped_due_to_cutoff", &MultiVecHNSWPyWrapper::num_vectors_skipped_due_to_cutoff);
 }

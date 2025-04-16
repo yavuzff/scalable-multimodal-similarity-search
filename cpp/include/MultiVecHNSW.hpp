@@ -6,9 +6,9 @@
 
 #include "AbstractMultiVecIndex.hpp"
 
-constexpr bool TRACK_STATS = false;
-constexpr bool USE_LAZY_DISTANCE = false;
-constexpr bool REORDER_MODALITY_VECTORS = false; // reordering should be turned on only when USE_LAZY_DISTANCE is true
+constexpr bool TRACK_STATS = true;
+constexpr bool USE_LAZY_DISTANCE = true;
+constexpr bool REORDER_MODALITY_VECTORS = true; // reordering should be turned on only when USE_LAZY_DISTANCE is true
 
 class MultiVecHNSW : public AbstractMultiVecIndex {
 public:
@@ -157,6 +157,13 @@ public:
     [[nodiscard]] size_t getEfConstruction() const;
     [[nodiscard]] size_t getEfSearch() const;
     [[nodiscard]] size_t getSeed() const;
+
+    // methods for stats
+    [[nodiscard]] unsigned long long getNumComputeDistanceCalls() const;
+    [[nodiscard]] unsigned long long getNumLazyDistanceCalls() const;
+    [[nodiscard]] unsigned long long getNumLazyDistanceCutoff() const;
+    [[nodiscard]] unsigned long long getNumVectorsSkippedDueToCutoff() const;
+    void resetStats();
 
     // override getters
     [[nodiscard]] const std::vector<size_t>& getDimensions() const override;

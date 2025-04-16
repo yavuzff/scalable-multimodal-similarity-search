@@ -908,6 +908,49 @@ const vector<float>& MultiVecHNSW::getWeights() const {
     return indexWeights;
 }
 
+// getters for stats
+unsigned long long MultiVecHNSW::getNumComputeDistanceCalls() const {
+    if constexpr (TRACK_STATS) {
+        return num_compute_distance_calls;
+    }
+    cout << "Warning: TRACK_STATS is not enabled. Returning 0 for getNumComputeDistanceCalls." << endl;
+    return 0;
+}
+
+unsigned long long MultiVecHNSW::getNumLazyDistanceCalls() const {
+    if constexpr (TRACK_STATS) {
+        return num_lazy_distance_calls;
+    }
+    cout << "Warning: TRACK_STATS is not enabled. Returning 0 for getNumLazyDistanceCalls." << endl;
+    return 0;
+}
+
+unsigned long long MultiVecHNSW::getNumLazyDistanceCutoff() const {
+    if constexpr (TRACK_STATS) {
+        return num_lazy_distance_cutoff;
+    }
+    cout << "Warning: TRACK_STATS is not enabled. Returning 0 for getNumLazyDistanceCutoff." << endl;
+    return 0;
+}
+
+unsigned long long MultiVecHNSW::getNumVectorsSkippedDueToCutoff() const {
+    if constexpr (TRACK_STATS) {
+        return num_vectors_skipped_due_to_cutoff;
+    }
+    cout << "Warning: TRACK_STATS is not enabled. Returning 0 for getNumVectorsSkippedDueToCutoff." << endl;
+    return 0;
+}
+
+void MultiVecHNSW::resetStats() {
+    if constexpr (TRACK_STATS) {
+        num_compute_distance_calls = 0;
+        num_lazy_distance_calls = 0;
+        num_lazy_distance_cutoff = 0;
+        num_vectors_skipped_due_to_cutoff = 0;
+    } else {
+        cout << "Warning: TRACK_STATS is not enabled. Cannot reset stats." << endl;
+    }
+}
 
 bool MultiVecHNSW::operator==(const MultiVecHNSW& other) const {
     // check equality of the base class
