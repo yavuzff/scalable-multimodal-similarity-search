@@ -324,11 +324,11 @@ def evaluate_hnsw_rerank_search(indexes, index_path: str, exact_results, params:
     print(f"Rerank: Search time, efSearch=k', recall: {sum(search_times) / len(search_times) * 1000:.3f}, {search_params.ef_search}, {sum(recall_scores) / len(recall_scores):.5f}")
 
 
-def sanitise_path_string(path):
+def sanitise_path_string(path, path_connector_symbol=PATH_CONNECTOR_SYMBOL):
     """
     Replace invalid characters in a path string.
     """
-    return path.replace(" ", "").replace("'", "").replace("[", PATH_CONNECTOR_SYMBOL).replace("]", PATH_CONNECTOR_SYMBOL)
+    return path.replace(" ", "").replace("'", "").replace("[", path_connector_symbol).replace("]", path_connector_symbol)
 
 
 class IndexEvaluator:
