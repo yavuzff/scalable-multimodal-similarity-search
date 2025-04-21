@@ -110,6 +110,15 @@ vector<size_t> MultiVecHNSW::identifyModalityReordering() const {
     };
 
     std::sort(modalityIndices.begin(), modalityIndices.end(), [this, metricRank](size_t a, size_t b) {
+        // if weight is too small, prioritise the other modality
+        if (indexWeights[a] < 1e-6 && indexWeights[b] > 1e-6) {
+            return false;
+        }
+
+        if (indexWeights[a] > 1e-6 && indexWeights[b] < 1e-6) {
+            return true;
+        }
+
         // sort by distance metric first
         if (distanceMetrics[a] != distanceMetrics[b]) {
             return metricRank(distanceMetrics[a]) < metricRank(distanceMetrics[b]);

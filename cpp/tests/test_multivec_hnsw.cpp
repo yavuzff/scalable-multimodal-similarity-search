@@ -509,6 +509,29 @@ public:
             REQUIRE_THAT(hnsw.entityStorage, Catch::Matchers::RangeEquals(expectedStorage));
         }
 
+        SECTION("Test reordering manhattan < euclidean < cosine when weight is 0") {
+            MultiVecHNSW hnsw = MultiVecHNSW::Builder(3, {1, 2, 3})
+                .setDistanceMetrics({"euclidean", "manhattan", "cosine"})
+                .setWeights({0.2f, 0.0f, 0.8f})
+                .build();
+
+            std::vector<std::vector<float>> entities = {
+                {1.0f,                  2.0f,                   3.0f},
+                {7.0f, 8.0f,            9.0f, 10.0f,            11.0f, 12.0f},
+                {13.0f, 14.0f, 15.0f,   16.0f, 17.0f, 18.0f,    19.0f, 20.f, 21.0f}
+            };
+
+            std::vector<size_t> expectedReordering = {0, 2, 1};
+            std::vector<DistanceMetric> expectedDistanceMetrics = {DistanceMetric::Euclidean, DistanceMetric::Cosine, DistanceMetric::Manhattan};
+            std::vector<float> expectedWeights = {0.2f, 0.8f, 0.0f};
+            std::vector<size_t> expectedDimensions = {1, 3, 2};
+
+            REQUIRE(hnsw.modalityReordering == expectedReordering);
+            REQUIRE(hnsw.distanceMetrics == expectedDistanceMetrics);
+            REQUIRE(hnsw.indexWeights == expectedWeights);
+            REQUIRE(hnsw.dimensions == expectedDimensions);
+        }
+
         SECTION("Test reordering metrics and weights") {
             MultiVecHNSW hnsw = MultiVecHNSW::Builder(3, {1, 2, 3})
                 .setDistanceMetrics({"manhattan", "euclidean", "euclidean"})
