@@ -32,6 +32,20 @@ def compute_mean_and_ci_stats(data, confidence=0.95):
     ci = sem * stats.t.ppf(conf_bound, len(data) - 1)
     return mean, ci
 
+def compute_means_and_cis_from_dict_of_list(data, confidence=0.95):
+    # data is a dict of lists
+    mean_list = []
+    ci_list = []
+    for key in data.keys():
+        mean, ci = compute_mean_and_ci_stats(data[key], confidence)
+        mean_list.append(mean)
+        ci_list.append(ci)
+    return np.array(mean_list), np.array(ci_list)
+
+def metrics_to_str(metrics):
+    # from a list of strings, returns string [Metric1, Metric2, ...], where each metric is capitalised
+    metrics = [metric.capitalize() for metric in metrics]
+    return "[" + ", ".join(metrics) + "]"
 
 def format_xaxis(x, pos):
     if x >= 1_000_000:
