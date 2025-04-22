@@ -215,10 +215,9 @@ def evaluate_rerank_hnsw(index_sizes, experiment_seed, experiment_construction_p
 
         time.sleep(index_size/5000) # sleep to avoid overloading the system
 
-def evaluate_weighted_and_tracked_index_building(index_size, seeds):
+def evaluate_weighted_and_tracked_index_building(params, index_size, seeds, save_index=True, shuffle=False):
     text_weights = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 
-    params = get_params()
     params.index_size = index_size
     construction_params = MultiVecHNSWConstructionParams(target_degree=16, max_degree=16, ef_construction=100, seed=60)
 
@@ -228,7 +227,7 @@ def evaluate_weighted_and_tracked_index_building(index_size, seeds):
             params.weights = [text_weight, round(1 - text_weight, 5)]
             print(f"Running weights experiments for dataset size, seed, search weights: {params.index_size}, {construction_params.seed} {params.weights}")
 
-            index, index_path = evaluate_index_construction(params, construction_params, save_index=True)
+            index, index_path = evaluate_index_construction(params, construction_params, save_index=save_index, shuffle=shuffle)
             time.sleep(index_size/10000)
 
 
@@ -248,6 +247,17 @@ if __name__ == "__main__":
     #evaluate_rerank_hnsw(all_index_sizes, 9, experiment_construction_params)
 
     # weighted index construction experiments
-    index_size = 10000
-    seeds = [60, 61]
-    evaluate_weighted_and_tracked_index_building(index_size, seeds)
+    index_size = 1_000_000
+    #seeds = [60, 61]
+    seeds = [60]
+    params = get_params()
+    params.index_size = index_size
+
+    params.metrics = ["manhattan", "euclidean"] # next: manhattan, euclidean. euclidean, cosine.
+    evaluate_weighted_and_tracked_index_building(params, index_size, seeds, save_index=False)
+
+    params.metrics = ["euclidean", "cosine"] # next: manhattan, euclidean. euclidean, cosine.
+    evaluate_weighted_and_tracked_index_building(params, index_size, seeds, save_index=False)
+
+    #random shuffle tests: params.metrics = ["cosine", "cosine"], and ["cosine", "euclidean"]
+    #evaluate_weighted_and_tracked_index_building(params, index_size, [71], save_index=False, shuffle=True)

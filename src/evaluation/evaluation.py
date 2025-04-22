@@ -94,7 +94,7 @@ def load_multivec_index_from_params(params: Params, construction_params: MultiVe
     return loaded_index, index_file
 
 
-def evaluate_index_construction(p: Params, specific_params: MultiVecHNSWConstructionParams, save_index=True):
+def evaluate_index_construction(p: Params, specific_params: MultiVecHNSWConstructionParams, save_index=True, shuffle=False):
     """
     Construct an index with the given parameters and save the time it took to construct it to a file.
     """
@@ -107,6 +107,13 @@ def evaluate_index_construction(p: Params, specific_params: MultiVecHNSWConstruc
     current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f")[:-3]  # get up to millisecond
 
     entities_to_insert = [modality[:p.index_size] for modality in p.dataset]
+    shuffle_order = None
+    if shuffle:
+        # shuffle the entities to insert, but keep the same order for each modality
+        indices = np.arange(p.index_size)
+        np.random.shuffle(indices)
+        shuffle_order = indices
+        entities_to_insert = [modality[indices] for modality in entities_to_insert]
 
     start_time = time.perf_counter()
     multivec_hnsw = MultiVecHNSW(p.modalities, p.dimensions, p.metrics, weights=p.weights,
@@ -123,7 +130,8 @@ def evaluate_index_construction(p: Params, specific_params: MultiVecHNSWConstruc
              num_compute_distance_calls=multivec_hnsw.num_compute_distance_calls,
              num_lazy_distance_calls=multivec_hnsw.num_lazy_distance_calls,
              num_lazy_distance_cutoff=multivec_hnsw.num_lazy_distance_cutoff,
-             num_vectors_skipped_due_to_cutoff=multivec_hnsw.num_vectors_skipped_due_to_cutoff)
+             num_vectors_skipped_due_to_cutoff=multivec_hnsw.num_vectors_skipped_due_to_cutoff,
+             shuffle_order = shuffle_order)
     print("Saved stats:", multivec_hnsw.num_compute_distance_calls, multivec_hnsw.num_lazy_distance_calls, multivec_hnsw.num_lazy_distance_cutoff, multivec_hnsw.num_vectors_skipped_due_to_cutoff)
 
     if save_index:

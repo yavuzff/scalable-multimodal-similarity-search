@@ -41,7 +41,7 @@ def evaluate_weights_experiments(params, construction_params, experiment_dataset
 
         for text_search_weight in experiment_search_weights:
             search_params.weights = [text_search_weight, 1 - text_search_weight]
-            print(f"Running weights experiments for dataset size, search weights: {dataset_size}, {search_params.weights}")
+            print(f"Running weights experiments for dataset size, search weights: {dataset_size}, {search_params.weights}. (index weights: {params.weights})")
 
             exact_params = Params(params.modalities, params.dimensions, params.metrics, search_params.weights,
                                   dataset=params.dataset, index_size=params.index_size, k=params.k,
@@ -76,8 +76,13 @@ def evaluate_weighted_search_on_index(index: MultiVecHNSW, exact_results, params
     #search_times = []
     #results = []
     recall_scores = []
+    num_compute_distance_calls = []
+    num_lazy_distance_calls = []
+    num_lazy_distance_cutoffs = []
+    num_vectors_skipped_due_to_cutoffs = []
     for i, query_id in enumerate(params.query_ids):
         query = [modality[query_id] for modality in params.dataset]
+        index.reset_stats()
         #start_time = time.perf_counter()
         result = index.search(query, search_params.k, search_params.weights)
         #end_time = time.perf_counter()
@@ -86,12 +91,20 @@ def evaluate_weighted_search_on_index(index: MultiVecHNSW, exact_results, params
             result = np.array(list(result) + [-1] * (params.k-len(result)))
         #search_times.append(end_time - start_time)
         #results.append(result)
+        num_compute_distance_calls.append(index.num_compute_distance_calls)
+        num_lazy_distance_calls.append(index.num_lazy_distance_calls)
+        num_lazy_distance_cutoffs.append(index.num_lazy_distance_cutoff)
+        num_vectors_skipped_due_to_cutoffs.append(index.num_vectors_skipped_due_to_cutoff)
         recall_scores.append(compute_recall(result, exact_results[i]))
 
     # save query_ids, results and search_times at save_folder
     np.save(save_folder + "query_ids.npy", params.query_ids)
     np.savez(save_folder + "results.npz", #results=results, search_times=search_times,
-             recall_scores=recall_scores, ef_search=search_params.ef_search, weights=params.weights)
+             recall_scores=recall_scores, ef_search=search_params.ef_search, weights=params.weights,
+             num_compute_distance_calls=num_compute_distance_calls,
+             num_lazy_distance_calls=num_lazy_distance_calls,
+             num_lazy_distance_cutoffs=num_lazy_distance_cutoffs,
+             num_vectors_skipped_due_to_cutoffs=num_vectors_skipped_due_to_cutoffs)
 
     #print(f"Search time, efSearch, recall: {sum(search_times) / len(search_times) * 1000:.3f}, {search_params.ef_search}, {sum(recall_scores) / len(recall_scores):.5f}")
     print(f"efSearch, recall: {search_params.ef_search}, {sum(recall_scores) / len(recall_scores):.5f}")
@@ -99,18 +112,26 @@ def evaluate_weighted_search_on_index(index: MultiVecHNSW, exact_results, params
 
 
 def main():
-    params = get_params()
-    construction_params = get_construction_params()
+    index_text_weights = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 
-    construction_params.target_degree = 16
-    construction_params.max_degree = 16
-    construction_params.ef_construction = 100
-    construction_params.seed = 3
+    for metrics in [["manhattan","cosine"],["euclidean","manhattan"]]:
+        for index_text_weight in index_text_weights:
+            index_image_weight = round(1 - index_text_weight, 5)
+            print(f"Testing index weights: {index_text_weight}, {index_image_weight}")
+            params = get_params()
+            construction_params = get_construction_params()
+            params.weights = [index_text_weight, index_image_weight]
+            params.metrics = metrics
 
-    params.k = 50
-    ef_search_range = range(50, 410, 10)
-    dataset_sizes = [1_000_000]
-    evaluate_weights_experiments(params, construction_params, dataset_sizes, ef_search_range)
+            construction_params.target_degree = 16
+            construction_params.max_degree = 16
+            construction_params.ef_construction = 100
+            construction_params.seed = 60
+
+            params.k = 50
+            ef_search_range = range(50, 410, 10)
+            dataset_sizes = [1_000_000]
+            evaluate_weights_experiments(params, construction_params, dataset_sizes, ef_search_range)
 
 if __name__ == "__main__":
     main()
