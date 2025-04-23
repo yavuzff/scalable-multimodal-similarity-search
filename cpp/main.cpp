@@ -1,9 +1,9 @@
 #include <iostream>
 #include <fstream>
 
-#include "include/simple-knn/ExactKNNIndex.hpp"
-#include "include/ExactMultiVecIndex.hpp"
-#include "include/MultiVecHNSW.hpp"
+#include "index/include/simple-knn/ExactKNNIndex.hpp"
+#include "index/include/ExactMultiVecIndex.hpp"
+#include "index/include/MultiVecHNSW.hpp"
 
 void exact_demo() {
     ExactKNNIndex index;

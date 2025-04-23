@@ -1,8 +1,8 @@
 #include <iostream>
 
-#include "../../include/common.hpp"
-#include "../../include/MultiVecHNSW.hpp"
-#include "../../include/serde/serdeUtils.hpp"
+#include "../include/common.hpp"
+#include "../include/MultiVecHNSW.hpp"
+#include "../include/serde/serdeUtils.hpp"
 
 
 // node serialisation

@@ -1,4 +1,4 @@
-#include "../include/MultiVecHNSW.hpp"
+#include "include/MultiVecHNSW.hpp"
 
 MultiVecHNSW::Builder::Builder(size_t numModalities, const std::vector<size_t> &dims): numModalities(numModalities), dims(dims) {};
 

@@ -3,8 +3,8 @@
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
 
-#include "../include/ExactMultiVecIndex.hpp"
-#include "../include/MultiVecHNSW.hpp"
+#include "../index/include/ExactMultiVecIndex.hpp"
+#include "../index/include/MultiVecHNSW.hpp"
 
 #include <span>
 

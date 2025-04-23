@@ -4,7 +4,7 @@
 #include <string>
 #include <chrono>
 
-#include "../include/DistanceMetrics.hpp"
+#include "../index/include/DistanceMetrics.hpp"
 
 
 std::string DATASET_ENTITY_COUNT = "20000";

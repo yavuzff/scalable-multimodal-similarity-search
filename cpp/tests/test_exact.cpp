@@ -1,8 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include "../include/ExactMultiVecIndex.hpp"
-#include "../include/utils.hpp"
+#include "../index/include/ExactMultiVecIndex.hpp"
+#include "../index/include/utils.hpp"
 #include <vector>
 #include <cmath>
 

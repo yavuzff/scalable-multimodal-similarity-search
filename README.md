@@ -141,9 +141,9 @@ fil-profile run -m src.main
 1. Ensure you have a valid dataset prepared through src/dataset_processing.
 2. Run the following command from the project root:
     ```
-    python3 -m src.visual_demo
+    python3 -m src.demo.visual_demo
     ```
-3. Enter dataset path, weights and metrics to build the index.
+3. Enter dataset path, embedding models, weights and metrics to build the index.
 4. Search the index by selecting a query image and text, and k.
 
 Note: For 2 modality dataset (text, image), use `visual_demo.py`. For 4 modality dataset (text, image, audio, video), use `visual_demo_4_modalities.py`.

@@ -4,10 +4,10 @@ import random
 import time
 
 from src.common.load_dataset import load_dataset
-from src.evaluation.evaluation import IndexEvaluator, compute_exact_results, evaluate_index_construction, evaluate_index_search
-from src.evaluation.evaluation import evaluate_hnsw_rerank_construction, evaluate_hnsw_rerank_search
-from src.evaluation.evaluation_params import Params, MultiVecHNSWConstructionParams, MultiVecHNSWSearchParams
-from src.evaluation.evaluation_params import get_params, get_construction_params, get_search_params
+from src.experiments.evaluation import IndexEvaluator, compute_exact_results, evaluate_index_construction, evaluate_index_search
+from src.experiments.evaluation import evaluate_hnsw_rerank_construction, evaluate_hnsw_rerank_search
+from src.experiments.evaluation_params import Params, MultiVecHNSWConstructionParams, MultiVecHNSWSearchParams
+from src.experiments.evaluation_params import get_params, get_construction_params, get_search_params
 
 def main():
     # load dataset
@@ -159,7 +159,7 @@ def evaluate_rerank_hnsw(index_sizes, experiment_seed, experiment_construction_p
     """
     Evaluate a range of values in the parameter space for the MultiVecHSNW index construction and search.
     """
-    from src.evaluation.evaluation import EXACT_RESULTS_DIR, SEARCH_DIR, sanitise_path_string
+    from src.experiments.evaluation import EXACT_RESULTS_DIR, SEARCH_DIR, sanitise_path_string
     import os
 
     params = get_params()
@@ -215,11 +215,15 @@ def evaluate_rerank_hnsw(index_sizes, experiment_seed, experiment_construction_p
 
         time.sleep(index_size/5000) # sleep to avoid overloading the system
 
-def evaluate_weighted_and_tracked_index_building(params, index_size, seeds, save_index=True, shuffle=False):
+def evaluate_weighted_and_tracked_index_building(params, index_size, seeds, save_index=True, shuffle=False, normalise=False):
     text_weights = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 
     params.index_size = index_size
     construction_params = MultiVecHNSWConstructionParams(target_degree=16, max_degree=16, ef_construction=100, seed=60)
+
+    if normalise:
+        for i in range(len(params.dataset)):
+            params.dataset[i] = params.dataset[i] / np.linalg.norm(params.dataset[i], axis=1, keepdims=True)
 
     for seed in seeds:
         construction_params.seed = seed
@@ -227,7 +231,7 @@ def evaluate_weighted_and_tracked_index_building(params, index_size, seeds, save
             params.weights = [text_weight, round(1 - text_weight, 5)]
             print(f"Running weights experiments for dataset size, seed, search weights: {params.index_size}, {construction_params.seed} {params.weights}")
 
-            index, index_path = evaluate_index_construction(params, construction_params, save_index=save_index, shuffle=shuffle)
+            index, index_path = evaluate_index_construction(params, construction_params, save_index=save_index, shuffle=shuffle, normalised=normalise)
             time.sleep(index_size/10000)
 
 
@@ -240,10 +244,10 @@ if __name__ == "__main__":
     #evaluate_search()
 
     #all_index_sizes = [10_000, 25_000, 50_000, 75_000, 100_000, 150_000, 200_000, 250_000, 375_000, 500_000, 625_000, 750_000, 875_000, 1_000_000]
-    #print("Starting parameter space evaluation...")
+    #print("Starting parameter space experiments...")
     #experiment_construction_params = [(32, 32, 200, 9)]
     #evaluate_parameter_space(all_index_sizes, 9, experiment_construction_params)
-    #print("Starting rerank evaluation for the previous parameter space...")
+    #print("Starting rerank experiments for the previous parameter space...")
     #evaluate_rerank_hnsw(all_index_sizes, 9, experiment_construction_params)
 
     # weighted index construction experiments
@@ -253,11 +257,13 @@ if __name__ == "__main__":
     params = get_params()
     params.index_size = index_size
 
-    params.metrics = ["manhattan", "euclidean"] # next: manhattan, euclidean. euclidean, cosine.
-    evaluate_weighted_and_tracked_index_building(params, index_size, seeds, save_index=False)
+    # next: for 10k normalise the vectors then index ?
 
-    params.metrics = ["euclidean", "cosine"] # next: manhattan, euclidean. euclidean, cosine.
-    evaluate_weighted_and_tracked_index_building(params, index_size, seeds, save_index=False)
+    params.metrics = ["euclidean", "manhattan"]
+    evaluate_weighted_and_tracked_index_building(params, index_size, seeds, save_index=True, normalise=True)
+
+    params.metrics = ["manhattan", "manhattan"]
+    evaluate_weighted_and_tracked_index_building(params, index_size, seeds, save_index=True, normalise=True)
 
     #random shuffle tests: params.metrics = ["cosine", "cosine"], and ["cosine", "euclidean"]
     #evaluate_weighted_and_tracked_index_building(params, index_size, [71], save_index=False, shuffle=True)

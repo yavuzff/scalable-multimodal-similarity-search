@@ -1,7 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include "../include/utils.hpp"
+#include "../index/include/utils.hpp"
 
 TEST_CASE("validateAndNormaliseWeights validates and normalises weights", "[weights]") {
     SECTION("Correct weights normalization") {

@@ -1,6 +1,6 @@
-#include "../include/MultiVecHNSW.hpp"
-#include "../include/utils.hpp"
-#include "../include/common.hpp"
+#include "include/MultiVecHNSW.hpp"
+#include "include/utils.hpp"
+#include "include/common.hpp"
 
 #include <iostream>
 #include <random>

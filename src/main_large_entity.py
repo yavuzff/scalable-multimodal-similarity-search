@@ -4,9 +4,9 @@ import random
 import time
 
 from src.common.load_dataset import load_dataset
-from src.evaluation.evaluation import IndexEvaluator, compute_exact_results, evaluate_index_construction, evaluate_index_search
-from src.evaluation.evaluation import evaluate_hnsw_rerank_construction, evaluate_hnsw_rerank_search
-from src.evaluation.evaluation_params import Params, MultiVecHNSWConstructionParams, MultiVecHNSWSearchParams
+from src.experiments.evaluation import IndexEvaluator, compute_exact_results, evaluate_index_construction, evaluate_index_search
+from src.experiments.evaluation import evaluate_hnsw_rerank_construction, evaluate_hnsw_rerank_search
+from src.experiments.evaluation_params import Params, MultiVecHNSWConstructionParams, MultiVecHNSWSearchParams
 
 
 

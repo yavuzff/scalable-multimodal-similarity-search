@@ -1,11 +1,11 @@
-#include "../include/AbstractMultiVecIndex.hpp"
-#include "../include/utils.hpp"
+#include "include/AbstractMultiVecIndex.hpp"
+#include "include/utils.hpp"
 
 #include <iostream>
 #include <numeric>
 #include <optional>
 
-#include "../include/common.hpp"
+#include "include/common.hpp"
 
 // Constructor: take parameters in by value to gain ownership
 AbstractMultiVecIndex::AbstractMultiVecIndex(size_t theModalities,

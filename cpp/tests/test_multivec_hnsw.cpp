@@ -4,9 +4,9 @@
 #include <catch2/matchers/catch_matchers_range_equals.hpp>
 #include <filesystem>
 
-#include "../include/MultiVecHNSW.hpp"
-#include "../include/utils.hpp"
-#include "../include/common.hpp"
+#include "../index/include/MultiVecHNSW.hpp"
+#include "../index/include/utils.hpp"
+#include "../index/include/common.hpp"
 
 using namespace std;
 namespace fs = std::filesystem;

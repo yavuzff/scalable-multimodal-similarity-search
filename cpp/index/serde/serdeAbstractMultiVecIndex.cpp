@@ -1,5 +1,5 @@
-#include "../../include/AbstractMultiVecIndex.hpp"
-#include "../../include/serde/serdeUtils.hpp"
+#include "../include/AbstractMultiVecIndex.hpp"
+#include "../include/serde/serdeUtils.hpp"
 
 void AbstractMultiVecIndex::serialize(std::ostream& os) const {
     // serialise size_t variables

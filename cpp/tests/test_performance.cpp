@@ -4,8 +4,8 @@
 #include <string>
 #include <chrono>
 
-#include "../include/ExactMultiVecIndex.hpp"
-#include "../include/MultiVecHNSW.hpp"
+#include "../index/include/ExactMultiVecIndex.hpp"
+#include "../index/include/MultiVecHNSW.hpp"
 
 std::string DATASET_ENTITY_COUNT = "20000";
 std::string PREP_DATASET_PATH = "/Users/yavuz/data/LAION-" + DATASET_ENTITY_COUNT + "/";
