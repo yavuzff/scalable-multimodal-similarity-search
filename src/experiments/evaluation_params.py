@@ -1,5 +1,5 @@
 import numpy as np
-from src.common.load_dataset import load_dataset, load_4_modality_dataset
+from src.common.load_dataset import load_dataset, load_4_modality_dataset, load_3_modality_dataset
 
 class Params:
     def __init__(self, modalities: int, dimensions: list[int], metrics: list[str], weights: list[float],
@@ -70,6 +70,30 @@ def get_params_4_modality():
     DIMENSIONS = [text_vectors_all.shape[1], image_vectors_all.shape[1], audio_vectors_all.shape[1], video_vectors_all.shape[1]]
     DISTANCE_METRICS = ["cosine", "cosine", "cosine", "cosine"]
     WEIGHTS = [0.25, 0.25, 0.25, 0.25]
+
+    K = 10
+
+    NUM_QUERY_ENTITIES = 100
+
+    # set query_ids to last NUM_QUERY_ENTITIES
+    query_ids = list(range(len(dataset[0]) - NUM_QUERY_ENTITIES, len(dataset[0])))
+
+    return Params(MODALITIES, DIMENSIONS, DISTANCE_METRICS, WEIGHTS, dataset, INDEX_SIZE, K, query_ids)
+
+def get_params_3_modality():
+    """
+    Get the parameters for the exact index setup.
+    """
+    image_vectors_all, audio_vectors_all, video_vectors_all = load_3_modality_dataset()
+
+    dataset = [image_vectors_all, audio_vectors_all, video_vectors_all]
+
+    INDEX_SIZE = 9000
+
+    MODALITIES = 3
+    DIMENSIONS = [image_vectors_all.shape[1], audio_vectors_all.shape[1], video_vectors_all.shape[1]]
+    DISTANCE_METRICS = ["cosine", "cosine", "cosine"]
+    WEIGHTS = [1./3.]*3
 
     K = 10
 

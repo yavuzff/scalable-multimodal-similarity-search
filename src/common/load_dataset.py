@@ -33,6 +33,11 @@ def load_4_modality_dataset():
     video_vectors_all = np.load(LARGE_ENTITY_VIDEO_VECTORS_PATH)
     return text_vectors_all, image_vectors_all, audio_vectors_all, video_vectors_all
 
+def load_3_modality_dataset():
+    image_vectors_all = np.load(LARGE_ENTITY_IMAGE_VECTORS_PATH)
+    audio_vectors_all = np.load(LARGE_ENTITY_AUDIO_VECTORS_PATH)
+    video_vectors_all = np.load(LARGE_ENTITY_VIDEO_VECTORS_PATH)
+    return image_vectors_all, audio_vectors_all, video_vectors_all
 
 def load_vectors_from_dataset_base_path(path:str):
     text_vectors = np.load(path + "/vectors/text_vectors.npy")

@@ -72,7 +72,7 @@ def evaluate_weights_experiments(params, construction_params, experiment_dataset
 
 
 def evaluate_weighted_search_on_index(index: MultiVecHNSW, exact_results, params: Params,
-                          search_params: MultiVecHNSWSearchParams, efs_folder):
+                          search_params: MultiVecHNSWSearchParams, efs_folder, print_results=True):
     """
     Search the index with the given parameters and save the ANN results and search times to a file.
     """
@@ -122,7 +122,7 @@ def evaluate_weighted_search_on_index(index: MultiVecHNSW, exact_results, params
              num_vectors_skipped_due_to_cutoffs=num_vectors_skipped_due_to_cutoffs)
 
     #print(f"Search time, efSearch, recall: {sum(search_times) / len(search_times) * 1000:.3f}, {search_params.ef_search}, {sum(recall_scores) / len(recall_scores):.5f}")
-    print(f"efSearch, recall: {search_params.ef_search}, {sum(recall_scores) / len(recall_scores):.5f}")
+    if print_results: print(f"efSearch, recall: {search_params.ef_search}, {sum(recall_scores) / len(recall_scores):.5f}")
     #print(f"Saved ef={search_params.ef_search} to {save_folder}")
 
 def normalise_dataset(dataset):

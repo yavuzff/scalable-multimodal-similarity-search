@@ -20,7 +20,7 @@ SEARCH_WEIGHTS_DIR = EXPERIMENTS_DIR + "search_weights_exps/"
 RERANK_CONSTRUCTION_DIR = EXPERIMENTS_DIR + "rerank_construction/"
 RERANK_SEARCH_DIR = EXPERIMENTS_DIR + "rerank_search/"
 
-def compute_exact_results(p: Params, cache=True, recompute=True, subdir_name=""):
+def compute_exact_results(p: Params, cache=True, recompute=True, subdir_name="", print_results=True):
     """
     Return exact results for this set of inputs, caching if needed.
     """
@@ -60,7 +60,7 @@ def compute_exact_results(p: Params, cache=True, recompute=True, subdir_name="")
 
     entities_to_insert = [modality[:p.index_size] for modality in p.dataset]
     exact_index.add_entities(entities_to_insert)
-    print(f"Inserted {len(entities_to_insert[0])} entities to the exact index.")
+    if print_results: print(f"Inserted {len(entities_to_insert[0])} entities to the exact index.")
 
     for query_id in p.query_ids:
         query = [modality[query_id] for modality in p.dataset]
@@ -74,7 +74,7 @@ def compute_exact_results(p: Params, cache=True, recompute=True, subdir_name="")
     np.save(save_folder + "query_ids.npy", p.query_ids)
     np.savez(save_folder + "results.npz", results=results, search_times=search_times)
 
-    print(f"Saved exact results.npz and query_ids.npy to {save_folder}")
+    if print_results: print(f"Saved exact results.npz and query_ids.npy to {save_folder}")
 
     return np.array(results), np.array(search_times)
 

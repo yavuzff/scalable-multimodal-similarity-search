@@ -2,11 +2,12 @@ from multivec_index import MultiVecHNSW
 import numpy as np
 import random
 import time
+from tqdm import tqdm
 
 from src.common.load_dataset import load_4_modality_dataset
 from src.experiments.evaluation import IndexEvaluator, compute_exact_results, evaluate_index_construction, \
     evaluate_index_search, load_multivec_index_from_params, SEARCH_WEIGHTS_DIR, sanitise_path_string
-from src.experiments.evaluation_params import Params, MultiVecHNSWConstructionParams, get_params_4_modality, get_search_params
+from src.experiments.evaluation_params import Params, MultiVecHNSWConstructionParams, get_params_4_modality, get_params_3_modality, get_search_params
 from datetime import datetime
 
 from src.experiments.weights_experiments import evaluate_weighted_search_on_index
@@ -81,7 +82,7 @@ def main():
 
 
 
-def evaluate_weights_experiments_4_modality(params, construction_params, index_size, ef_search_range, search_weight_tuples, normalised_dataset=False, num_query_entities=100):
+def evaluate_weights_experiments_4_modality(params, construction_params, index_size, ef_search_range, search_weight_tuples, normalised_dataset=False, num_query_entities=100, print_results=True):
     """
     Evaluate the effect of different search weights on the recall of the index.
     :param only_index_weights: if true, search based on only the weights the index was constructed with. If false, search with all weights from 0.0 to 1.0 (step 0.1)
@@ -114,24 +115,24 @@ def evaluate_weights_experiments_4_modality(params, construction_params, index_s
                    f"{index_file_name}/" + \
                    current_time + "/"
 
-    for search_weights in search_weight_tuples:
+    for search_weights in tqdm(search_weight_tuples):
         search_params.weights = search_weights
-        print(f"Running weights experiments for index size, search weights: {index_size}, {search_params.weights}. (index weights: {params.weights})")
+        if print_results: print(f"Running weights experiments for index size, search weights: {index_size}, {search_params.weights}. (index weights: {params.weights})")
 
         exact_params = Params(params.modalities, params.dimensions, params.metrics, search_params.weights,
                               dataset=params.dataset, index_size=params.index_size, k=params.k,
                               query_ids=query_ids)
         if normalised_dataset:
-            exact_results, exact_times = compute_exact_results(exact_params, cache=True, subdir_name="normalised/")
+            exact_results, exact_times = compute_exact_results(exact_params, cache=True, subdir_name="normalised/", print_results=print_results)
         else:
-            exact_results, exact_times = compute_exact_results(exact_params, cache=True)
+            exact_results, exact_times = compute_exact_results(exact_params, cache=True, print_results=print_results)
 
         # try values for ef_search=k', starting from ef_search=k
         for ef_search in ef_search_range:
             #for ef_search in range(300, 500, 10):
             search_params.ef_search = ef_search
             # search the index
-            evaluate_weighted_search_on_index(multivec_index, exact_results, params, search_params, efs_folder=save_folder)
+            evaluate_weighted_search_on_index(multivec_index, exact_results, params, search_params, efs_folder=save_folder, print_results=print_results)
 
 
 def generate_random_weights(n_samples):
@@ -152,16 +153,33 @@ def generate_random_weights(n_samples):
 
     return weights
 
-if __name__ == "__main__":
-    #main()
-
+def search_weights_exp_4_modalities():
     params = get_params_4_modality()
     construction_params = MultiVecHNSWConstructionParams(4, 8, 50, 400)
-    index_weights =[[0, 0, 0, 0.25]]
+    index_weights =[[0.25, 0.25, 0.25, 0.25]]
     normalise = True
     index, index_path = evaluate_index_construction(params, construction_params, save_index=True, normalised=normalise)
 
+    search_weight_tuples = generate_random_weights(1000)
 
-    search_weight_tuples = generate_random_weights(100)
+    evaluate_weights_experiments_4_modality(params, construction_params, index_size=9000, ef_search_range=range(10,105,5), search_weight_tuples=search_weight_tuples, normalised_dataset=normalise, print_results=False)
 
-    evaluate_weights_experiments_4_modality(params, construction_params, index_size=9000, ef_search_range=range(10,105,5), search_weight_tuples=search_weight_tuples, normalised_dataset=normalise)
+def search_weights_exp_3_modalities():
+    params = get_params_3_modality()
+    construction_params = MultiVecHNSWConstructionParams(4, 8, 50, 400)
+    normalise = True
+    index, index_path = evaluate_index_construction(params, construction_params, save_index=True, normalised=normalise)
+
+    search_weight_tuples = []
+    for i in range(0, 11):
+        for j in range(0, 11):
+            if i + j <= 10:
+                search_weight_tuples.append([i/10, j/10, (10-i-j)/10])
+
+    evaluate_weights_experiments_4_modality(params, construction_params, index_size=9000, ef_search_range=range(10,105,5), search_weight_tuples=search_weight_tuples, normalised_dataset=normalise, print_results=False)
+
+
+if __name__ == "__main__":
+    #main()
+
+    search_weights_exp_3_modalities()
