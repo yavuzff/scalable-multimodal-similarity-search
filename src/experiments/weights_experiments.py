@@ -133,7 +133,7 @@ def normalise_dataset(dataset):
 def evaluate_index_weights_recall():
     index_text_weights = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
     normalised_dataset = True
-    metrics = ["cosine", "euclidean"]
+    metrics = ["manhattan", "euclidean"]
     num_query_entities = 1000
 
     for index_text_weight in index_text_weights:

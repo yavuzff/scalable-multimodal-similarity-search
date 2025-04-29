@@ -56,6 +56,31 @@ def get_params():
 
     return Params(MODALITIES, DIMENSIONS, DISTANCE_METRICS, WEIGHTS, dataset, INDEX_SIZE, K, query_ids)
 
+def get_params_4_modality():
+    """
+    Get the parameters for the exact index setup.
+    """
+    text_vectors_all, image_vectors_all, audio_vectors_all, video_vectors_all = load_4_modality_dataset()
+
+    dataset = [text_vectors_all, image_vectors_all, audio_vectors_all, video_vectors_all]
+
+    INDEX_SIZE = 9000
+
+    MODALITIES = 4
+    DIMENSIONS = [text_vectors_all.shape[1], image_vectors_all.shape[1], audio_vectors_all.shape[1], video_vectors_all.shape[1]]
+    DISTANCE_METRICS = ["cosine", "cosine", "cosine", "cosine"]
+    WEIGHTS = [0.25, 0.25, 0.25, 0.25]
+
+    K = 10
+
+    NUM_QUERY_ENTITIES = 100
+
+    # set query_ids to last NUM_QUERY_ENTITIES
+    query_ids = list(range(len(dataset[0]) - NUM_QUERY_ENTITIES, len(dataset[0])))
+
+    return Params(MODALITIES, DIMENSIONS, DISTANCE_METRICS, WEIGHTS, dataset, INDEX_SIZE, K, query_ids)
+
+
 def get_search_params(params: Params):
     """
     Get the parameters for the HNSW index search.
@@ -68,9 +93,9 @@ def get_construction_params():
     """
     Get the parameters for the HNSW index construction.
     """
-    TARGET_DEGREE = 32
-    MAX_DEGREE = 64
-    EF_CONSTRUCTION = 20
+    TARGET_DEGREE = 16
+    MAX_DEGREE = 16
+    EF_CONSTRUCTION = 100
     SEED = 2
 
     return MultiVecHNSWConstructionParams(TARGET_DEGREE, MAX_DEGREE, EF_CONSTRUCTION, SEED)
