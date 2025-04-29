@@ -1,5 +1,5 @@
 import numpy as np
-from src.common.load_dataset import load_dataset
+from src.common.load_dataset import load_dataset, load_4_modality_dataset
 
 class Params:
     def __init__(self, modalities: int, dimensions: list[int], metrics: list[str], weights: list[float],

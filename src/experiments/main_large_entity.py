@@ -3,7 +3,7 @@ import numpy as np
 import random
 import time
 
-from src.common.load_dataset import load_dataset
+from src.common.load_dataset import load_4_modality_dataset
 from src.experiments.evaluation import IndexEvaluator, compute_exact_results, evaluate_index_construction, \
     evaluate_index_search, load_multivec_index_from_params, SEARCH_WEIGHTS_DIR, sanitise_path_string
 from src.experiments.evaluation_params import Params, MultiVecHNSWConstructionParams, get_params_4_modality, get_search_params
@@ -19,17 +19,6 @@ from src.experiments.weights_experiments import evaluate_weighted_search_on_inde
 - 3D plot for weights and recall
 """
 
-LARGE_ENTITY_DATASET_ENTITY_COUNT = 20000 #150, 20000
-LARGE_ENTITY_BASE_PATH = f"/Users/yavuz/data/LAION-{LARGE_ENTITY_DATASET_ENTITY_COUNT}-4-modalities/"
-
-LARGE_ENTITY_METADATA_PATH = LARGE_ENTITY_BASE_PATH + "metadata-4-modalities.parquet"
-LARGE_ENTITY_VECTOR_PATH = LARGE_ENTITY_BASE_PATH + "vectors-4-modalities/"
-
-LARGE_ENTITY_TEXT_VECTORS_PATH = LARGE_ENTITY_VECTOR_PATH + "text_vectors.npy"
-LARGE_ENTITY_IMAGE_VECTORS_PATH = LARGE_ENTITY_VECTOR_PATH + "image_vectors.npy"
-LARGE_ENTITY_AUDIO_VECTORS_PATH = LARGE_ENTITY_VECTOR_PATH + "audio_vectors.npy"
-LARGE_ENTITY_VIDEO_VECTORS_PATH = LARGE_ENTITY_VECTOR_PATH + "video_vectors.npy"
-
 
 def get_index_and_query_vectors(all_vectors, num_indexed_entities, num_query_entities):
     """
@@ -41,12 +30,6 @@ def get_index_and_query_vectors(all_vectors, num_indexed_entities, num_query_ent
     query_vectors = all_vectors[-num_query_entities:]
     return index_vectors, query_vectors
 
-def load_4_modality_dataset():
-    text_vectors_all = np.load(LARGE_ENTITY_TEXT_VECTORS_PATH)
-    image_vectors_all = np.load(LARGE_ENTITY_IMAGE_VECTORS_PATH)
-    audio_vectors_all = np.load(LARGE_ENTITY_AUDIO_VECTORS_PATH)
-    video_vectors_all = np.load(LARGE_ENTITY_VIDEO_VECTORS_PATH)
-    return text_vectors_all, image_vectors_all, audio_vectors_all, video_vectors_all
 
 def main():
     # load dataset
@@ -163,14 +146,18 @@ def generate_random_weights(n_samples):
         w4 = 1.0 - random_values[2]
         weights.append([w1, w2, w3, w4])
 
-    return np.array(weights)
+    # normalise weights
+    weights = np.array(weights)
+    weights = weights / np.sum(weights, axis=1, keepdims=True)
+
+    return weights
 
 if __name__ == "__main__":
     #main()
 
     params = get_params_4_modality()
     construction_params = MultiVecHNSWConstructionParams(4, 8, 50, 400)
-    index_weights =[[0.25, 0.25, 0.25, 0.25]]
+    index_weights =[[0, 0, 0, 0.25]]
     normalise = True
     index, index_path = evaluate_index_construction(params, construction_params, save_index=True, normalised=normalise)
 
