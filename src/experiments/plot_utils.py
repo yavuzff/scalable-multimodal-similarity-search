@@ -3,6 +3,7 @@ from src.experiments.evaluation import sanitise_path_string
 import os
 import numpy as np
 from scipy import stats
+from collections import defaultdict
 
 
 def get_construction_folder(params: Params, path_connector_symbol=":"):
@@ -63,3 +64,51 @@ def get_latest_experiment_folder(folder, prev_experiment_index=1):
     subfolders.sort()
     data_folder = subfolders[-prev_experiment_index]
     return data_folder
+
+
+def get_search_weights_data(params, construction_params, base_folder, prev_experiment_folder=1, bracket_split_char="-", modalities=2, prev_index_folder=1):
+    folder = base_folder + get_construction_folder(params, bracket_split_char) + get_hnsw_construction_params_folder(construction_params, bracket_split_char)
+    index_folder = get_latest_experiment_folder(folder, prev_index_folder)
+    print(f"Loaded {index_folder}")
+
+    exps_folder = os.path.join(folder, index_folder)
+    exp_folder = os.path.join(folder, index_folder, get_latest_experiment_folder(exps_folder, prev_experiment_folder))
+
+    search_weights_folders = os.listdir(exp_folder)
+
+    search_weights_data = defaultdict(lambda: defaultdict(list)) # text_weight -> ef -> recall
+    # or if 4 modalities then (w1, w2, w3, w4) -> ef -> recall
+
+    for search_weights_folder in search_weights_folders:
+        if search_weights_folder.startswith("."):
+            continue
+
+        search_weights = search_weights_folder.split(bracket_split_char)[1]
+
+        if modalities == 2:
+            text_weight = float(search_weights.split(",")[0])
+        elif modalities == 4:
+            weights = tuple(float(w) for w in search_weights.split(","))
+
+        for ef_folder in os.listdir(exp_folder + "/" + search_weights_folder):
+            if ef_folder.startswith("."):
+                continue
+            stats = ef_folder.split("_")
+            k = int(stats[0])
+            ef = int(stats[1])
+
+            if ef >=k:
+                # load results.npz file
+                results = np.load(os.path.join(exp_folder, search_weights_folder, ef_folder, "results.npz"))
+                # results contains recall_scores, ef_search
+                assert ef == results["ef_search"]
+                if modalities == 2:
+                    search_weights_data[text_weight][ef].append(results["recall_scores"])
+                elif modalities == 4:
+                    search_weights_data[weights][ef].append(results["recall_scores"])
+
+    if modalities == 2:
+        print(f"Read values for k={k} for dataset size {params.index_size} for {len(search_weights_data[text_weight])} ef values")
+    else:
+        print(f"Read values for k={k} for dataset size {params.index_size} for {len(search_weights_data[weights])} ef values")
+    return search_weights_data, k
