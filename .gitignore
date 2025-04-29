@@ -54,6 +54,9 @@ experiments/exact_results/
 experiments/rerank_construction/
 experiments/rerank_search/
 experiments/search/
+experiments/saved_index
+experiments/search_weights_exps
+experiments/stats-experiments
 
 # profiling results
 fil-result/
@@ -65,6 +68,3 @@ data/*.zip
 
 # ignore logs
 logs/*.log
-
-# experiments
-experiments/
