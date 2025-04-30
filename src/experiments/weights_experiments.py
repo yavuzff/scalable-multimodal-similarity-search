@@ -132,8 +132,8 @@ def normalise_dataset(dataset):
 
 def evaluate_index_weights_recall():
     index_text_weights = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
-    normalised_dataset = True
-    metrics = ["manhattan", "euclidean"]
+    normalised_dataset = False
+    metrics = ["cosine", "cosine"]
     num_query_entities = 1000
 
     for index_text_weight in index_text_weights:
@@ -147,7 +147,7 @@ def evaluate_index_weights_recall():
         construction_params.target_degree = 16
         construction_params.max_degree = 16
         construction_params.ef_construction = 100
-        construction_params.seed = 60
+        construction_params.seed = 50
 
         params.k = 50
         ef_search_range = range(50, 260, 10)
