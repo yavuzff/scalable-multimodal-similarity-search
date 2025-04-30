@@ -84,10 +84,9 @@ def get_search_weights_data(params, construction_params, base_folder, prev_exper
             continue
 
         search_weights = search_weights_folder.split(bracket_split_char)[1]
-
         if modalities == 2:
             text_weight = float(search_weights.split(",")[0])
-        elif modalities == 4:
+        else:
             weights = tuple(float(w) for w in search_weights.split(","))
 
         for ef_folder in os.listdir(exp_folder + "/" + search_weights_folder):
@@ -104,7 +103,7 @@ def get_search_weights_data(params, construction_params, base_folder, prev_exper
                 assert ef == results["ef_search"]
                 if modalities == 2:
                     search_weights_data[text_weight][ef].append(results["recall_scores"])
-                elif modalities == 4:
+                else:
                     search_weights_data[weights][ef].append(results["recall_scores"])
 
     if modalities == 2:
