@@ -144,7 +144,7 @@ def evaluate_index_construction(p: Params, specific_params: MultiVecHNSWConstruc
         index_save_file = index_save_folder + "index-" + current_time + ".dat"
         multivec_hnsw.save(index_save_file)
 
-    print(f"Constructed index in {total_time} seconds. Saved to {save_file}")
+    print(f"Constructed index in {total_time} seconds. Stats saved to {save_file}")
 
     return multivec_hnsw, save_file
 

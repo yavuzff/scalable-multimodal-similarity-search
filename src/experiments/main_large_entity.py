@@ -178,8 +178,22 @@ def search_weights_exp_3_modalities():
 
     evaluate_weights_experiments_4_modality(params, construction_params, index_size=9000, ef_search_range=range(10,105,5), search_weight_tuples=search_weight_tuples, normalised_dataset=normalise, print_results=False)
 
+def construct_various_4_modality_indexes():
+    params = get_params_4_modality()
+    construction_params = MultiVecHNSWConstructionParams(4, 8, 50, 400)
+    normalise = True
+
+    for metrics in [["cosine", "cosine", "cosine", "cosine"], ["cosine", "manhattan", "euclidean", "cosine"], ["euclidean", "manhattan", "euclidean", "manhattan"]]:
+        for index_weights in [[0.25, 0.25, 0.25, 0.25], [0.2, 0.5, 0.1, 0.3], [0.1, 0.1, 0.1, 0.7]]:
+            params.metrics = metrics
+            params.weights = index_weights
+            index, index_path = evaluate_index_construction(params, construction_params, save_index=False, normalised=normalise)
+            print(f"Index stats for weights {index_weights} and metrics {metrics} saved to {index_path}")
+
 
 if __name__ == "__main__":
     #main()
 
-    search_weights_exp_3_modalities()
+    #search_weights_exp_3_modalities()
+
+    construct_various_4_modality_indexes()
