@@ -111,3 +111,11 @@ def get_search_weights_data(params, construction_params, base_folder, prev_exper
     else:
         print(f"Read values for k={k} for dataset size {params.index_size} for {len(search_weights_data[weights])} ef values")
     return search_weights_data, k
+
+
+def get_construction_stats(params, construction_params, base_folder, bracket_split_char="-", normalised=""):
+    folder = base_folder + "construction/" + normalised + get_construction_folder(params, bracket_split_char) + get_hnsw_construction_params_folder(construction_params, bracket_split_char)
+    data_file = get_latest_experiment_folder(folder)
+    # load data file .npz
+    data = np.load(os.path.join(folder, data_file))
+    return data
