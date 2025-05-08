@@ -8,7 +8,7 @@ from multivec_index import ExactMultiVecIndex, MultiVecHNSW
 from src.experiments.evaluation_params import Params, MultiVecHNSWConstructionParams, MultiVecHNSWSearchParams
 from src.common.load_dataset import load_dataset
 
-EXPERIMENTS_DIR = "experiments/stats-experiments/"
+EXPERIMENTS_DIR = "experiments/"
 PATH_CONNECTOR_SYMBOL = "-" # or ":". This is used to replace [ or ] symbols in path string.
 
 EXACT_RESULTS_DIR = EXPERIMENTS_DIR + "exact_results/"
@@ -95,19 +95,20 @@ def load_multivec_index_from_params(params: Params, construction_params: MultiVe
     return loaded_index, index_file
 
 
-def evaluate_index_construction(p: Params, specific_params: MultiVecHNSWConstructionParams, save_index=True, shuffle=False, normalised=False):
+def evaluate_index_construction(p: Params, specific_params: MultiVecHNSWConstructionParams, save_index=True, shuffle=False, normalised=False, lazy=True):
     """
     Construct an index with the given parameters and save the time it took to construct it to a file.
     """
     index_string = sanitise_path_string(f"{p.modalities}_{p.dimensions}_{p.metrics}_{p.weights}_{p.index_size}/") + \
                    f"{specific_params.target_degree}_{specific_params.max_degree}_{specific_params.ef_construction}_{specific_params.seed}/"
-
+    save_folder_suffix = ""
     if normalised:
-        save_folder = CONSTRUCTION_DIR + "normalised/" + index_string
-        index_save_folder = SAVED_INDEX_DIR + "normalised/" + index_string
-    else:
-        save_folder = CONSTRUCTION_DIR + index_string
-        index_save_folder = SAVED_INDEX_DIR + index_string
+        save_folder_suffix += "normalised/"
+    if not lazy:
+        save_folder_suffix += "nolazy/"
+
+    save_folder = CONSTRUCTION_DIR + save_folder_suffix + index_string
+    index_save_folder = SAVED_INDEX_DIR + save_folder_suffix + index_string
 
     current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f")[:-3]  # get up to millisecond
 
@@ -200,7 +201,7 @@ def demonstrate_returning_less_than_k_results():
     # for some query points, we might not actually traverse enough nodes to find k neighbours
     # the below demonstrates an example for degree=16, efConstruction=100, k=50
 
-    from src.main import get_params, get_construction_params, get_search_params
+    from src.experiments.main import get_params, get_construction_params, get_search_params
 
     params = get_params()
     construction_params = get_construction_params()

@@ -215,7 +215,7 @@ def evaluate_rerank_hnsw(index_sizes, experiment_seed, experiment_construction_p
 
         time.sleep(index_size/5000) # sleep to avoid overloading the system
 
-def evaluate_weighted_and_tracked_index_building(params, index_size, seeds, save_index=True, shuffle=False, normalise=False):
+def evaluate_weighted_and_tracked_index_building(params, index_size, seeds, save_index=True, shuffle=False, normalise=False, lazy=True):
     text_weights = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 
     params.index_size = index_size
@@ -231,8 +231,8 @@ def evaluate_weighted_and_tracked_index_building(params, index_size, seeds, save
             params.weights = [text_weight, round(1 - text_weight, 5)]
             print(f"Running weights experiments for dataset size, seed, search weights: {params.index_size}, {construction_params.seed} {params.weights}")
 
-            index, index_path = evaluate_index_construction(params, construction_params, save_index=save_index, shuffle=shuffle, normalised=normalise)
-            time.sleep(index_size/10000)
+            index, index_path = evaluate_index_construction(params, construction_params, save_index=save_index, shuffle=shuffle, normalised=normalise, lazy=lazy)
+            time.sleep(index_size/20000)
 
 
 if __name__ == "__main__":
@@ -252,18 +252,37 @@ if __name__ == "__main__":
 
     # weighted index construction experiments
     index_size = 1_000_000
-    #seeds = [60, 61]
-    seeds = [60]
+
+    # experiments with tracking stats, reordering, lazy distance
+    #seeds = [60, 61] + [100,101] + [102,103]
     params = get_params()
     params.index_size = index_size
 
-    # next: for 10k normalise the vectors then index ?
+    #params.metrics = ["cosine", "cosine"]  #for random shuffle tests: ["cosine", "cosine"], and ["cosine", "euclidean"]
+    #evaluate_weighted_and_tracked_index_building(params, index_size, seeds, save_index=False, normalise=False, shuffle=True)
 
+    # experiments - with no lazy distance, no stats tracking, no reordering
+    #seeds = [102,103, 101]
+    #params.metrics = ["manhattan", "cosine"]
+    #evaluate_weighted_and_tracked_index_building(params, index_size, seeds, lazy=False, save_index=False, normalise=True, shuffle=True)
+
+    #seeds = [101]
+    #params.metrics = ["cosine", "cosine"]
+    #evaluate_weighted_and_tracked_index_building(params, index_size, seeds, lazy=False, save_index=False, normalise=True, shuffle=True)
+
+    #seeds = [102] + [101,103] + [104,105] + [106,107]
+    #params.metrics = ["euclidean", "manhattan"]
+    #evaluate_weighted_and_tracked_index_building(params, index_size, seeds, lazy=False, save_index=False, normalise=True, shuffle=True)
+
+    # experiments - with lazy distance and reordering, no stats tracking
+    #seeds = [102,103,101]
+    #params.metrics = ["manhattan", "cosine"]
+    #evaluate_weighted_and_tracked_index_building(params, index_size, seeds, lazy=True, save_index=False, normalise=True, shuffle=True)
+
+    #seeds = [101]
+    #params.metrics = ["cosine", "cosine"]
+    #evaluate_weighted_and_tracked_index_building(params, index_size, seeds, lazy=True, save_index=False, normalise=True, shuffle=True)
+
+    seeds = [101,102,103]
     params.metrics = ["euclidean", "manhattan"]
-    evaluate_weighted_and_tracked_index_building(params, index_size, seeds, save_index=True, normalise=True)
-
-    params.metrics = ["manhattan", "manhattan"]
-    evaluate_weighted_and_tracked_index_building(params, index_size, seeds, save_index=True, normalise=True)
-
-    #random shuffle tests: params.metrics = ["cosine", "cosine"], and ["cosine", "euclidean"]
-    #evaluate_weighted_and_tracked_index_building(params, index_size, [71], save_index=False, shuffle=True)
+    evaluate_weighted_and_tracked_index_building(params, index_size, seeds, lazy=True, save_index=False, normalise=True, shuffle=True)
