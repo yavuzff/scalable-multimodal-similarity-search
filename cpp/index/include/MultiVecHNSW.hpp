@@ -6,7 +6,7 @@
 
 #include "AbstractMultiVecIndex.hpp"
 
-constexpr bool TRACK_STATS = true;
+constexpr bool TRACK_STATS = false;
 constexpr bool USE_LAZY_DISTANCE = true;
 constexpr bool REORDER_MODALITY_VECTORS = true; // reordering should be turned on only when USE_LAZY_DISTANCE is true
 
