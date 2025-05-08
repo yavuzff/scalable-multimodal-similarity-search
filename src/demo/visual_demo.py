@@ -97,7 +97,7 @@ index_wrapper = IndexWrapper()
 
 # main interface
 with gr.Blocks(title="Multimodal Similarity Search Demo") as demo:
-    gr.Markdown("# Demonstration of the Multimodal Similarity Search Framework")
+    gr.Markdown("# Multimodal Similarity Search Demonstration")
 
     # build index section
     with gr.Tab("Build Multimodal Index"):
@@ -207,4 +207,4 @@ with gr.Blocks(title="Multimodal Similarity Search Demo") as demo:
                                 search_text_weight_slider],
                         outputs=outputs)
 
-demo.launch()
+demo.launch(share=False)

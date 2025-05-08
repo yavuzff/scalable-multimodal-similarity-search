@@ -68,3 +68,6 @@ data/*.zip
 
 # ignore logs
 logs/*.log
+
+# ignore gradio
+.gradio/**

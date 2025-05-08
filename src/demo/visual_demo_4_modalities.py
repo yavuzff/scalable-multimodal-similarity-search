@@ -178,7 +178,7 @@ index_wrapper = LargeEntityIndexWrapper()
 
 # main interface
 with gr.Blocks(title="Multimodal Similarity Search Demo") as demo:
-    gr.Markdown("# Demonstration of the Multimodal Similarity Search Framework")
+    gr.Markdown("# Multimodal Similarity Search Demonstration")
 
     # build index section
     with gr.Tab("Build Multimodal Index"):
@@ -186,7 +186,7 @@ with gr.Blocks(title="Multimodal Similarity Search Demo") as demo:
         with gr.Row():
             dataset_folder_input = gr.Textbox(label="Dataset Folder Path",
                                               placeholder="Enter the path to your dataset folder")
-            dataset_folder_input.value = "/Users/yavuz/data/LAION-150-4-modalities"
+            dataset_folder_input.value = "/Users/yavuz/data/LAION-20000-4-modalities"
             index_type = gr.Dropdown(label="Index Type", choices=["ExactMultiVecIndex", "MultiVecHNSW"],
                                      value="ExactMultiVecIndex")
 
@@ -326,4 +326,4 @@ with gr.Blocks(title="Multimodal Similarity Search Demo") as demo:
                                 search_video_weight_slider],
                         outputs=outputs)
 
-demo.launch(allowed_paths=[ACCESSIBLE_DATA_PATH])
+demo.launch(allowed_paths=[ACCESSIBLE_DATA_PATH], share=False)
