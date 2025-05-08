@@ -40,9 +40,34 @@
 # Python files
 **/__pycache__/
 *.venv/**
+**/*.pyc
 
 # cpp folders
 cpp/build/
-cpp/cmake_example.egg-info/
+cpp/multivec_cpp_index.egg-info/
 cpp/dist/
 cpp/cmake-build-debug/
+
+# experiments
+experiments/construction/
+experiments/exact_results/
+experiments/rerank_construction/
+experiments/rerank_search/
+experiments/search/
+experiments/saved_index
+experiments/search_weights_exps
+experiments/stats-experiments
+
+# profiling results
+fil-result/
+
+# ignore big data dirs and files
+data/LAION-*
+data/*.parquet
+data/*.zip
+
+# ignore logs
+logs/*.log
+
+# ignore gradio
+.gradio/**

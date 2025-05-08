@@ -1,0 +1,1 @@
+This directory stores experiment results, where the folder names indicate the parameters for the experiments. Files store the time taken to construct/search an index, the recall of searches, and exact search results

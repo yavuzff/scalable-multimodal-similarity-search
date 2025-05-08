@@ -27,6 +27,13 @@ docker run -it --rm \
     scalable-multimodal-similarity-search
 ```
 
+e.g. to edit cpp source code in IDE:
+```
+docker run -it --rm \
+    -v /Users/yavuz/data/:/Users/yavuz/data -v ./cpp/include/:/scalable-multimodal-similarity-search/cpp/include/ -v ./cpp/index/:/scalable-multimodal-similarity-search/cpp/index/ -v ./cpp/tests/:/scalable-multimodal-similarity-search/cpp/tests/ \
+    scalable-multimodal-similarity-search
+```
+
 #### Local:
 
 Follow these steps to set up the environment locally (involving venv, Cmake, conda, pybind):
@@ -43,6 +50,10 @@ pip install -r requirements.txt
    1. Install CMake version >3.29 (e.g., using Homebrew): 
    ```
    brew install cmake
+   ```
+   2. Install catch2 (v3) for testing (e.g., using Homebrew):
+   ```
+   brew install catch2
    ```
    2. Setup pybind11 (using Conda):
       1. Ensure conda is installed, e.g. [miniconda](https://docs.anaconda.com/miniconda/#quick-command-line-install).
@@ -66,8 +77,8 @@ cd cpp
 
 2. Build the project using CMake:
 ```
-cmake -S . -B cmake-build-debug
-cmake --build cmake-build-debug -j 6 --target cppindex
+cmake -S . -B cmake-build-debug -DCMAKE_BUILD_TYPE=Release
+cmake --build cmake-build-debug -j 6 --target multivec_index
 ```
 3. Install the Python bindings:
 ```
@@ -81,12 +92,12 @@ The C++ index can be imported and used within Python scripts.
 1. Import the index:
 
 ```
-from cppindex import ExactMultiIndex
+from multivec_index import ExactMultiVecIndex
 ```
 
 2. Initialise the index, e.g.:
 ```
-index = ExactMultiIndex(
+index = ExactMultiVecIndex(
     num_modalities=2,
     dimensions=[128, 64],
     distance_metrics=["euclidean", "cosine"],  # optional: distance metrics for each modality. Default: "euclidean"
@@ -125,6 +136,18 @@ python3 -m src.main
 fil-profile run -m src.main
 ```
 
+
+### Running the visual demonstration of the multimodal similarity search framework:
+1. Ensure you have a valid dataset prepared through src/dataset_processing.
+2. Run the following command from the project root:
+    ```
+    python3 -m src.demo.visual_demo
+    ```
+3. Enter dataset path, embedding models, weights and metrics to build the index.
+4. Search the index by selecting a query image and text, and k.
+
+Note: For 2 modality dataset (text, image), use `visual_demo.py`. For 4 modality dataset (text, image, audio, video), use `visual_demo_4_modalities.py`.
+
 ### Additional Information
 
 This section contains information on how to develop the project, generate datasets, and run tests.
@@ -134,7 +157,7 @@ To develop and test the C++ code:
 
 1. Build and run the C++ executable:
 ```
-cmake -S . -B cmake-build-debug
+cmake -S . -B cmake-build-debug -DCMAKE_BUILD_TYPE=Debug
 cmake --build cmake-build-debug -j 6 --target main
 ./cmake-build-debug/main
 ```
@@ -145,8 +168,11 @@ cmake --build cmake-build-debug -j 6 --target main
     - Run `python3 -m src.main` to test the changes.
 
 #### Dataset generation:
-- Used data_processing/dataset_preparation to download images and save image/metadata.
-- Used data_processing/embedding_generation to generate text and image vectors, saving them, and identifying placeholder images.
+- Run the scripts in `src/dataset_processing` to generate the dataset: 
+    - `data_download.py` to download the LAION dataset metadata and images.
+    - `embedding_generation.py` to generate vectors for the texts and images.
+    - `find_duplicates.py` to identify placeholder images in the dataset (which tend to be duplicated many times)
+- You can also use the notebooks in `notebooks/`.
 
 #### Testing:
 
@@ -155,4 +181,39 @@ To run the Python tests: `pytest -v tests` in `scalable-multimodal-similarity-se
 - Tests regarding datasets (test/data_processing):
     - test_dataset: validates the raw dataset of images and metadata is consistent
     - test_vector_dataset: validates the generated vectors are consistent with the dataset
-- Tests for the exact multi search C++ index are in `test_exact_multi_index_bindings.py`
+- Tests for the exact multi vector search C++ index are in `test_exact_multivec_index_bindings.py`
+- Tests for multi vector HNSW are in `test_multivec_hnsw_index.py`
+
+
+To run the C++ tests:
+
+1. Navigate to the cpp/ directory:
+```
+cd cpp
+```
+
+2. Build the CMake tests target:
+```
+cmake -S . -B cmake-build-debug -DCMAKE_BUILD_TYPE=Debug
+cmake --build cmake-build-debug -j 6 --target tests
+```
+3. Run the `tests` executable:
+```
+./cmake-build-debug/tests
+```
+
+**Using Valgrind in the Docker container:**
+```
+G_SLICE=always-malloc G_DEBUG=gc-friendly  valgrind -v --tool=memcheck --leak-check=full --num-callers=40 --log-file=valgrind.log $(which <program>) <arguments>
+```
+
+We can also use MSan and USan for memory and undefined behaviour checks - enable these in CMakeLists.txt.
+
+**Profiling with `gprof`:**
+
+1. Compile the code with -pg flag, set through `CMakeLists.txt`.
+2. Run the executable.
+3. Run `gprof` on the executable:
+   ```
+   gprof ./cmake-build-debug/performance gmon.out > analysis.txt
+   ```

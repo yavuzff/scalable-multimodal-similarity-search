@@ -5,6 +5,7 @@ logs/
 data/
 .idea/
 clean-and-rebind-module.sh
+run-docker.sh
 
 # mac-specific file
 **/.DS_Store
@@ -17,6 +18,6 @@ clean-and-rebind-module.sh
 
 # cpp stuff
 cpp/build/
-cpp/cmake_example.egg-info/
+cpp/multivec_cpp_index.egg-info/
 cpp/cmake-build-debug/
 cpp/dist/
