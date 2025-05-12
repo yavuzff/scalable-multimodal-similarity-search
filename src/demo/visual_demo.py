@@ -89,7 +89,7 @@ class IndexWrapper:
             entity = (entity_id, load_image(entity_id, images_path), self.dataset_metadata["TEXT"][entity_id])
             entity_results.append(entity)
 
-        return f"Search completed successfully. Returned {len(ids)} entities.", entity_results
+        return f"Embeddings generated and search completed successfully. Returned {len(ids)} entities.", entity_results
 
 
 # initialise the index wrapper that will be used through the demo
@@ -101,24 +101,28 @@ with gr.Blocks(title="Multimodal Similarity Search Demo") as demo:
 
     # build index section
     with gr.Tab("Build Multimodal Index"):
-        gr.Markdown("### Build the index from your dataset folder")
+        gr.Markdown("### Build index from your dataset")
         with gr.Row():
-            dataset_folder_input = gr.Textbox(label="Dataset Folder Path",
-                                              placeholder="Enter the path to your dataset folder")
+            dataset_folder_input = gr.Textbox(label="Dataset Path",
+                                              placeholder="Enter the path to your dataset")
             dataset_folder_input.value = "/Users/yavuz/data/LAION-20000"
             index_type = gr.Dropdown(label="Index Type", choices=["ExactMultiVecIndex", "MultiVecHNSW"],
                                      value="ExactMultiVecIndex")
 
         with gr.Row():
             image_embedding_model = gr.Textbox(label="Image Embedding Model",
-                                               value="google/vit-base-patch16-224-in21k")
+                                               placeholder="Enter HuggingFace model name",
+                                               value="google/vit-base-patch16-224-in21k"
+                                               )
             image_weight_slider = gr.Slider(0, 1, value=0.5, label="Image Weight")
             image_metric = gr.Dropdown(label="Image Metric", choices=["cosine", "Euclidean", "Manhattan"],
                                        value="cosine")
 
         with gr.Row():
             text_embedding_model = gr.Textbox(label="Text Embedding Model",
-                                              value="BAAI/bge-small-en-v1.5")
+                                              placeholder="Enter HuggingFace model name",
+                                              value="BAAI/bge-small-en-v1.5"
+                                              )
             text_weight_slider = gr.Slider(0, 1, value=0.5, label="Text Weight")
             text_metric = gr.Dropdown(label="Text Metric", choices=["cosine", "Euclidean", "Manhattan"], value="cosine")
 
