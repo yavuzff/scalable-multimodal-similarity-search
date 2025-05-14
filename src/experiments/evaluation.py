@@ -8,7 +8,7 @@ from multivec_index import ExactMultiVecIndex, MultiVecHNSW
 from src.experiments.evaluation_params import Params, MultiVecHNSWConstructionParams, MultiVecHNSWSearchParams
 from src.common.load_dataset import load_dataset
 
-EXPERIMENTS_DIR = "experiments/"
+EXPERIMENTS_DIR = "experiment-results/"
 PATH_CONNECTOR_SYMBOL = "-" # or ":". This is used to replace [ or ] symbols in path string.
 
 EXACT_RESULTS_DIR = EXPERIMENTS_DIR + "exact_results/"
