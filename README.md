@@ -3,7 +3,7 @@
 This project has been developed as part of a dissertation for the Part II Computer Science course at the University of Cambridge. 
 It provides a multimodal similarity search framework for entities consisting of multiple modalities (e.g., text, image, audio and video).
 A C++ multi-vector indexing library is provided for efficient indexing and searching, with Python bindings exposing it as a Python module.
-The library can be used standalone, or as part of a larger framework, which we provide visual demonstrations for.
+The library can be used standalone or as part of a larger framework, for which we provide visual demonstrations.
 
 
 ## Prerequisites
@@ -21,7 +21,7 @@ open -a Docker
 ```
 docker build --platform linux/amd64 -t scalable-multimodal-similarity-search . 
 ```
-3. Run the container (optionally mounting data directories, and the repository directory using argument `-v $(pwd):/scalable-multimodal-similarity-search`):
+3. Run the container (optionally mounting data directories and the repository directory using argument `-v $(pwd):/scalable-multimodal-similarity-search`):
 
 ```
 docker run -it --rm \
@@ -38,7 +38,7 @@ docker run -it --rm \
 
 ### Local:
 
-Follow these steps to set up the environment locally (involving venv, Cmake, conda, pybind):
+Follow these steps to set up the environment locally (involving venv, CMake, conda, pybind):
 
 1. Ensure Python 3.11 is installed, and create a virtual environment with the required libraries:
 ```bash
@@ -89,11 +89,9 @@ python3 pybinding/setup.py install
 
 ## Using the C++ library in Python:
 
-The C++ library consists of ExactMultiVecIndex and MultiVecHNSW, where to former is a sequntial scan based exact approach, and the latter is a multi-vector adaptation of the HNSW index by Malkov and Yashunin (2020).  
-The library can be imported and used within Python scripts.
+The C++ library consists of ExactMultiVecIndex (sequential scan based exact approach) and MultiVecHNSW (a multi-vector adaptation of the HNSW index by Malkov and Yashunin (2020)). The library can be imported and used within Python scripts.
 
 1. Import the index:
-
 ```
 from multivec_index import MultiVecHNSW
 ```
@@ -107,6 +105,7 @@ index = MultiVecHNSW(
     weights=[0.3, 0.7]  # optional: Weights for each modality. Default: uniform weights.
 )
 ```
+
 3. Add items to the index:
 ```
 # Example: adding 3 entities to an index with 2 modalities
@@ -144,7 +143,7 @@ python3 -m src.experiments.main
 3. Enter dataset path, embedding models, weights and metrics to build the index.
 4. Search the index by selecting a query image and text, and k.
 
-Note: For a 2 modality dataset (text, image), use `visual_demo.py`. For a 4 modality dataset (text, image, audio, video), use `visual_demo_4_modalities.py`.
+Note: For a 2-modality dataset (text, image), use `visual_demo.py`. For a 4-modality dataset (text, image, audio, video), use `visual_demo_4_modalities.py`.
 
 
 ## Licensing
@@ -185,8 +184,8 @@ To run the Python tests: `pytest -v tests` in `scalable-multimodal-similarity-se
 - Tests regarding datasets (test/data_processing):
     - test_dataset: validates the raw dataset of images and metadata is consistent
     - test_vector_dataset: validates the generated vectors are consistent with the dataset
-- Tests for the exact multi vector search C++ index are in `test_exact_multivec_index_bindings.py`
-- Tests for multi vector HNSW are in `test_multivec_hnsw_index.py`
+- Tests for the exact multi-vector search C++ index are in `test_exact_multivec_index_bindings.py`
+- Tests for multi-vector HNSW are in `test_multivec_hnsw_index.py`
 
 
 To run the C++ tests:
