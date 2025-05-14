@@ -1,3 +1,7 @@
+"""
+This file contains utility functions for analysing and plotting experiment results.
+"""
+
 from src.experiments.evaluation_params import Params, MultiVecHNSWConstructionParams, MultiVecHNSWSearchParams
 from src.experiments.evaluation import sanitise_path_string
 import os
@@ -124,6 +128,48 @@ def get_search_times_and_query_ids(params, construction_params, num_entities, se
 
     return search_times, recall_achieving_ef, query_ids_dict
 
+
+def read_construction_times_with_baseline(params, specific_construction_params, num_entities, construction_dir, rerank_construction_dir):
+    hnsw_construction_times = defaultdict(list)
+    rerank_construction_times = defaultdict(list)
+
+    for num_entity in num_entities:
+        params.index_size = num_entity
+
+        # MultiVecHNSW
+        construction_folder = construction_dir + get_construction_folder(params) + get_hnsw_construction_params_folder(
+            specific_construction_params)
+
+        data_file = get_latest_experiment_file(construction_folder)
+
+        # load the .npz file
+        data = np.load(os.path.join(construction_folder, data_file))["time"]
+
+        # get the time
+        hnsw_construction_times[num_entity].append(data[0])
+
+        # HNSWRerank
+        rerank_construction_folder = rerank_construction_dir + get_construction_folder(
+            params) + get_hnsw_construction_params_folder(specific_construction_params)
+
+        rerank_data_file = get_latest_experiment_file(rerank_construction_folder)
+
+        rerank_indexes_times = np.load(os.path.join(rerank_construction_folder, rerank_data_file))["time"]
+        rerank_construction_times[num_entity].append(sum(rerank_indexes_times))
+
+    return hnsw_construction_times, rerank_construction_times
+
+
+def get_gb_size_given_num_vectors(params, num_entity):
+    total_dimensions = sum(params.dimensions)
+    single_entity_size = total_dimensions * 4 # 4 bytes per vector
+    return single_entity_size * num_entity / 10**9
+
+def convert_to_GB(sizes_dict):
+    sizes_dict_new = {}
+    for num_entity in sizes_dict:
+        sizes_dict_new[num_entity] = [x / 10**9 for x in sizes_dict[num_entity]]
+    return sizes_dict_new
 
 def get_index_sizes(params, specific_construction_params, num_entities, saved_index_dir):
     index_sizes = defaultdict(list)

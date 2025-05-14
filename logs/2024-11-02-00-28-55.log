@@ -1,6 +1,0 @@
-2024-11-02 00:28:56,216 INFO     Loading model BAAI/bge-small-en-v1.5...
-2024-11-02 00:28:56,250 INFO     Use pytorch device_name: cpu
-2024-11-02 00:28:56,251 INFO     Load pretrained SentenceTransformer: BAAI/bge-small-en-v1.5
-2024-11-02 00:28:58,081 INFO     Loaded BAAI/bge-small-en-v1.5
-2024-11-02 00:28:58,083 INFO     Generating 12788 embeddings...
-2024-11-02 00:30:34,301 INFO     Done
