@@ -1,17 +1,19 @@
 # scalable-multimodal-similarity-search
 
-This project is being developed for the Part II Computer Science course at the University of Cambridge. 
-It provides a multimodal similarity search system in C++ for efficient indexing and searching, with Python bindings exposing it as a Python module.
+This project has been developed as part of a dissertation for the Part II Computer Science course at the University of Cambridge. 
+It provides a multimodal similarity search framework for entities consisting of multiple modalities (e.g., text, image, audio and video).
+A C++ multi-vector indexing library is provided for efficient indexing and searching, with Python bindings exposing it as a Python module.
+The library can be used standalone, or as part of a larger framework, which we provide visual demonstrations for.
 
 
-### Prerequisites
+## Prerequisites
 
 You can run the project using Docker (recommended) or set up the environment locally.
 
-#### Using Docker
+### Using Docker
 The project includes a Dockerfile to build an image with all required dependencies.
 
-1. Start Docker Desktop (on macOS):
+1. Start Docker Desktop. On macOS:
 ```
 open -a Docker
 ```
@@ -34,7 +36,7 @@ docker run -it --rm \
     scalable-multimodal-similarity-search
 ```
 
-#### Local:
+### Local:
 
 Follow these steps to set up the environment locally (involving venv, Cmake, conda, pybind):
 
@@ -67,7 +69,7 @@ pip install -r requirements.txt
         ```
 
     
-### Compile C++ code and setup Python bindings:
+## Compiling the C++ library and setting up Python bindings:
 To use the C++ index in Python, compile the code and set up the Python bindings:
 
 1. Navigate to the cpp/ directory:
@@ -85,19 +87,20 @@ cmake --build cmake-build-debug -j 6 --target multivec_index
 python3 pybinding/setup.py install
 ```
 
-### Using the C++ index through Python:
+## Using the C++ library in Python:
 
-The C++ index can be imported and used within Python scripts.
+The C++ library consists of ExactMultiVecIndex and MultiVecHNSW, where to former is a sequntial scan based exact approach, and the latter is a multi-vector adaptation of the HNSW index by Malkov and Yashunin (2020).  
+The library can be imported and used within Python scripts.
 
 1. Import the index:
 
 ```
-from multivec_index import ExactMultiVecIndex
+from multivec_index import MultiVecHNSW
 ```
 
 2. Initialise the index, e.g.:
 ```
-index = ExactMultiVecIndex(
+index = MultiVecHNSW(
     num_modalities=2,
     dimensions=[128, 64],
     distance_metrics=["euclidean", "cosine"],  # optional: distance metrics for each modality. Default: "euclidean"
@@ -126,18 +129,13 @@ print("Indices of nearest neighbors:", results)
 ```
 
 
-5. Example usage can be found in `src/main`. To run it, run the below command from the project root:
+5. Example usage can be found in `src/experiments/main`. To run it, run the below command from the project root:
 ```
-python3 -m src.main
-```
-
-6. For memory profiling that is not just on the C++ index, use `filprofiler`. From the project root, run:
-```
-fil-profile run -m src.main
+python3 -m src.experiments.main
 ```
 
 
-### Running the visual demonstration of the multimodal similarity search framework:
+## Running the visual demonstration of the multimodal similarity search framework:
 1. Ensure you have a valid dataset prepared through src/dataset_processing.
 2. Run the following command from the project root:
     ```
@@ -146,13 +144,19 @@ fil-profile run -m src.main
 3. Enter dataset path, embedding models, weights and metrics to build the index.
 4. Search the index by selecting a query image and text, and k.
 
-Note: For 2 modality dataset (text, image), use `visual_demo.py`. For 4 modality dataset (text, image, audio, video), use `visual_demo_4_modalities.py`.
+Note: For a 2 modality dataset (text, image), use `visual_demo.py`. For a 4 modality dataset (text, image, audio, video), use `visual_demo_4_modalities.py`.
 
-### Additional Information
+
+## Licensing
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+The licenses of the libraries used in this project are outlined in the [NOTICE](NOTICE) and included as required in the `LICENSES` directory.
+
+
+## Additional Information
 
 This section contains information on how to develop the project, generate datasets, and run tests.
 
-#### C++ development:
+### C++ development:
 To develop and test the C++ code:
 
 1. Build and run the C++ executable:
@@ -167,14 +171,14 @@ cmake --build cmake-build-debug -j 6 --target main
     - Run `sh clean-and-rebind-module.sh` to recompile the module. 
     - Run `python3 -m src.main` to test the changes.
 
-#### Dataset generation:
+### Dataset generation:
 - Run the scripts in `src/dataset_processing` to generate the dataset: 
     - `data_download.py` to download the LAION dataset metadata and images.
     - `embedding_generation.py` to generate vectors for the texts and images.
     - `find_duplicates.py` to identify placeholder images in the dataset (which tend to be duplicated many times)
 - You can also use the notebooks in `notebooks/`.
 
-#### Testing:
+### Testing:
 
 To run the Python tests: `pytest -v tests` in `scalable-multimodal-similarity-search/` 
 
@@ -217,3 +221,9 @@ We can also use MSan and USan for memory and undefined behaviour checks - enable
    ```
    gprof ./cmake-build-debug/performance gmon.out > analysis.txt
    ```
+   
+**Profiling with `perf`:**
+- For memory profiling that is not just on the C++ index, use `filprofiler`. From the project root, run:
+    ```
+    fil-profile run -m src.main
+    ```

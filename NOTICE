@@ -1,0 +1,29 @@
+This project uses the following open-source software, without modifying or redistributing it:
+
+accelerate  (Apache 2.0))
+albumentations (MIT)
+diffusers (Apache 2.0)
+filprofiler (Apache 2.0)
+gradio (Apache 2.0)
+img2dataset (MIT)
+matplotlib (PSF/BSD-style)
+numpy (BSD 3-Clause)
+openai (Apache 2.0)
+pandas (BSD 3-Clause)
+pillow (MIT)
+psutil (BSD 3-Clause)
+pyarrow (Apache 2.0)
+pytest (MIT)
+scipy (BSD 3-Clause)
+sentence-transformers (Apache 2.0)
+torch (BSD-style)
+torchaudio (BSD-style)
+transformers (Apache 2.0)
+tqdm (MIT/MPL 2.0)
+Catch2 (BSL 1.0)
+CNPY (MIT)
+Eigen (MPL 2.0)
+pybind11 (BSD 3-Clause)
+
+
+One exception to this is the setup.py file in pybinding/ which was adopted from the BSD 3-Clause licensed Pybind11 project, as recommended by them, for exporting C++ modules with existing CMake structure through pip install.
